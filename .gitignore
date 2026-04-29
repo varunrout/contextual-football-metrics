@@ -33,7 +33,6 @@ data/features/
 data/external/
 mlruns/
 outputs/
-reports/figures/
 *.parquet
 *.feather
 *.joblib
