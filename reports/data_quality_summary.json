@@ -1,0 +1,72 @@
+{
+  "n_rows": 615202,
+  "n_feature_cols": 140,
+  "total_missing_cells": 2819,
+  "overall_missing_rate": 0.0,
+  "coverage_360": {
+    "total_rows": 615202,
+    "overall_360_rate": 1.0
+  },
+  "event_type_counts": {
+    "pass": 177224,
+    "ball receipt*": 168054,
+    "carry": 141704,
+    "pressure": 47055,
+    "ball recovery": 14396,
+    "duel": 10803,
+    "clearance": 6819,
+    "block": 6148,
+    "goal keeper": 4922,
+    "dribble": 4549,
+    "foul committed": 4486,
+    "foul won": 4301,
+    "miscontrol": 4128,
+    "shot": 4123,
+    "interception": 3644,
+    "dispossessed": 3494,
+    "dribbled past": 2642,
+    "substitution": 1508,
+    "injury stoppage": 957,
+    "half end": 760,
+    "half start": 760,
+    "50/50": 585,
+    "tactical shift": 539,
+    "referee ball-drop": 404,
+    "starting xi": 332,
+    "shield": 214,
+    "player off": 168,
+    "player on": 167,
+    "bad behaviour": 128,
+    "error": 90,
+    "offside": 50,
+    "own goal for": 24,
+    "own goal against": 24
+  },
+  "feature_groups": {
+    "traditional": {
+      "n_features": 28,
+      "mean_missing_rate": 0.0
+    },
+    "freeze_frame": {
+      "n_features": 32,
+      "mean_missing_rate": 0.0
+    },
+    "opponent": {
+      "n_features": 16,
+      "mean_missing_rate": 0.0
+    },
+    "match_context": {
+      "n_features": 10,
+      "mean_missing_rate": 0.0
+    },
+    "sequence": {
+      "n_features": 18,
+      "mean_missing_rate": 0.0
+    }
+  },
+  "top_20_missing_features": {
+    "player_internal_id": 0.0046
+  },
+  "dtype_mismatches": [],
+  "n_dtype_mismatches": 0
+}

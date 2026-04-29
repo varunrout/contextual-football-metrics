@@ -1,0 +1,627 @@
+# Feature registry for the contextual football metric suite.
+#
+# Every feature consumed by any model must be declared here.
+# Downstream pipelines validate column names, dtypes, and missingness
+# policy against this file at build time.
+#
+# dtype values   : float32 | int8 | int16 | int32 | bool | category | str
+# missing_policy : drop_row | impute_median | impute_zero | impute_constant
+#                  | impute_mode | flag_and_zero (adds a has_{col} indicator)
+#                  | allowed (NaN is a valid value — routing handles it)
+# requires_360   : true → feature is unavailable without freeze-frame data
+
+# ────────────────────────────────────────────────────────────────────────────
+# A. Traditional action features
+# ────────────────────────────────────────────────────────────────────────────
+traditional:
+
+  # Location
+  - name: x_location
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Ball x-coordinate at event (0–105 m, origin bottom-left)"
+
+  - name: y_location
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Ball y-coordinate at event (0–68 m)"
+
+  - name: distance_to_goal
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Euclidean distance from ball to centre of goal (m)"
+
+  - name: shot_angle
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Angle subtended by goal posts from shot location (radians)"
+
+  # Shot specifics
+  - name: body_part
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "Head | Foot | Chest | No Touch"
+
+  - name: shot_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "Open Play | Free Kick | Corner | Penalty | Kick Off"
+
+  - name: first_time_shot
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: volley
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: header
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: open_play
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: set_piece_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "none | corner | free_kick | throw_in | kick_off | penalty"
+
+  - name: assist_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "pass | cross | cutback | through_ball | none"
+
+  # Pass features
+  - name: pass_length
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: pass_angle
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: progressive_distance
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Yards / metres gained toward goal by the pass"
+
+  - name: central_progression
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+    description: "True if pass ends in central corridor (y in 27–41 m)"
+
+  - name: box_entry
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: cross
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: cutback
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: through_ball
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: switch
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: pass_height
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "Ground Pass | Low Pass | High Pass"
+
+  - name: pass_body_part
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+  # Carry features
+  - name: carry_distance
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: carry_progressive_distance
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+
+  # Common
+  - name: under_pressure
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: event_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+  - name: open_play_or_set_piece
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+# ────────────────────────────────────────────────────────────────────────────
+# B. 360 freeze-frame features
+# ────────────────────────────────────────────────────────────────────────────
+freeze_frame:
+
+  - name: has_360
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Routing flag — always present; True only for 360 competitions"
+
+  - name: nearest_defender_distance
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: second_nearest_defender_distance
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_within_3m
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_within_5m
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_within_10m
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_between_ball_and_goal
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: teammates_ahead_of_ball
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: opponents_ahead_of_ball
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defensive_density_in_box
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "Defenders per 100 m² in penalty box area"
+
+  - name: defensive_density_central
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: keeper_distance_to_goal
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: keeper_distance_to_shooter
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: keeper_angle_coverage
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "Fraction of goal width covered by keeper from shooter's PoV"
+
+  - name: shot_lane_blockage_proxy
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "Defenders whose projection is within 1 m of straight shot line"
+
+  - name: visible_area_size
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "Area of StatsBomb visible polygon (m²); null if not provided"
+
+  # State-transition 360 features (CxT)
+  - name: defenders_between_ball_and_goal_before_action
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_between_ball_and_goal_after_action
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: pressure_before_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: pressure_after_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: central_access_before_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: central_access_after_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: box_access_before_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: box_access_after_action
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  # CxA receiver context
+  - name: nearest_defender_to_receiver
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defenders_between_receiver_and_goal
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: pressure_on_passer
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: pressure_on_receiver
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: passing_lane_blockage_proxy
+    dtype: int8
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: defensive_line_height
+    dtype: float32
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "x-coordinate of the last defender line (m)"
+
+  - name: receiver_inside_box
+    dtype: bool
+    missing_policy: flag_and_zero
+    requires_360: true
+
+  - name: receiver_in_half_space
+    dtype: bool
+    missing_policy: flag_and_zero
+    requires_360: true
+    description: "True if receiver is in channels y ∈ [18,27] or [41,50]"
+
+# ────────────────────────────────────────────────────────────────────────────
+# C. Opponent-adjustment features
+# ────────────────────────────────────────────────────────────────────────────
+opponent:
+
+  - name: opponent_xg_conceded_rolling_5
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "xG conceded per 90 over last 5 matches (pre-match only)"
+
+  - name: opponent_shots_conceded_rolling_5
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_box_entries_conceded_rolling_5
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_pressing_intensity
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "PPDA proxy from prior matches"
+
+  - name: opponent_defensive_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Composite defensive rating (xG conceded + shot conceded + pressing)"
+
+  - name: opponent_transition_defence_strength
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_set_piece_defence_strength
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_keeper_shot_stopping_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Post-shot xG minus goals allowed, rolling"
+
+  - name: opponent_team_elo
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Elo rating computed from match outcomes; seeded from external source"
+
+  - name: opponent_chance_suppression_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_box_defence_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_cross_defence_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_pressing_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_block_compactness_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_box_entry_prevention_rating
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+  - name: opponent_team_strength
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Generic team strength proxy (normalised Elo or composite)"
+
+# ────────────────────────────────────────────────────────────────────────────
+# D. Match context features
+# ────────────────────────────────────────────────────────────────────────────
+match_context:
+
+  - name: minute
+    dtype: int16
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: second
+    dtype: int8
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: period
+    dtype: int8
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: score_state
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "winning | level | losing (from perspective of acting team)"
+
+  - name: score_differential
+    dtype: int8
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Goals ahead (positive) or behind (negative)"
+
+  - name: home_or_away
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "home | away | neutral"
+
+  - name: knockout_or_group
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+    description: "True = knockout stage"
+
+  - name: red_card_state
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "none | team_down | opponent_down"
+
+  - name: rest_days
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+    description: "Days since last match for acting team"
+
+  - name: opponent_rest_days
+    dtype: float32
+    missing_policy: impute_median
+    requires_360: false
+
+# ────────────────────────────────────────────────────────────────────────────
+# E. Sequence features
+# ────────────────────────────────────────────────────────────────────────────
+sequence:
+
+  - name: sequence_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: >
+      One of 17 canonical types:
+      settled_possession | fast_counterattack | high_press_regain |
+      mid_block_regain | low_block_regain | direct_long_ball |
+      wide_crossing_sequence | cutback_sequence | central_combination |
+      through_ball_sequence | carry_led_progression | switch_of_play_attack |
+      set_piece_first_phase | set_piece_second_phase |
+      chaotic_loose_ball_sequence | recycled_attack | deep_buildup_sequence |
+      unknown
+
+  - name: sequence_type_confidence
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: time_from_possession_start
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: events_before_action
+    dtype: int16
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: passes_before_action
+    dtype: int16
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: carries_before_action
+    dtype: int16
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: vertical_progression_speed
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Metres of vertical progression per second since possession start"
+
+  - name: possession_start_zone
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "defensive_third | mid_third | attacking_third"
+
+  - name: regain_zone
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+  - name: final_action_type
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+  - name: final_pass_zone
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+
+  - name: set_piece_flag
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: counterpress_regain_flag
+    dtype: bool
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: number_of_switches
+    dtype: int8
+    missing_policy: impute_zero
+    requires_360: false
+
+  - name: directness
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Straight-line distance from regain to action / total distance travelled"
+
+  - name: possession_speed
+    dtype: float32
+    missing_policy: impute_zero
+    requires_360: false
+    description: "Events per second since possession start"
+
+  - name: transition_or_settled
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "transition | settled"
+
+  - name: phase_of_play
+    dtype: category
+    missing_policy: impute_constant
+    requires_360: false
+    description: "buildup | progression | final_third | transition"
+
+# ────────────────────────────────────────────────────────────────────────────
+# F. Identifiers (not features — used for grouping / embeddings)
+# ────────────────────────────────────────────────────────────────────────────
+identifiers:
+  - name: player_id
+    dtype: str
+  - name: team_id
+    dtype: str
+  - name: opponent_id
+    dtype: str
+  - name: competition_id
+    dtype: str
+  - name: match_id
+    dtype: str
+  - name: possession_id
+    dtype: str
+  - name: event_id
+    dtype: str

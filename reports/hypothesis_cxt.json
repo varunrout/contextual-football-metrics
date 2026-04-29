@@ -1,0 +1,63 @@
+{
+  "n_hypotheses": 6,
+  "n_rejected_bonferroni": 5,
+  "results": [
+    {
+      "hypothesis": "H1_vertical_progression_vs_sip",
+      "statistic": -0.0007,
+      "pval": 0.703317,
+      "bonferroni_pval": 1.0,
+      "pearson_r": -0.0007,
+      "reject_H0": false,
+      "n": 318928
+    },
+    {
+      "hypothesis": "H2_transition_higher_sip",
+      "statistic": -70.9941,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": -0.3188,
+      "reject_H0": true,
+      "mean_transition": 0.0602,
+      "mean_settled": 0.1797
+    },
+    {
+      "hypothesis": "H3_directness_vs_sip",
+      "statistic": -0.1796,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "pearson_r": -0.1796,
+      "reject_H0": true,
+      "n": 318928
+    },
+    {
+      "hypothesis": "H4_possession_start_zone_sip",
+      "statistic": 41.0981,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": 0.2362,
+      "reject_H0": true,
+      "mean_attacking": 0.2406,
+      "mean_defensive": 0.1515
+    },
+    {
+      "hypothesis": "H5_low_pressing_higher_sip",
+      "statistic": -17.8434,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": 0.0641,
+      "reject_H0": true,
+      "mean_high_press": 0.16,
+      "mean_low_press": 0.1841
+    },
+    {
+      "hypothesis": "H6_possession_length_vs_sip",
+      "statistic": 0.1792,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "spearman_rho": 0.1792,
+      "reject_H0": true,
+      "n": 318928
+    }
+  ]
+}

@@ -1,0 +1,886 @@
+{
+  "cxg": {
+    "n_shots": 4123,
+    "overall_goal_rate": 0.11544991511035653,
+    "overall_mean_xg": 0.1190387036078341,
+    "calibration_by_sequence_type": [
+      {
+        "group": "set_piece_second_phase",
+        "n": 2020,
+        "actual_rate": 0.08811881188118811,
+        "mean_xg": 0.09162457492118811,
+        "calibration_gap": -0.0035057630399999984,
+        "ece": 0.020208724116237625,
+        "brier": 0.06615045743176845
+      },
+      {
+        "group": "chaotic_loose_ball_sequence",
+        "n": 1200,
+        "actual_rate": 0.08833333333333333,
+        "mean_xg": 0.09342164751783333,
+        "calibration_gap": -0.005088314184499995,
+        "ece": 0.016138787288833337,
+        "brier": 0.06827696660416378
+      },
+      {
+        "group": "low_block_regain",
+        "n": 231,
+        "actual_rate": 0.12554112554112554,
+        "mean_xg": 0.09348761667316016,
+        "calibration_gap": 0.032053508867965375,
+        "ece": 0.03434427813203464,
+        "brier": 0.09081564464971764
+      },
+      {
+        "group": "set_piece_first_phase",
+        "n": 205,
+        "actual_rate": 0.04390243902439024,
+        "mean_xg": 0.05898599173414635,
+        "calibration_gap": -0.015083552709756108,
+        "ece": 0.015083552709756094,
+        "brier": 0.04412749122857671
+      },
+      {
+        "group": "recycled_attack",
+        "n": 170,
+        "actual_rate": 0.6352941176470588,
+        "mean_xg": 0.7122544689917647,
+        "calibration_gap": -0.07696035134470591,
+        "ece": 0.10210156136117637,
+        "brier": 0.2124135045878269
+      },
+      {
+        "group": "fast_counterattack",
+        "n": 113,
+        "actual_rate": 0.08849557522123894,
+        "mean_xg": 0.10479671021769912,
+        "calibration_gap": -0.016301134996460187,
+        "ece": 0.03262395358053097,
+        "brier": 0.07780358437672606
+      },
+      {
+        "group": "through_ball_sequence",
+        "n": 77,
+        "actual_rate": 0.2857142857142857,
+        "mean_xg": 0.19268179483116882,
+        "calibration_gap": 0.09303249088311688,
+        "ece": 0.10268065851948051,
+        "brier": 0.17078641191579488
+      },
+      {
+        "group": "mid_block_regain",
+        "n": 42,
+        "actual_rate": 0.09523809523809523,
+        "mean_xg": 0.08559231038095239,
+        "calibration_gap": 0.009645784857142847,
+        "ece": 0.06935061180952382,
+        "brier": 0.0624226714695846
+      }
+    ],
+    "calibration_by_competition": [
+      {
+        "group": "a5f8c12827482c80",
+        "n": 1494,
+        "actual_rate": 0.13052208835341367,
+        "mean_xg": 0.12585143368821952,
+        "calibration_gap": 0.004670654665194146,
+        "ece": 0.016836077333467193,
+        "brier": 0.08290545859274914
+      },
+      {
+        "group": "0abe7bb323333b47",
+        "n": 1340,
+        "actual_rate": 0.09402985074626866,
+        "mean_xg": 0.10418258917350746,
+        "calibration_gap": -0.010152738427238808,
+        "ece": 0.012581240731716417,
+        "brier": 0.06453235428534512
+      },
+      {
+        "group": "f1d1202058c40e0c",
+        "n": 1289,
+        "actual_rate": 0.12024825446082234,
+        "mean_xg": 0.126586395308301,
+        "calibration_gap": -0.006338140847478649,
+        "ece": 0.015496747255546938,
+        "brier": 0.07897571771547823
+      }
+    ],
+    "interaction_sequence_x_start_zone": {
+      "stats": {
+        "chi2": 521.3064257043999,
+        "p_value": 9.994292762581782e-98,
+        "dof": 20,
+        "cramers_v": 0.35558208460927326,
+        "n_cells": 21
+      },
+      "top_positive_lift_cells": [
+        {
+          "sequence_type": "recycled_attack",
+          "possession_start_zone": "attacking_third",
+          "n": 170,
+          "positives": 108,
+          "rate": 0.6352941176470588,
+          "lift_vs_baseline": 0.5198442025367023,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "possession_start_zone": "mid_third",
+          "n": 25,
+          "positives": 7,
+          "rate": 0.28,
+          "lift_vs_baseline": 0.1645500848896435,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "possession_start_zone": "defensive_third",
+          "n": 41,
+          "positives": 11,
+          "rate": 0.2682926829268293,
+          "lift_vs_baseline": 0.15284276781647277,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "possession_start_zone": "defensive_third",
+          "n": 231,
+          "positives": 29,
+          "rate": 0.12554112554112554,
+          "lift_vs_baseline": 0.010091210430769007,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "defensive_third",
+          "n": 274,
+          "positives": 33,
+          "rate": 0.12043795620437957,
+          "lift_vs_baseline": 0.004988041094023038,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "possession_start_zone": "defensive_third",
+          "n": 42,
+          "positives": 5,
+          "rate": 0.11904761904761904,
+          "lift_vs_baseline": 0.0035977039372625114,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "attacking_third",
+          "n": 118,
+          "positives": 13,
+          "rate": 0.11016949152542373,
+          "lift_vs_baseline": -0.005280423584932803,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "settled_possession",
+          "possession_start_zone": "mid_third",
+          "n": 28,
+          "positives": 3,
+          "rate": 0.10714285714285714,
+          "lift_vs_baseline": -0.008307057967499393,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "mid_third",
+          "n": 555,
+          "positives": 54,
+          "rate": 0.0972972972972973,
+          "lift_vs_baseline": -0.018152617813059227,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "possession_start_zone": "mid_third",
+          "n": 42,
+          "positives": 4,
+          "rate": 0.09523809523809523,
+          "lift_vs_baseline": -0.020211819872261297,
+          "baseline_rate": 0.11544991511035653
+        }
+      ],
+      "top_negative_lift_cells": [
+        {
+          "sequence_type": "set_piece_first_phase",
+          "possession_start_zone": "attacking_third",
+          "n": 195,
+          "positives": 9,
+          "rate": 0.046153846153846156,
+          "lift_vs_baseline": -0.06929606895651037,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "possession_start_zone": "mid_third",
+          "n": 71,
+          "positives": 5,
+          "rate": 0.07042253521126761,
+          "lift_vs_baseline": -0.04502737989908892,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "attacking_third",
+          "n": 1191,
+          "positives": 91,
+          "rate": 0.0764063811922754,
+          "lift_vs_baseline": -0.03904353391808113,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "mid_third",
+          "n": 511,
+          "positives": 42,
+          "rate": 0.0821917808219178,
+          "lift_vs_baseline": -0.033258134288438726,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "defensive_third",
+          "n": 571,
+          "positives": 51,
+          "rate": 0.0893169877408056,
+          "lift_vs_baseline": -0.026132927369550932,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "possession_start_zone": "mid_third",
+          "n": 42,
+          "positives": 4,
+          "rate": 0.09523809523809523,
+          "lift_vs_baseline": -0.020211819872261297,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "mid_third",
+          "n": 555,
+          "positives": 54,
+          "rate": 0.0972972972972973,
+          "lift_vs_baseline": -0.018152617813059227,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "settled_possession",
+          "possession_start_zone": "mid_third",
+          "n": 28,
+          "positives": 3,
+          "rate": 0.10714285714285714,
+          "lift_vs_baseline": -0.008307057967499393,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "attacking_third",
+          "n": 118,
+          "positives": 13,
+          "rate": 0.11016949152542373,
+          "lift_vs_baseline": -0.005280423584932803,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "possession_start_zone": "defensive_third",
+          "n": 42,
+          "positives": 5,
+          "rate": 0.11904761904761904,
+          "lift_vs_baseline": 0.0035977039372625114,
+          "baseline_rate": 0.11544991511035653
+        }
+      ]
+    },
+    "interaction_sequence_x_body_part": {
+      "stats": {
+        "chi2": 542.302859826307,
+        "p_value": 4.4332860467727357e-94,
+        "dof": 32,
+        "cramers_v": 0.36267221099535296,
+        "n_cells": 33
+      },
+      "top_positive_lift_cells": [
+        {
+          "sequence_type": "recycled_attack",
+          "body_part": "Left Foot",
+          "n": 50,
+          "positives": 34,
+          "rate": 0.68,
+          "lift_vs_baseline": 0.5645500848896435,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "recycled_attack",
+          "body_part": "Right Foot",
+          "n": 120,
+          "positives": 74,
+          "rate": 0.6166666666666667,
+          "lift_vs_baseline": 0.5012167515563102,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "body_part": "Right Foot",
+          "n": 36,
+          "positives": 13,
+          "rate": 0.3611111111111111,
+          "lift_vs_baseline": 0.2456611960007546,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "body_part": "Left Foot",
+          "n": 33,
+          "positives": 7,
+          "rate": 0.21212121212121213,
+          "lift_vs_baseline": 0.0966712970108556,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "body_part": "Left Foot",
+          "n": 80,
+          "positives": 12,
+          "rate": 0.15,
+          "lift_vs_baseline": 0.034550084889643465,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "body_part": "Head",
+          "n": 110,
+          "positives": 15,
+          "rate": 0.13636363636363635,
+          "lift_vs_baseline": 0.020913721253279824,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "body_part": "Right Foot",
+          "n": 127,
+          "positives": 13,
+          "rate": 0.10236220472440945,
+          "lift_vs_baseline": -0.013087710385947082,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "body_part": "Left Foot",
+          "n": 541,
+          "positives": 51,
+          "rate": 0.09426987060998152,
+          "lift_vs_baseline": -0.021180044500375014,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "body_part": "Head",
+          "n": 472,
+          "positives": 44,
+          "rate": 0.09322033898305085,
+          "lift_vs_baseline": -0.02222957612730568,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "body_part": "Right Foot",
+          "n": 65,
+          "positives": 6,
+          "rate": 0.09230769230769231,
+          "lift_vs_baseline": -0.023142222802664217,
+          "baseline_rate": 0.11544991511035653
+        }
+      ],
+      "top_negative_lift_cells": [
+        {
+          "sequence_type": "set_piece_first_phase",
+          "body_part": "Right Foot",
+          "n": 89,
+          "positives": 3,
+          "rate": 0.033707865168539325,
+          "lift_vs_baseline": -0.0817420499418172,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_first_phase",
+          "body_part": "Left Foot",
+          "n": 39,
+          "positives": 2,
+          "rate": 0.05128205128205128,
+          "lift_vs_baseline": -0.06416786382830525,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_first_phase",
+          "body_part": "Head",
+          "n": 75,
+          "positives": 4,
+          "rate": 0.05333333333333334,
+          "lift_vs_baseline": -0.06211658177702319,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "body_part": "Left Foot",
+          "n": 44,
+          "positives": 3,
+          "rate": 0.06818181818181818,
+          "lift_vs_baseline": -0.04726809692853835,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "body_part": "Right Foot",
+          "n": 25,
+          "positives": 2,
+          "rate": 0.08,
+          "lift_vs_baseline": -0.03544991511035653,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "body_part": "Right Foot",
+          "n": 992,
+          "positives": 80,
+          "rate": 0.08064516129032258,
+          "lift_vs_baseline": -0.03480475382003395,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "body_part": "Left Foot",
+          "n": 419,
+          "positives": 35,
+          "rate": 0.08353221957040573,
+          "lift_vs_baseline": -0.0319176955399508,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "body_part": "Right Foot",
+          "n": 666,
+          "positives": 56,
+          "rate": 0.08408408408408409,
+          "lift_vs_baseline": -0.03136583102627244,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "body_part": "Right Foot",
+          "n": 65,
+          "positives": 6,
+          "rate": 0.09230769230769231,
+          "lift_vs_baseline": -0.023142222802664217,
+          "baseline_rate": 0.11544991511035653
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "body_part": "Head",
+          "n": 472,
+          "positives": 44,
+          "rate": 0.09322033898305085,
+          "lift_vs_baseline": -0.02222957612730568,
+          "baseline_rate": 0.11544991511035653
+        }
+      ]
+    }
+  },
+  "cxa": {
+    "n_actions": 318928,
+    "overall_shot_created_rate": 0.17061844679676919,
+    "interaction_sequence_x_event_type": {
+      "stats": {
+        "chi2": 5927.066074286251,
+        "p_value": 0.0,
+        "dof": 19,
+        "cramers_v": 0.1363243889326277,
+        "n_cells": 20
+      },
+      "top_positive_lift_cells": [
+        {
+          "sequence_type": "through_ball_sequence",
+          "event_type": "carry",
+          "n": 2241,
+          "positives": 569,
+          "rate": 0.2539045069165551,
+          "lift_vs_baseline": 0.0832860601197859,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "event_type": "pass",
+          "n": 2624,
+          "positives": 631,
+          "rate": 0.24047256097560976,
+          "lift_vs_baseline": 0.06985411417884058,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "event_type": "carry",
+          "n": 51438,
+          "positives": 11084,
+          "rate": 0.21548271705742836,
+          "lift_vs_baseline": 0.04486427026065917,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "event_type": "pass",
+          "n": 57916,
+          "positives": 11858,
+          "rate": 0.20474480281787416,
+          "lift_vs_baseline": 0.034126356021104975,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "direct_long_ball",
+          "event_type": "carry",
+          "n": 336,
+          "positives": 68,
+          "rate": 0.20238095238095238,
+          "lift_vs_baseline": 0.0317625055841832,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "event_type": "carry",
+          "n": 63049,
+          "positives": 11761,
+          "rate": 0.1865374549953211,
+          "lift_vs_baseline": 0.01591900819855191,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "event_type": "pass",
+          "n": 82715,
+          "positives": 14433,
+          "rate": 0.17449072115093997,
+          "lift_vs_baseline": 0.003872274354170785,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "direct_long_ball",
+          "event_type": "pass",
+          "n": 552,
+          "positives": 56,
+          "rate": 0.10144927536231885,
+          "lift_vs_baseline": -0.06916917143445034,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "recycled_attack",
+          "event_type": "carry",
+          "n": 190,
+          "positives": 17,
+          "rate": 0.08947368421052632,
+          "lift_vs_baseline": -0.08114476258624287,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "event_type": "carry",
+          "n": 15883,
+          "positives": 1278,
+          "rate": 0.0804633885286155,
+          "lift_vs_baseline": -0.09015505826815369,
+          "baseline_rate": 0.17061844679676919
+        }
+      ],
+      "top_negative_lift_cells": [
+        {
+          "sequence_type": "set_piece_first_phase",
+          "event_type": "carry",
+          "n": 78,
+          "positives": 1,
+          "rate": 0.01282051282051282,
+          "lift_vs_baseline": -0.15779793397625635,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "event_type": "pass",
+          "n": 6847,
+          "positives": 279,
+          "rate": 0.04074777274718855,
+          "lift_vs_baseline": -0.12987067404958064,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_first_phase",
+          "event_type": "pass",
+          "n": 2082,
+          "positives": 106,
+          "rate": 0.05091258405379443,
+          "lift_vs_baseline": -0.11970586274297476,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "event_type": "carry",
+          "n": 4845,
+          "positives": 287,
+          "rate": 0.05923632610939113,
+          "lift_vs_baseline": -0.11138212068737806,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "settled_possession",
+          "event_type": "pass",
+          "n": 2627,
+          "positives": 167,
+          "rate": 0.06357061286638752,
+          "lift_vs_baseline": -0.10704783393038167,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "settled_possession",
+          "event_type": "carry",
+          "n": 2340,
+          "positives": 157,
+          "rate": 0.06709401709401709,
+          "lift_vs_baseline": -0.1035244297027521,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "event_type": "pass",
+          "n": 1505,
+          "positives": 103,
+          "rate": 0.06843853820598006,
+          "lift_vs_baseline": -0.10217990859078913,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "event_type": "pass",
+          "n": 20140,
+          "positives": 1445,
+          "rate": 0.07174776564051638,
+          "lift_vs_baseline": -0.0988706811562528,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "event_type": "carry",
+          "n": 1304,
+          "positives": 98,
+          "rate": 0.07515337423312883,
+          "lift_vs_baseline": -0.09546507256364035,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "recycled_attack",
+          "event_type": "pass",
+          "n": 216,
+          "positives": 17,
+          "rate": 0.0787037037037037,
+          "lift_vs_baseline": -0.09191474309306548,
+          "baseline_rate": 0.17061844679676919
+        }
+      ]
+    },
+    "interaction_sequence_x_start_zone": {
+      "stats": {
+        "chi2": 8403.444718686806,
+        "p_value": 0.0,
+        "dof": 20,
+        "cramers_v": 0.1623238553319542,
+        "n_cells": 21
+      },
+      "top_positive_lift_cells": [
+        {
+          "sequence_type": "through_ball_sequence",
+          "possession_start_zone": "attacking_third",
+          "n": 232,
+          "positives": 165,
+          "rate": 0.7112068965517241,
+          "lift_vs_baseline": 0.5405884497549549,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "direct_long_ball",
+          "possession_start_zone": "mid_third",
+          "n": 121,
+          "positives": 41,
+          "rate": 0.33884297520661155,
+          "lift_vs_baseline": 0.16822452840984237,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "possession_start_zone": "mid_third",
+          "n": 1687,
+          "positives": 442,
+          "rate": 0.26200355660936575,
+          "lift_vs_baseline": 0.09138510981259657,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "direct_long_ball",
+          "possession_start_zone": "attacking_third",
+          "n": 31,
+          "positives": 8,
+          "rate": 0.25806451612903225,
+          "lift_vs_baseline": 0.08744606933226307,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "attacking_third",
+          "n": 41487,
+          "positives": 10194,
+          "rate": 0.2457155253452889,
+          "lift_vs_baseline": 0.07509707854851971,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "defensive_third",
+          "n": 55651,
+          "positives": 12045,
+          "rate": 0.21643815924242152,
+          "lift_vs_baseline": 0.04581971244565233,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "attacking_third",
+          "n": 5296,
+          "positives": 1118,
+          "rate": 0.21110271903323263,
+          "lift_vs_baseline": 0.04048427223646345,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "chaotic_loose_ball_sequence",
+          "possession_start_zone": "mid_third",
+          "n": 48407,
+          "positives": 9779,
+          "rate": 0.20201623732104862,
+          "lift_vs_baseline": 0.031397790524279434,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "through_ball_sequence",
+          "possession_start_zone": "defensive_third",
+          "n": 2946,
+          "positives": 593,
+          "rate": 0.2012898845892736,
+          "lift_vs_baseline": 0.03067143779250442,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "possession_start_zone": "mid_third",
+          "n": 1884,
+          "positives": 318,
+          "rate": 0.16878980891719744,
+          "lift_vs_baseline": -0.0018286378795717428,
+          "baseline_rate": 0.17061844679676919
+        }
+      ],
+      "top_negative_lift_cells": [
+        {
+          "sequence_type": "set_piece_first_phase",
+          "possession_start_zone": "defensive_third",
+          "n": 675,
+          "positives": 1,
+          "rate": 0.0014814814814814814,
+          "lift_vs_baseline": -0.1691369653152877,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_first_phase",
+          "possession_start_zone": "mid_third",
+          "n": 662,
+          "positives": 10,
+          "rate": 0.015105740181268883,
+          "lift_vs_baseline": -0.1555127066155003,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "fast_counterattack",
+          "possession_start_zone": "defensive_third",
+          "n": 9808,
+          "positives": 248,
+          "rate": 0.02528548123980424,
+          "lift_vs_baseline": -0.14533296555696495,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "settled_possession",
+          "possession_start_zone": "mid_third",
+          "n": 4967,
+          "positives": 324,
+          "rate": 0.06523052144151399,
+          "lift_vs_baseline": -0.1053879253552552,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "mid_block_regain",
+          "possession_start_zone": "mid_third",
+          "n": 2809,
+          "positives": 201,
+          "rate": 0.0715557137771449,
+          "lift_vs_baseline": -0.09906273301962429,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "low_block_regain",
+          "possession_start_zone": "defensive_third",
+          "n": 36023,
+          "positives": 2723,
+          "rate": 0.07559059489770424,
+          "lift_vs_baseline": -0.09502785189906494,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "recycled_attack",
+          "possession_start_zone": "attacking_third",
+          "n": 406,
+          "positives": 34,
+          "rate": 0.08374384236453201,
+          "lift_vs_baseline": -0.08687460443223717,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "direct_long_ball",
+          "possession_start_zone": "defensive_third",
+          "n": 736,
+          "positives": 75,
+          "rate": 0.10190217391304347,
+          "lift_vs_baseline": -0.06871627288372571,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_first_phase",
+          "possession_start_zone": "attacking_third",
+          "n": 823,
+          "positives": 96,
+          "rate": 0.1166464155528554,
+          "lift_vs_baseline": -0.05397203124391378,
+          "baseline_rate": 0.17061844679676919
+        },
+        {
+          "sequence_type": "set_piece_second_phase",
+          "possession_start_zone": "mid_third",
+          "n": 70281,
+          "positives": 10505,
+          "rate": 0.14947140763506495,
+          "lift_vs_baseline": -0.02114703916170424,
+          "baseline_rate": 0.17061844679676919
+        }
+      ]
+    }
+  }
+}

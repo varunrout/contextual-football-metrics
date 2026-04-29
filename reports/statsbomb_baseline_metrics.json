@@ -1,0 +1,82 @@
+{
+  "overall": {
+    "log_loss": 0.26378,
+    "brier_score": 0.07571,
+    "roc_auc": 0.83891,
+    "average_precision": 0.49799,
+    "ece": 0.01305,
+    "n_shots": 4123,
+    "n_goals": 476,
+    "goal_rate": 0.11545,
+    "mean_xg": 0.11904
+  },
+  "cv_5fold": [
+    {
+      "fold": 0,
+      "n_val": 866,
+      "log_loss": 0.25464,
+      "brier_score": 0.07244,
+      "roc_auc": 0.83689,
+      "average_precision": 0.49591,
+      "ece": 0.02308
+    },
+    {
+      "fold": 1,
+      "n_val": 842,
+      "log_loss": 0.24847,
+      "brier_score": 0.06928,
+      "roc_auc": 0.80056,
+      "average_precision": 0.39789,
+      "ece": 0.01581
+    },
+    {
+      "fold": 2,
+      "n_val": 766,
+      "log_loss": 0.2857,
+      "brier_score": 0.07888,
+      "roc_auc": 0.75782,
+      "average_precision": 0.42307,
+      "ece": 0.01871
+    },
+    {
+      "fold": 3,
+      "n_val": 858,
+      "log_loss": 0.25671,
+      "brier_score": 0.07555,
+      "roc_auc": 0.87644,
+      "average_precision": 0.56167,
+      "ece": 0.02932
+    },
+    {
+      "fold": 4,
+      "n_val": 791,
+      "log_loss": 0.27652,
+      "brier_score": 0.08321,
+      "roc_auc": 0.88392,
+      "average_precision": 0.5652,
+      "ece": 0.03762
+    }
+  ],
+  "cv_summary": {
+    "log_loss": {
+      "mean": 0.26441,
+      "std": 0.0142
+    },
+    "brier_score": {
+      "mean": 0.07587,
+      "std": 0.00486
+    },
+    "roc_auc": {
+      "mean": 0.83113,
+      "std": 0.04729
+    },
+    "average_precision": {
+      "mean": 0.48875,
+      "std": 0.06897
+    },
+    "ece": {
+      "mean": 0.02491,
+      "std": 0.00782
+    }
+  }
+}

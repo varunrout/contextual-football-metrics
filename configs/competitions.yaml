@@ -1,0 +1,73 @@
+# Competition registry for the contextual football metric suite.
+#
+# Verify / expand competition and season IDs at any time by running:
+#   from statsbombpy import sb; sb.competitions()
+#
+# Fields:
+#   competition_id  – StatsBomb competition id
+#   season_id       – StatsBomb season id
+#   has_360         – whether StatsBomb 360 freeze-frame data is available
+#   domain          – tactical/geographic category for bias analysis
+#                     values: europe | international | club_domestic
+#   region          – finer geographic tag (europe | global | south_america | …)
+#   split_role      – recommended role in the train/val/test strategy
+#                     values: train | val | test | train_val | val_test
+#   competition_weight_cap – max fraction this competition contributes to 360-model
+#                            gradient updates; null = uncapped (no 360 data anyway)
+#   notes           – free-text annotation
+
+competitions:
+
+  # ── 360-available competitions ──────────────────────────────────────────────
+
+  - competition_id: 43
+    season_id: 106
+    competition_name: "FIFA World Cup"
+    season_name: "2022"
+    has_360: true
+    domain: "international"
+    region: "global"
+    split_role: "train_val"
+    competition_weight_cap: 0.40
+    notes: >
+      Primary non-European 360 source. Group stage → train; knockouts → val.
+      Provides geographic balance against Euro competitions.
+
+  - competition_id: 55
+    season_id: 43
+    competition_name: "UEFA Euro Championship"
+    season_name: "2020"
+    has_360: true
+    domain: "continental"
+    region: "europe"
+    split_role: "train"
+    competition_weight_cap: 0.30
+    notes: >
+      European continental 360 source. Weight-capped to avoid Europe dominance.
+
+  - competition_id: 55
+    season_id: 282
+    competition_name: "UEFA Euro Championship"
+    season_name: "2024"
+    has_360: true
+    domain: "continental"
+    region: "europe"
+    split_role: "val_test"
+    competition_weight_cap: 0.30
+    notes: >
+      Held primarily as validation / test. Group stage → val; knockouts → test.
+      Reserve knockouts as final external validation held-out set.
+
+  - competition_id: 11
+    season_id: 90
+    competition_name: "La Liga"
+    season_name: "2020/2021"
+    has_360: true
+    domain: "club_domestic"
+    region: "europe"
+    split_role: "test"
+    competition_weight_cap: null
+    notes: >
+      Full 38-match-week La Liga season. Completely outside training data —
+      clean out-of-sample scoring target. Includes Barcelona, Real Madrid,
+      Atlético Madrid (title winners). All matches have match_status_360 available.

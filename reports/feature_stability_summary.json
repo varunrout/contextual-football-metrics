@@ -1,0 +1,245 @@
+{
+  "ks_competition_drift": {
+    "n_flagged_features": 2,
+    "flagged_features": {
+      "opponent_shots_conceded_rolling_5": [
+        "0abe7bb323333b47 vs a5f8c12827482c80",
+        "0abe7bb323333b47 vs f1d1202058c40e0c"
+      ],
+      "opponent_xg_conceded_rolling_5": [
+        "0abe7bb323333b47 vs f1d1202058c40e0c",
+        "a5f8c12827482c80 vs f1d1202058c40e0c"
+      ]
+    },
+    "max_ks_per_feature": {
+      "x_location": 0.0415,
+      "y_location": 0.0157,
+      "distance_to_goal": 0.0345,
+      "shot_angle": 0.033,
+      "pass_length": 0.0133,
+      "pass_angle": 0.004,
+      "carry_distance": 0.0099,
+      "carry_progressive_distance": 0.0045,
+      "progressive_distance": 0.0111,
+      "nearest_defender_distance": 0.0234,
+      "second_nearest_defender_distance": 0.0281,
+      "defenders_within_3m": 0.0056,
+      "defenders_within_5m": 0.012,
+      "defenders_within_10m": 0.0259,
+      "defenders_between_ball_and_goal": 0.0966,
+      "teammates_ahead_of_ball": 0.0736,
+      "opponents_ahead_of_ball": 0.0966,
+      "defensive_density_in_box": 0.0356,
+      "defensive_density_central": 0.0556,
+      "keeper_distance_to_goal": 0.0408,
+      "keeper_distance_to_shooter": 0.0364,
+      "keeper_angle_coverage": 0.0174,
+      "shot_lane_blockage_proxy": 0.0399,
+      "visible_area_size": 0.0,
+      "defenders_between_ball_and_goal_before_action": 0.0966,
+      "defenders_between_ball_and_goal_after_action": 0.0908,
+      "pressure_before_action": 0.0056,
+      "pressure_after_action": 0.0034,
+      "central_access_before_action": 0.095,
+      "central_access_after_action": 0.0834,
+      "box_access_before_action": 0.0341,
+      "box_access_after_action": 0.0268,
+      "nearest_defender_to_receiver": 0.011,
+      "defenders_between_receiver_and_goal": 0.0263,
+      "pressure_on_passer": 0.0044,
+      "pressure_on_receiver": 0.0005,
+      "passing_lane_blockage_proxy": 0.0009,
+      "defensive_line_height": 0.015,
+      "opponent_xg_conceded_rolling_5": 0.3225,
+      "opponent_shots_conceded_rolling_5": 0.4082
+    }
+  },
+  "temporal_stability": {
+    "n_early_matches": 83,
+    "n_late_matches": 83,
+    "n_flagged_features": 43,
+    "flagged_features": {
+      "x_location": {
+        "pval": 0.0,
+        "mean_diff": -0.4661
+      },
+      "y_location": {
+        "pval": 0.0,
+        "mean_diff": 0.3208
+      },
+      "distance_to_goal": {
+        "pval": 0.0,
+        "mean_diff": 0.3856
+      },
+      "progressive_distance": {
+        "pval": 0.000536,
+        "mean_diff": 0.0677
+      },
+      "nearest_defender_distance": {
+        "pval": 0.000154,
+        "mean_diff": 0.1038
+      },
+      "second_nearest_defender_distance": {
+        "pval": 1.2e-05,
+        "mean_diff": 0.1321
+      },
+      "defenders_within_3m": {
+        "pval": 0.0,
+        "mean_diff": 0.0071
+      },
+      "defenders_between_ball_and_goal": {
+        "pval": 0.0,
+        "mean_diff": 0.0899
+      },
+      "teammates_ahead_of_ball": {
+        "pval": 0.0,
+        "mean_diff": 0.0944
+      },
+      "opponents_ahead_of_ball": {
+        "pval": 0.0,
+        "mean_diff": 0.0899
+      },
+      "defensive_density_in_box": {
+        "pval": 5e-06,
+        "mean_diff": -0.0
+      },
+      "shot_lane_blockage_proxy": {
+        "pval": 0.001433,
+        "mean_diff": 0.0055
+      },
+      "defenders_between_ball_and_goal_before_action": {
+        "pval": 0.0,
+        "mean_diff": 0.0899
+      },
+      "defenders_between_ball_and_goal_after_action": {
+        "pval": 0.0,
+        "mean_diff": 0.0701
+      },
+      "pressure_before_action": {
+        "pval": 0.0,
+        "mean_diff": 0.0071
+      },
+      "pressure_after_action": {
+        "pval": 1.6e-05,
+        "mean_diff": 0.0058
+      },
+      "central_access_before_action": {
+        "pval": 0.003092,
+        "mean_diff": -0.0014
+      },
+      "central_access_after_action": {
+        "pval": 0.005828,
+        "mean_diff": -0.0013
+      },
+      "box_access_before_action": {
+        "pval": 0.004911,
+        "mean_diff": 0.0029
+      },
+      "pressure_on_receiver": {
+        "pval": 0.002279,
+        "mean_diff": 0.0014
+      },
+      "passing_lane_blockage_proxy": {
+        "pval": 0.000509,
+        "mean_diff": 0.0024
+      },
+      "opponent_xg_conceded_rolling_5": {
+        "pval": 0.0,
+        "mean_diff": 0.03
+      },
+      "opponent_box_entries_conceded_rolling_5": {
+        "pval": 0.0,
+        "mean_diff": -0.5278
+      },
+      "opponent_defensive_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0145
+      },
+      "opponent_transition_defence_strength": {
+        "pval": 0.0,
+        "mean_diff": 0.0074
+      },
+      "opponent_set_piece_defence_strength": {
+        "pval": 0.0,
+        "mean_diff": 0.0067
+      },
+      "opponent_keeper_shot_stopping_rating": {
+        "pval": 0.0,
+        "mean_diff": -0.0142
+      },
+      "opponent_team_elo": {
+        "pval": 0.0,
+        "mean_diff": -0.7115
+      },
+      "opponent_chance_suppression_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0098
+      },
+      "opponent_box_defence_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0067
+      },
+      "opponent_cross_defence_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0067
+      },
+      "opponent_pressing_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.004
+      },
+      "opponent_block_compactness_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0067
+      },
+      "opponent_box_entry_prevention_rating": {
+        "pval": 0.0,
+        "mean_diff": 0.0067
+      },
+      "opponent_team_strength": {
+        "pval": 0.0,
+        "mean_diff": -0.7115
+      },
+      "period": {
+        "pval": 0.0,
+        "mean_diff": -0.0341
+      },
+      "score_differential": {
+        "pval": 0.0,
+        "mean_diff": -0.0303
+      },
+      "opponent_rest_days": {
+        "pval": 0.0,
+        "mean_diff": 17.3136
+      },
+      "events_before_action": {
+        "pval": 0.0,
+        "mean_diff": -1.3451
+      },
+      "passes_before_action": {
+        "pval": 0.0,
+        "mean_diff": -0.4316
+      },
+      "carries_before_action": {
+        "pval": 0.0,
+        "mean_diff": -0.3474
+      },
+      "directness": {
+        "pval": 0.0,
+        "mean_diff": 0.0044
+      },
+      "possession_speed": {
+        "pval": 0.003565,
+        "mean_diff": -0.3056
+      }
+    }
+  },
+  "cohort_360_comparison": {},
+  "domain_validity_violations": [
+    {
+      "check": "x_location \u2208 [0, 105]",
+      "column": "x_location",
+      "violation_count": 1,
+      "violation_fraction": 0.0
+    }
+  ]
+}

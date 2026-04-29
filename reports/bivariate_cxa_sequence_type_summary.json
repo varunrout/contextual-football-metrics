@@ -1,0 +1,726 @@
+{
+  "n_possessions": 28759,
+  "overall_shot_created_rate": 0.13001147466879934,
+  "sequence_rate_table": [
+    {
+      "sequence_type": "recycled_attack",
+      "n": 431,
+      "shots": 165,
+      "rate": 0.382830626450116,
+      "ci_low": 0.3381674687601737,
+      "ci_high": 0.42956397001773006,
+      "lift_vs_baseline": 0.25281915178131664,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "through_ball_sequence",
+      "n": 277,
+      "shots": 67,
+      "rate": 0.24187725631768953,
+      "ci_low": 0.19520130318523382,
+      "ci_high": 0.29561461622893037,
+      "lift_vs_baseline": 0.11186578164889019,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "chaotic_loose_ball_sequence",
+      "n": 5315,
+      "shots": 1054,
+      "rate": 0.19830667920978362,
+      "ci_low": 0.18780685953512236,
+      "ci_high": 0.2092422864435465,
+      "lift_vs_baseline": 0.06829520454098428,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "set_piece_second_phase",
+      "n": 11153,
+      "shots": 1801,
+      "rate": 0.1614812158163723,
+      "ci_low": 0.15476875663502376,
+      "ci_high": 0.16842678863911703,
+      "lift_vs_baseline": 0.03146974114757295,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "set_piece_first_phase",
+      "n": 1865,
+      "shots": 205,
+      "rate": 0.10991957104557641,
+      "ci_low": 0.0965175098301626,
+      "ci_high": 0.12492527594891728,
+      "lift_vs_baseline": -0.020091903623222926,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "direct_long_ball",
+      "n": 436,
+      "shots": 35,
+      "rate": 0.08027522935779817,
+      "ci_low": 0.058284430750361244,
+      "ci_high": 0.10959755795229165,
+      "lift_vs_baseline": -0.04973624531100117,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "mid_block_regain",
+      "n": 627,
+      "shots": 42,
+      "rate": 0.06698564593301436,
+      "ci_low": 0.04993659937791296,
+      "ci_high": 0.08930830533222843,
+      "lift_vs_baseline": -0.06302582873578498,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "low_block_regain",
+      "n": 4243,
+      "shots": 231,
+      "rate": 0.05444261135988687,
+      "ci_low": 0.048009912155872164,
+      "ci_high": 0.06168136389898053,
+      "lift_vs_baseline": -0.07556886330891247,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "fast_counterattack",
+      "n": 3343,
+      "shots": 111,
+      "rate": 0.03320370924319473,
+      "ci_low": 0.027645855028775417,
+      "ci_high": 0.039833128245285156,
+      "lift_vs_baseline": -0.0968077654256046,
+      "baseline_rate": 0.13001147466879934
+    },
+    {
+      "sequence_type": "settled_possession",
+      "n": 1069,
+      "shots": 28,
+      "rate": 0.026192703461178673,
+      "ci_low": 0.01818313885061612,
+      "ci_high": 0.03759533459360929,
+      "lift_vs_baseline": -0.10381877120762066,
+      "baseline_rate": 0.13001147466879934
+    }
+  ],
+  "association_test": {
+    "chi2": 1222.3187385707713,
+    "p_value": 1.841810458766594e-257,
+    "dof": 9,
+    "cramers_v": 0.20616044569863207
+  },
+  "pairwise_rate_tests_holm": [
+    {
+      "a": "recycled_attack",
+      "b": "fast_counterattack",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.3496269172069213,
+      "z_stat": 26.239054921407845,
+      "p_value": 9.530002976144904e-152,
+      "p_value_holm": 4.2885013392652064e-150
+    },
+    {
+      "a": "recycled_attack",
+      "b": "low_block_regain",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.32838801509022914,
+      "z_stat": 23.3259220810782,
+      "p_value": 2.4198475193240363e-120,
+      "p_value_holm": 1.064732908502576e-118
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "fast_counterattack",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.16510296996658888,
+      "z_stat": 21.91758351928428,
+      "p_value": 1.765854426890473e-106,
+      "p_value_holm": 7.593174035629034e-105
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "low_block_regain",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.14386406784989675,
+      "z_stat": 20.485233731200356,
+      "p_value": 2.9158125493369357e-93,
+      "p_value_holm": 1.224641270721513e-91
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "fast_counterattack",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.12827750657317755,
+      "z_stat": 19.225840738367747,
+      "p_value": 2.2496342558841072e-82,
+      "p_value_holm": 9.22350044912484e-81
+    },
+    {
+      "a": "recycled_attack",
+      "b": "settled_possession",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.3566379229889373,
+      "z_stat": 18.66741535660974,
+      "p_value": 9.11588938582391e-78,
+      "p_value_holm": 3.646355754329564e-76
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "low_block_regain",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.10703860445648541,
+      "z_stat": 17.532613988054543,
+      "p_value": 8.076943388453242e-69,
+      "p_value_holm": 3.150007921496764e-67
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "fast_counterattack",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.2086735470744948,
+      "z_stat": 15.435273253385533,
+      "p_value": 9.479806923893012e-54,
+      "p_value_holm": 3.602326631079344e-52
+    },
+    {
+      "a": "recycled_attack",
+      "b": "set_piece_first_phase",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.10991957104557641,
+      "rate_diff": 0.2729110554045396,
+      "z_stat": 13.88852486010927,
+      "p_value": 7.435082357973054e-44,
+      "p_value_holm": 2.75098047245003e-42
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "settled_possession",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.17211397574860496,
+      "z_stat": 13.68578051779722,
+      "p_value": 1.2347412444781737e-42,
+      "p_value_holm": 4.4450684801214255e-41
+    },
+    {
+      "a": "recycled_attack",
+      "b": "mid_block_regain",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.31584498051710164,
+      "z_stat": 12.724457220015362,
+      "p_value": 4.324695732808366e-37,
+      "p_value_holm": 1.5136435064829282e-35
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "settled_possession",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.21568455285651086,
+      "z_stat": 12.490500813686406,
+      "p_value": 8.412243067149583e-36,
+      "p_value_holm": 2.8601626428308583e-34
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "low_block_regain",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.18743464495780265,
+      "z_stat": 12.179465770259483,
+      "p_value": 3.998926270325909e-34,
+      "p_value_holm": 1.31964566920755e-32
+    },
+    {
+      "a": "recycled_attack",
+      "b": "set_piece_second_phase",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.1614812158163723,
+      "rate_diff": 0.22134941063374372,
+      "z_stat": 12.011797095755215,
+      "p_value": 3.0807654486417594e-33,
+      "p_value_holm": 9.85844943565363e-32
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "settled_possession",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.13528851235519362,
+      "z_stat": 11.845119549100525,
+      "p_value": 2.2809285833658134e-32,
+      "p_value_holm": 7.070878608434022e-31
+    },
+    {
+      "a": "set_piece_first_phase",
+      "b": "fast_counterattack",
+      "rate_a": 0.10991957104557641,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.07671586180238169,
+      "z_stat": 11.118379582063021,
+      "p_value": 1.0210968935755607e-28,
+      "p_value_holm": 3.063290680726682e-27
+    },
+    {
+      "a": "recycled_attack",
+      "b": "direct_long_ball",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.08027522935779817,
+      "rate_diff": 0.3025553970923178,
+      "z_stat": 10.573491441717083,
+      "p_value": 3.954908384747502e-26,
+      "p_value_holm": 1.1469234315767755e-24
+    },
+    {
+      "a": "recycled_attack",
+      "b": "chaotic_loose_ball_sequence",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.19830667920978362,
+      "rate_diff": 0.1845239472403324,
+      "z_stat": 9.011948817367452,
+      "p_value": 2.0242680719208152e-19,
+      "p_value_holm": 5.667950601378283e-18
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "set_piece_first_phase",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.10991957104557641,
+      "rate_diff": 0.08838710816420721,
+      "z_stat": 8.63638121257185,
+      "p_value": 5.802167152905136e-18,
+      "p_value_holm": 1.5665851312843868e-16
+    },
+    {
+      "a": "set_piece_first_phase",
+      "b": "settled_possession",
+      "rate_a": 0.10991957104557641,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.08372686758439774,
+      "z_stat": 8.072032770736495,
+      "p_value": 6.913731187534776e-16,
+      "p_value_holm": 1.7975701087590417e-14
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "mid_block_regain",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.13132103327676925,
+      "z_stat": 8.01842438041333,
+      "p_value": 1.0711019078609286e-15,
+      "p_value_holm": 2.6777547696523213e-14
+    },
+    {
+      "a": "set_piece_first_phase",
+      "b": "low_block_regain",
+      "rate_a": 0.10991957104557641,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.05547695968568954,
+      "z_stat": 7.755802561321596,
+      "p_value": 8.778651278074856e-15,
+      "p_value_holm": 2.1068763067379654e-13
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "mid_block_regain",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.17489161038467516,
+      "z_stat": 7.444405710596954,
+      "p_value": 9.738179649170403e-14,
+      "p_value_holm": 2.239781319309193e-12
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "mid_block_regain",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.09449556988335793,
+      "z_stat": 6.337579244127196,
+      "p_value": 2.3340317275290143e-10,
+      "p_value_holm": 5.134869800563832e-09
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "set_piece_first_phase",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.10991957104557641,
+      "rate_diff": 0.1319576852721131,
+      "z_stat": 6.154864117683849,
+      "p_value": 7.514189367002446e-10,
+      "p_value_holm": 1.5779797670705137e-08
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "direct_long_ball",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.08027522935779817,
+      "rate_diff": 0.11803144985198545,
+      "z_stat": 6.047337822101712,
+      "p_value": 1.472587758586553e-09,
+      "p_value_holm": 2.945175517173106e-08
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "direct_long_ball",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.08027522935779817,
+      "rate_diff": 0.16160202695989134,
+      "z_stat": 6.0069498596253155,
+      "p_value": 1.8904594723134492e-09,
+      "p_value_holm": 3.5918729973955536e-08
+    },
+    {
+      "a": "chaotic_loose_ball_sequence",
+      "b": "set_piece_second_phase",
+      "rate_a": 0.19830667920978362,
+      "rate_b": 0.1614812158163723,
+      "rate_diff": 0.036825463393411334,
+      "z_stat": 5.836280501354356,
+      "p_value": 5.337900293252728e-09,
+      "p_value_holm": 9.608220527854912e-08
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "set_piece_first_phase",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.10991957104557641,
+      "rate_diff": 0.051561644770795875,
+      "z_stat": 5.70867868905237,
+      "p_value": 1.1385660171683701e-08,
+      "p_value_holm": 1.9355622291862293e-07
+    },
+    {
+      "a": "direct_long_ball",
+      "b": "fast_counterattack",
+      "rate_a": 0.08027522935779817,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.047071520114603436,
+      "z_stat": 4.796770889955227,
+      "p_value": 1.612438492990464e-06,
+      "p_value_holm": 2.5799015887847426e-05
+    },
+    {
+      "a": "direct_long_ball",
+      "b": "settled_possession",
+      "rate_a": 0.08027522935779817,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.05408252589661949,
+      "z_stat": 4.752306133368177,
+      "p_value": 2.011095667577374e-06,
+      "p_value_holm": 3.0166435013660607e-05
+    },
+    {
+      "a": "set_piece_second_phase",
+      "b": "direct_long_ball",
+      "rate_a": 0.1614812158163723,
+      "rate_b": 0.08027522935779817,
+      "rate_diff": 0.08120598645857412,
+      "z_stat": 4.555590440866697,
+      "p_value": 5.223863286651558e-06,
+      "p_value_holm": 7.313408601312182e-05
+    },
+    {
+      "a": "low_block_regain",
+      "b": "fast_counterattack",
+      "rate_a": 0.05444261135988687,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.02123890211669214,
+      "z_stat": 4.426300685690973,
+      "p_value": 9.586287531896387e-06,
+      "p_value_holm": 0.00012462173791465302
+    },
+    {
+      "a": "mid_block_regain",
+      "b": "settled_possession",
+      "rate_a": 0.06698564593301436,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.04079294247183568,
+      "z_stat": 4.07672380452373,
+      "p_value": 4.567469226111698e-05,
+      "p_value_holm": 0.0005480963071334038
+    },
+    {
+      "a": "mid_block_regain",
+      "b": "fast_counterattack",
+      "rate_a": 0.06698564593301436,
+      "rate_b": 0.03320370924319473,
+      "rate_diff": 0.033781936689819624,
+      "z_stat": 4.03250542563174,
+      "p_value": 5.5185340503003615e-05,
+      "p_value_holm": 0.0006070387455330398
+    },
+    {
+      "a": "recycled_attack",
+      "b": "through_ball_sequence",
+      "rate_a": 0.382830626450116,
+      "rate_b": 0.24187725631768953,
+      "rate_diff": 0.14095337013242648,
+      "z_stat": 3.8996276743500693,
+      "p_value": 9.63407245404587e-05,
+      "p_value_holm": 0.0009634072454045871
+    },
+    {
+      "a": "low_block_regain",
+      "b": "settled_possession",
+      "rate_a": 0.05444261135988687,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.0282499078987082,
+      "z_stat": 3.833071379480399,
+      "p_value": 0.00012655321251833752,
+      "p_value_holm": 0.0011389789126650376
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "set_piece_second_phase",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.1614812158163723,
+      "rate_diff": 0.08039604050131724,
+      "z_stat": 3.574626787144152,
+      "p_value": 0.00035072782583253376,
+      "p_value_holm": 0.00280582260666027
+    },
+    {
+      "a": "set_piece_first_phase",
+      "b": "mid_block_regain",
+      "rate_a": 0.10991957104557641,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.042933925112562055,
+      "z_stat": 3.112369513410057,
+      "p_value": 0.0018559203891613512,
+      "p_value_holm": 0.012991442724129458
+    },
+    {
+      "a": "direct_long_ball",
+      "b": "low_block_regain",
+      "rate_a": 0.08027522935779817,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.025832617997911297,
+      "z_stat": 2.2182828566785955,
+      "p_value": 0.026535552320442184,
+      "p_value_holm": 0.1592133139226531
+    },
+    {
+      "a": "through_ball_sequence",
+      "b": "chaotic_loose_ball_sequence",
+      "rate_a": 0.24187725631768953,
+      "rate_b": 0.19830667920978362,
+      "rate_diff": 0.043570577107905906,
+      "z_stat": 1.7658884721395753,
+      "p_value": 0.07741456158852998,
+      "p_value_holm": 0.3413532791425882
+    },
+    {
+      "a": "set_piece_first_phase",
+      "b": "direct_long_ball",
+      "rate_a": 0.10991957104557641,
+      "rate_b": 0.08027522935779817,
+      "rate_diff": 0.029644341687778242,
+      "z_stat": 1.8232161774682523,
+      "p_value": 0.06827065582851763,
+      "p_value_holm": 0.3413532791425882
+    },
+    {
+      "a": "direct_long_ball",
+      "b": "mid_block_regain",
+      "rate_a": 0.08027522935779817,
+      "rate_b": 0.06698564593301436,
+      "rate_diff": 0.013289583424783813,
+      "z_stat": 0.8221881157533568,
+      "p_value": 0.41096984146751403,
+      "p_value_holm": 0.6075243898820124
+    },
+    {
+      "a": "mid_block_regain",
+      "b": "low_block_regain",
+      "rate_a": 0.06698564593301436,
+      "rate_b": 0.05444261135988687,
+      "rate_diff": 0.012543034573127484,
+      "z_stat": 1.2744382889948285,
+      "p_value": 0.2025081299606708,
+      "p_value_holm": 0.6075243898820124
+    },
+    {
+      "a": "fast_counterattack",
+      "b": "settled_possession",
+      "rate_a": 0.03320370924319473,
+      "rate_b": 0.026192703461178673,
+      "rate_diff": 0.00701100578201606,
+      "z_stat": 1.1423028794138907,
+      "p_value": 0.2533281447959854,
+      "p_value_holm": 0.6075243898820124
+    }
+  ],
+  "adjusted_logit_sequence_effects": [
+    {
+      "term": "C(sequence_type)[T.through_ball_sequence]",
+      "sequence_type": "through_ball_sequence",
+      "odds_ratio": 1.3519949719242659,
+      "or_ci_low": 1.0146768886925575,
+      "or_ci_high": 1.801450712515774,
+      "p_value": 0.03944635024989666,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.recycled_attack]",
+      "sequence_type": "recycled_attack",
+      "odds_ratio": 0.8632897563268112,
+      "or_ci_low": 0.6927509193766074,
+      "or_ci_high": 1.0758112079439142,
+      "p_value": 0.19046506357258053,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.set_piece_second_phase]",
+      "sequence_type": "set_piece_second_phase",
+      "odds_ratio": 0.5277240376588482,
+      "or_ci_low": 0.48089950215380545,
+      "or_ci_high": 0.5791078149918474,
+      "p_value": 1.9633228233660342e-41,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.direct_long_ball]",
+      "sequence_type": "direct_long_ball",
+      "odds_ratio": 0.38656374268384736,
+      "or_ci_low": 0.2708080032943313,
+      "or_ci_high": 0.5517987848953344,
+      "p_value": 1.6540735096722144e-07,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.mid_block_regain]",
+      "sequence_type": "mid_block_regain",
+      "odds_ratio": 0.3145058396053271,
+      "or_ci_low": 0.22749832752117358,
+      "or_ci_high": 0.4347896717466886,
+      "p_value": 2.5474199968659274e-12,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.set_piece_first_phase]",
+      "sequence_type": "set_piece_first_phase",
+      "odds_ratio": 0.2909150184292365,
+      "or_ci_low": 0.2455282660427556,
+      "or_ci_high": 0.3446916695650248,
+      "p_value": 3.483172662951184e-46,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.low_block_regain]",
+      "sequence_type": "low_block_regain",
+      "odds_ratio": 0.27586994606537607,
+      "or_ci_low": 0.23518578897778583,
+      "or_ci_high": 0.3235919460648272,
+      "p_value": 2.2653575314177923e-56,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.fast_counterattack]",
+      "sequence_type": "fast_counterattack",
+      "odds_ratio": 0.16274117971613372,
+      "or_ci_low": 0.13245594748008166,
+      "or_ci_high": 0.19995094277953532,
+      "p_value": 6.421871823843646e-67,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    },
+    {
+      "term": "C(sequence_type)[T.settled_possession]",
+      "sequence_type": "settled_possession",
+      "odds_ratio": 0.11782639524118875,
+      "or_ci_low": 0.08022540076575199,
+      "or_ci_high": 0.1730506707728342,
+      "p_value": 1.0919907455179716e-27,
+      "model_terms": [
+        "C(sequence_type)",
+        "C(possession_start_zone)"
+      ]
+    }
+  ],
+  "contingency_table": [
+    {
+      "sequence_type": "chaotic_loose_ball_sequence",
+      "0": 4261,
+      "1": 1054
+    },
+    {
+      "sequence_type": "direct_long_ball",
+      "0": 401,
+      "1": 35
+    },
+    {
+      "sequence_type": "fast_counterattack",
+      "0": 3232,
+      "1": 111
+    },
+    {
+      "sequence_type": "low_block_regain",
+      "0": 4012,
+      "1": 231
+    },
+    {
+      "sequence_type": "mid_block_regain",
+      "0": 585,
+      "1": 42
+    },
+    {
+      "sequence_type": "recycled_attack",
+      "0": 266,
+      "1": 165
+    },
+    {
+      "sequence_type": "set_piece_first_phase",
+      "0": 1660,
+      "1": 205
+    },
+    {
+      "sequence_type": "set_piece_second_phase",
+      "0": 9352,
+      "1": 1801
+    },
+    {
+      "sequence_type": "settled_possession",
+      "0": 1041,
+      "1": 28
+    },
+    {
+      "sequence_type": "through_ball_sequence",
+      "0": 210,
+      "1": 67
+    }
+  ]
+}

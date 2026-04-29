@@ -1,0 +1,265 @@
+mlflow:
+  tracking_uri: mlruns
+  artifact_root: mlruns/artifacts
+  experiment_prefix: cfm
+validation:
+  split_unit: match_id
+  n_folds: 5
+  final_val_competition:
+    competition_id: 55
+    season_id: 282
+    phase: group
+  final_test_competition:
+    competition_id: 55
+    season_id: 282
+    phase: knockout
+  stress_test_competition:
+    competition_id: 43
+    season_id: 106
+promotion:
+  min_log_loss_improvement_over_tree: 0.05
+  max_ece_vs_tree: 1.0
+  min_leaderboard_rank_correlation: 0.8
+  must_not_rely_on_360_only: true
+production:
+  cxg: models\cxg\baseline_logit.joblib
+  cxa: models\cxa\cxa_logistic_contextual.pkl
+  cxt: models\cxt\lgbm_contextual.joblib
+comparison:
+  n_bootstrap: 20
+  min_actions_for_rank_corr: 10
+  leaderboard_value_col: cxt
+  report_output_path: reports/model_comparison_matrix.html
+  family_order:
+  - baseline
+  - glm
+  - gam
+  - tree
+  - neural_tabular
+  - neural_seq
+  - neural_360
+cxg:
+  logistic_baseline:
+    solver: lbfgs
+    max_iter: 1000
+    C: 1.0
+  glm_contextual:
+    solver: lbfgs
+    max_iter: 2000
+    C_search:
+    - 0.01
+    - 0.05
+    - 0.1
+    - 0.5
+    - 1.0
+    - 5.0
+  gam:
+    lam_search:
+    - 0.001
+    - 0.01
+    - 0.1
+    - 1.0
+    - 10.0
+    n_splines: 20
+    spline_order: 3
+  xgboost:
+    n_trials: 60
+    n_estimators:
+    - 200
+    - 2000
+    learning_rate:
+    - 0.005
+    - 0.3
+    max_depth:
+    - 3
+    - 9
+    subsample:
+    - 0.5
+    - 1.0
+    colsample_bytree:
+    - 0.5
+    - 1.0
+    min_child_weight:
+    - 1
+    - 20
+    reg_alpha:
+    - 0.0
+    - 5.0
+    reg_lambda:
+    - 0.5
+    - 5.0
+    eval_metric: logloss
+    early_stopping_rounds: 50
+  lightgbm:
+    n_trials: 60
+    n_estimators:
+    - 200
+    - 2000
+    learning_rate:
+    - 0.005
+    - 0.3
+    num_leaves:
+    - 15
+    - 255
+    subsample:
+    - 0.5
+    - 1.0
+    colsample_bytree:
+    - 0.5
+    - 1.0
+    min_child_samples:
+    - 10
+    - 100
+    reg_alpha:
+    - 0.0
+    - 5.0
+    reg_lambda:
+    - 0.0
+    - 5.0
+    metric: binary_logloss
+    early_stopping_round: 50
+  catboost:
+    n_trials: 40
+    iterations:
+    - 200
+    - 2000
+    learning_rate:
+    - 0.01
+    - 0.3
+    depth:
+    - 4
+    - 10
+    l2_leaf_reg:
+    - 1.0
+    - 10.0
+    eval_metric: Logloss
+    early_stopping_rounds: 50
+  ffnn:
+    hidden_layers:
+    - 3
+    hidden_dim:
+    - 128
+    - 256
+    dropout:
+    - 0.2
+    - 0.4
+    batch_norm: true
+    lr:
+    - 1e-4
+    - 5e-3
+    batch_size:
+    - 256
+    - 1024
+    max_epochs: 100
+    patience: 10
+    team_embedding_dim: 16
+    opponent_embedding_dim: 16
+    competition_embedding_dim: 8
+  gnn:
+    gnn_layers: 3
+    hidden_dim: 64
+    heads: 4
+    dropout: 0.2
+    k_neighbours: 5
+    global_mlp_layers: 2
+    lr: 1e-3
+    batch_size: 128
+    max_epochs: 80
+    patience: 10
+cxa:
+  shot_creation:
+    xgboost:
+      n_trials: 50
+    lightgbm:
+      n_trials: 50
+  shot_quality:
+    xgboost_regressor:
+      n_trials: 50
+      eval_metric: rmse
+    lightgbm_regressor:
+      n_trials: 50
+      metric: rmse
+  transformer:
+    max_seq_len: 15
+    d_model: 64
+    nhead: 4
+    num_encoder_layers: 3
+    dim_feedforward: 256
+    dropout: 0.1
+    lr: 1e-3
+    batch_size: 256
+    max_epochs: 80
+    patience: 10
+cxt:
+  zone_baseline:
+    pitch_zones_x: 16
+    pitch_zones_y: 12
+    laplace_smoothing_alpha: 1.0
+  xgboost:
+    n_trials: 60
+    eval_metric: rmse
+  lightgbm:
+    n_trials: 60
+    metric: rmse
+  state_value_ffnn:
+    hidden_layers: 3
+    hidden_dim: 128
+    dropout: 0.3
+    lr: 1e-3
+    batch_size: 512
+    max_epochs: 100
+    patience: 10
+  transformer:
+    max_seq_len: 20
+    d_model: 64
+    nhead: 4
+    num_encoder_layers: 3
+    dim_feedforward: 256
+    dropout: 0.1
+    lr: 1e-3
+    batch_size: 256
+    max_epochs: 80
+    patience: 10
+sequence_classifier:
+  min_rule_confidence: 0.7
+  weak_label_weight: 0.5
+  high_confidence_weight: 1.0
+  lightgbm:
+    n_trials: 30
+    num_leaves:
+    - 15
+    - 63
+    learning_rate:
+    - 0.01
+    - 0.2
+    n_estimators:
+    - 100
+    - 500
+    metric: multi_logloss
+monitoring:
+  cxg_mean_expected: 0.11
+  cxg_mean_tolerance: 0.03
+  cxa_mean_expected: 0.05
+  cxa_mean_tolerance: 0.02
+  cxt_mean_expected: 0.0
+  cxt_mean_tolerance: 0.01
+  feature_kl_warn: 0.1
+  feature_kl_error: 0.3
+  min_360_linkage_rate: 0.8
+  consecutive_drift_matches: 3
+  psi_threshold: 0.2
+  kl_threshold: 0.1
+  n_bins: 10
+  numeric_monitor_cols:
+  - distance_to_goal
+  - x_location
+  - y_location
+  - progressive_distance
+  - nearest_defender_distance
+  - cxg
+  - cxa
+  - cxt
+  categorical_monitor_cols:
+  - action_type
+  - score_state
+  - phase_of_play

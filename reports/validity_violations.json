@@ -1,0 +1,11 @@
+{
+  "violations": [
+    {
+      "check": "x_location \u2208 [0, 105]",
+      "column": "x_location",
+      "violation_count": 1,
+      "violation_fraction": 0.0
+    }
+  ],
+  "n_violations": 1
+}

@@ -1,0 +1,305 @@
+{
+  "vif": [
+    {
+      "feature": "opponent_xg_conceded_rolling_5",
+      "vif": 63590.23,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_keeper_shot_stopping_rating",
+      "vif": 57261.4,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_set_piece_defence_strength",
+      "vif": 7927.0,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_pressing_rating",
+      "vif": 563.2,
+      "flagged": true
+    },
+    {
+      "feature": "distance_to_goal",
+      "vif": 261.69,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_pressing_intensity",
+      "vif": 219.27,
+      "flagged": true
+    },
+    {
+      "feature": "events_before_action",
+      "vif": 179.23,
+      "flagged": true
+    },
+    {
+      "feature": "x_location",
+      "vif": 161.13,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_transition_defence_strength",
+      "vif": 150.06,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_chance_suppression_rating",
+      "vif": 115.42,
+      "flagged": true
+    },
+    {
+      "feature": "passes_before_action",
+      "vif": 107.73,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_box_entries_conceded_rolling_5",
+      "vif": 96.77,
+      "flagged": true
+    },
+    {
+      "feature": "carries_before_action",
+      "vif": 93.52,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_defensive_rating",
+      "vif": 89.48,
+      "flagged": true
+    },
+    {
+      "feature": "opponent_shots_conceded_rolling_5",
+      "vif": 74.24,
+      "flagged": true
+    },
+    {
+      "feature": "box_access_before_action",
+      "vif": 34.91,
+      "flagged": true
+    },
+    {
+      "feature": "sequence_type_confidence",
+      "vif": 32.94,
+      "flagged": true
+    },
+    {
+      "feature": "defenders_between_ball_and_goal",
+      "vif": 31.42,
+      "flagged": true
+    },
+    {
+      "feature": "pass_length",
+      "vif": 19.91,
+      "flagged": true
+    },
+    {
+      "feature": "second_nearest_defender_distance",
+      "vif": 19.55,
+      "flagged": true
+    },
+    {
+      "feature": "teammates_ahead_of_ball",
+      "vif": 13.97,
+      "flagged": true
+    },
+    {
+      "feature": "nearest_defender_distance",
+      "vif": 13.4,
+      "flagged": true
+    },
+    {
+      "feature": "box_access_after_action",
+      "vif": 11.53,
+      "flagged": true
+    },
+    {
+      "feature": "defensive_line_height",
+      "vif": 9.77,
+      "flagged": false
+    },
+    {
+      "feature": "defenders_between_ball_and_goal_after_action",
+      "vif": 9.35,
+      "flagged": false
+    },
+    {
+      "feature": "central_access_before_action",
+      "vif": 8.47,
+      "flagged": false
+    },
+    {
+      "feature": "shot_angle",
+      "vif": 7.54,
+      "flagged": false
+    },
+    {
+      "feature": "period",
+      "vif": 7.45,
+      "flagged": false
+    },
+    {
+      "feature": "defenders_within_10m",
+      "vif": 6.42,
+      "flagged": false
+    },
+    {
+      "feature": "defenders_between_receiver_and_goal",
+      "vif": 6.26,
+      "flagged": false
+    },
+    {
+      "feature": "defensive_density_in_box",
+      "vif": 6.02,
+      "flagged": false
+    },
+    {
+      "feature": "defensive_density_central",
+      "vif": 6.01,
+      "flagged": false
+    },
+    {
+      "feature": "defenders_within_5m",
+      "vif": 5.11,
+      "flagged": false
+    },
+    {
+      "feature": "carry_progressive_distance",
+      "vif": 5.07,
+      "flagged": false
+    },
+    {
+      "feature": "carry_distance",
+      "vif": 4.89,
+      "flagged": false
+    },
+    {
+      "feature": "nearest_defender_to_receiver",
+      "vif": 4.52,
+      "flagged": false
+    },
+    {
+      "feature": "defenders_within_3m",
+      "vif": 4.31,
+      "flagged": false
+    },
+    {
+      "feature": "y_location",
+      "vif": 4.17,
+      "flagged": false
+    },
+    {
+      "feature": "progressive_distance",
+      "vif": 3.85,
+      "flagged": false
+    },
+    {
+      "feature": "keeper_distance_to_shooter",
+      "vif": 3.71,
+      "flagged": false
+    },
+    {
+      "feature": "central_access_after_action",
+      "vif": 3.71,
+      "flagged": false
+    },
+    {
+      "feature": "possession_speed",
+      "vif": 3.63,
+      "flagged": false
+    },
+    {
+      "feature": "vertical_progression_speed",
+      "vif": 3.29,
+      "flagged": false
+    },
+    {
+      "feature": "time_from_possession_start",
+      "vif": 3.15,
+      "flagged": false
+    },
+    {
+      "feature": "keeper_angle_coverage",
+      "vif": 2.79,
+      "flagged": false
+    },
+    {
+      "feature": "pressure_on_passer",
+      "vif": 2.63,
+      "flagged": false
+    },
+    {
+      "feature": "directness",
+      "vif": 2.5,
+      "flagged": false
+    },
+    {
+      "feature": "keeper_distance_to_goal",
+      "vif": 2.17,
+      "flagged": false
+    },
+    {
+      "feature": "shot_lane_blockage_proxy",
+      "vif": 2.13,
+      "flagged": false
+    },
+    {
+      "feature": "pressure_after_action",
+      "vif": 1.88,
+      "flagged": false
+    },
+    {
+      "feature": "passing_lane_blockage_proxy",
+      "vif": 1.65,
+      "flagged": false
+    },
+    {
+      "feature": "rest_days",
+      "vif": 1.54,
+      "flagged": false
+    },
+    {
+      "feature": "opponent_rest_days",
+      "vif": 1.38,
+      "flagged": false
+    },
+    {
+      "feature": "pressure_on_receiver",
+      "vif": 1.37,
+      "flagged": false
+    },
+    {
+      "feature": "score_differential",
+      "vif": 1.08,
+      "flagged": false
+    },
+    {
+      "feature": "pass_angle",
+      "vif": 1.06,
+      "flagged": false
+    },
+    {
+      "feature": "visible_area_size",
+      "vif": NaN,
+      "flagged": false
+    },
+    {
+      "feature": "minute",
+      "vif": NaN,
+      "flagged": false
+    },
+    {
+      "feature": "second",
+      "vif": NaN,
+      "flagged": false
+    },
+    {
+      "feature": "number_of_switches",
+      "vif": NaN,
+      "flagged": false
+    }
+  ],
+  "vif_flag_threshold": 10.0
+}

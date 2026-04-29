@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.Python
+build/
+dist/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Project data & artifacts (regeneratable / large)
+data/raw/
+data/processed/
+data/features/
+data/external/
+mlruns/
+outputs/
+reports/figures/
+*.parquet
+*.feather
+*.joblib
+*.pkl
+*.bin
+
+# Logs
+*.log

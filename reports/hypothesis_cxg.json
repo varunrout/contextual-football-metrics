@@ -1,0 +1,70 @@
+{
+  "n_hypotheses": 6,
+  "n_rejected_bonferroni": 3,
+  "results": [
+    {
+      "hypothesis": "H1_header_vs_foot_goal_rate",
+      "statistic": -1.0655,
+      "pval": 0.286891,
+      "bonferroni_pval": 1.0,
+      "cohen_d": -0.0426,
+      "reject_H0": false,
+      "mean_head": 0.1041,
+      "mean_foot": 0.1178
+    },
+    {
+      "hypothesis": "H2_inside_box_higher_xg",
+      "statistic": 1936231.0,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d_approx": 0.6495,
+      "reject_H0": true,
+      "mean_inside": 0.1361,
+      "mean_outside": 0.0224
+    },
+    {
+      "hypothesis": "H4_long_sequence_xg",
+      "statistic": 171487.5,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": -2.9014,
+      "reject_H0": true,
+      "median_long": 0.0534,
+      "median_short": 0.7835
+    },
+    {
+      "hypothesis": "H5_home_vs_away_goal_rate",
+      "statistic": 1.4945,
+      "pval": 0.135129,
+      "bonferroni_pval": 1.0,
+      "cohen_d": 0.0465,
+      "reject_H0": false,
+      "mean_home": 0.1228,
+      "mean_away": 0.108
+    },
+    {
+      "hypothesis": "H7_score_state_goal_rate",
+      "statistic": 19.9533,
+      "pval": 4.6e-05,
+      "bonferroni_pval": 0.000372,
+      "eta_squared": 0.0044,
+      "reject_H0": true,
+      "n_groups": 3,
+      "group_means": {
+        "level": 0.0997,
+        "losing": 0.1122,
+        "winning": 0.156
+      }
+    },
+    {
+      "hypothesis": "H8_defender_distance_vs_goal",
+      "statistic": 900363.0,
+      "pval": 0.09249,
+      "bonferroni_pval": 0.739923,
+      "cohen_d": 0.2278,
+      "reject_H0": false,
+      "median_goal": 1.9898,
+      "median_no_goal": 1.9303
+    }
+  ]
+}

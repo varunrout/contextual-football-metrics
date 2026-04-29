@@ -1,0 +1,78 @@
+{
+  "n_hypotheses": 7,
+  "n_rejected_bonferroni": 6,
+  "results": [
+    {
+      "hypothesis": "H1_progressive_actions_shot_created",
+      "statistic": 2790658373.0,
+      "pval": 1.0,
+      "bonferroni_pval": 1.0,
+      "cohen_d": -0.0757,
+      "reject_H0": false,
+      "mean_progressive": 0.1689,
+      "mean_not_progressive": 0.1974
+    },
+    {
+      "hypothesis": "H2_final_third_shot_created",
+      "statistic": 79.7037,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": 0.3844,
+      "reject_H0": true,
+      "mean_final_third": 0.2802,
+      "mean_other": 0.1375
+    },
+    {
+      "hypothesis": "H3_carry_vs_pass_shot_created",
+      "statistic": 10.7866,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": 0.0386,
+      "reject_H0": true,
+      "mean_carry": 0.1787,
+      "mean_pass": 0.1642
+    },
+    {
+      "hypothesis": "H4_transition_vs_settled_shot_created",
+      "statistic": -70.9941,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": -0.3188,
+      "reject_H0": true,
+      "mean_transition": 0.0602,
+      "mean_settled": 0.1797
+    },
+    {
+      "hypothesis": "H5_high_pressing_reduces_shot_created",
+      "statistic": -17.8434,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "cohen_d": -0.0641,
+      "reject_H0": true,
+      "mean_high_press": 0.16,
+      "mean_low_press": 0.1841
+    },
+    {
+      "hypothesis": "H6_score_state_shot_created",
+      "statistic": 78.4517,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "eta_squared": 0.0002,
+      "reject_H0": true,
+      "group_means": {
+        "level": 0.1659,
+        "losing": 0.1727,
+        "winning": 0.1806
+      }
+    },
+    {
+      "hypothesis": "H7_directness_shot_created_correlation",
+      "statistic": -0.1796,
+      "pval": 0.0,
+      "bonferroni_pval": 0.0,
+      "pearson_r": -0.1796,
+      "reject_H0": true,
+      "n": 318928
+    }
+  ]
+}

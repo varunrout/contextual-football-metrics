@@ -1,0 +1,211 @@
+{
+  "n_spearman_high_pairs": 39,
+  "spearman_high_pairs": [
+    {
+      "feature_a": "defenders_within_3m",
+      "feature_b": "pressure_before_action",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "defenders_between_ball_and_goal",
+      "feature_b": "opponents_ahead_of_ball",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "defenders_between_ball_and_goal",
+      "feature_b": "defenders_between_ball_and_goal_before_action",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponents_ahead_of_ball",
+      "feature_b": "defenders_between_ball_and_goal_before_action",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_set_piece_defence_strength",
+      "feature_b": "opponent_box_defence_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_set_piece_defence_strength",
+      "feature_b": "opponent_cross_defence_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_set_piece_defence_strength",
+      "feature_b": "opponent_block_compactness_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_set_piece_defence_strength",
+      "feature_b": "opponent_box_entry_prevention_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_keeper_shot_stopping_rating",
+      "feature_b": "opponent_team_elo",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_keeper_shot_stopping_rating",
+      "feature_b": "opponent_team_strength",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_team_elo",
+      "feature_b": "opponent_team_strength",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_box_defence_rating",
+      "feature_b": "opponent_cross_defence_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_box_defence_rating",
+      "feature_b": "opponent_block_compactness_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_box_defence_rating",
+      "feature_b": "opponent_box_entry_prevention_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_cross_defence_rating",
+      "feature_b": "opponent_block_compactness_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_cross_defence_rating",
+      "feature_b": "opponent_box_entry_prevention_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "opponent_block_compactness_rating",
+      "feature_b": "opponent_box_entry_prevention_rating",
+      "spearman_rho": 1.0
+    },
+    {
+      "feature_a": "keeper_distance_to_goal",
+      "feature_b": "keeper_distance_to_shooter",
+      "spearman_rho": 0.9938
+    },
+    {
+      "feature_a": "x_location",
+      "feature_b": "distance_to_goal",
+      "spearman_rho": -0.988
+    },
+    {
+      "feature_a": "events_before_action",
+      "feature_b": "carries_before_action",
+      "spearman_rho": 0.98
+    }
+  ],
+  "top_10_pearson_pairs": [
+    {
+      "feat_a": "opponent_box_defence_rating",
+      "feat_b": "opponent_box_entry_prevention_rating",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "defenders_within_3m",
+      "feat_b": "pressure_before_action",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_box_entry_prevention_rating",
+      "feat_b": "opponent_set_piece_defence_strength",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_box_entry_prevention_rating",
+      "feat_b": "opponent_cross_defence_rating",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_team_elo",
+      "feat_b": "opponent_team_strength",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_box_defence_rating",
+      "feat_b": "opponent_cross_defence_rating",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_block_compactness_rating",
+      "feat_b": "opponent_cross_defence_rating",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_cross_defence_rating",
+      "feat_b": "opponent_set_piece_defence_strength",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_block_compactness_rating",
+      "feat_b": "opponent_box_entry_prevention_rating",
+      "abs_corr": 1.0
+    },
+    {
+      "feat_a": "opponent_block_compactness_rating",
+      "feat_b": "opponent_set_piece_defence_strength",
+      "abs_corr": 1.0
+    }
+  ],
+  "top_features_cxg": [
+    "shot_statsbomb_xg",
+    "shot_angle",
+    "defenders_between_ball_and_goal",
+    "opponents_ahead_of_ball",
+    "defenders_between_ball_and_goal_before_action",
+    "distance_to_goal",
+    "teammates_ahead_of_ball",
+    "central_access_before_action",
+    "keeper_distance_to_shooter",
+    "x_location"
+  ],
+  "top_features_cxa": [
+    "distance_to_goal",
+    "defensive_density_central",
+    "x_location",
+    "shot_angle",
+    "defensive_density_in_box",
+    "keeper_angle_coverage",
+    "visible_area_size",
+    "box_access_before_action",
+    "keeper_distance_to_shooter",
+    "keeper_distance_to_goal"
+  ],
+  "focus_360_metrics": {
+    "nearest_defender_distance": {
+      "present": true,
+      "null_rate": 0.0,
+      "zero_rate": 0.132618,
+      "cxg_point_biserial_r": 0.0726,
+      "cxg_point_biserial_p": 3e-06,
+      "cxa_point_biserial_r": -0.0078,
+      "cxa_point_biserial_p": 1e-05
+    },
+    "second_nearest_defender_distance": {
+      "present": true,
+      "null_rate": 0.0,
+      "zero_rate": 0.136656,
+      "cxg_point_biserial_r": -0.0838,
+      "cxg_point_biserial_p": 0.0,
+      "cxa_point_biserial_r": -0.021,
+      "cxa_point_biserial_p": 0.0
+    },
+    "nearest_defender_to_receiver": {
+      "present": true,
+      "null_rate": 0.0,
+      "zero_rate": 0.757093,
+      "cxg_point_biserial_r": null,
+      "cxg_point_biserial_p": null,
+      "cxa_point_biserial_r": -0.0278,
+      "cxa_point_biserial_p": 0.0
+    }
+  },
+  "n_vif_flagged": 23
+}

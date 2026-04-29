@@ -1,0 +1,49 @@
+{
+  "feature_set": "contextual",
+  "n_estimators": 300,
+  "n_train_actions": 220899,
+  "train_shot_created_rate": 0.15932620790497015,
+  "best_model": "logistic_contextual",
+  "best_creation_auc": 0.76623291822037,
+  "ladder": [
+    {
+      "name": "logistic_contextual",
+      "creation_family": "logistic",
+      "quality_family": "glm",
+      "pipeline_path": "models\\cxa\\cxa_logistic_contextual.pkl",
+      "creation_auc": 0.76623291822037,
+      "creation_ap": 0.4430237891026563,
+      "creation_ll": 0.4264236029762637,
+      "creation_brier": 0.1362830966868613,
+      "quality_mae": 0.06943001379193435,
+      "quality_rmse": 0.09340705838581986,
+      "quality_spearman": 0.18546375331926532
+    },
+    {
+      "name": "xgb_contextual",
+      "creation_family": "xgboost",
+      "quality_family": "xgboost",
+      "pipeline_path": "models\\cxa\\cxa_xgb_contextual.pkl",
+      "creation_auc": 0.7530467862546112,
+      "creation_ap": 0.3954689891199161,
+      "creation_ll": 0.44365466145396865,
+      "creation_brier": 0.141288310941334,
+      "quality_mae": 0.07215787524564696,
+      "quality_rmse": 0.0987410599898465,
+      "quality_spearman": 0.1937340486291553
+    },
+    {
+      "name": "lgbm_contextual",
+      "creation_family": "lgbm",
+      "quality_family": "lgbm",
+      "pipeline_path": "models\\cxa\\cxa_lgbm_contextual.pkl",
+      "creation_auc": 0.7280722380083863,
+      "creation_ap": 0.35709847856299626,
+      "creation_ll": 0.4884704219431086,
+      "creation_brier": 0.15076692320404497,
+      "quality_mae": 0.07138493321062912,
+      "quality_rmse": 0.09805190046017238,
+      "quality_spearman": 0.20666477609756456
+    }
+  ]
+}
