@@ -1,24 +1,26 @@
 """Top-level Prefect flow + CLI for the contextual-football-metrics pipeline.
 
-Stages currently wired (Phase 4 of the rollout):
+Stage groups (in execution order):
 
-    train_cxg → train_cxa → train_cxt
-
-Future phases will add ingest / features / pre-modelling analysis / scoring /
-post-modelling analysis. Stages are independent Prefect tasks; new ones can
-be added without touching this file's CLI.
+    pre   — pre-modelling analysis (data quality, stability, EDA, hypotheses, …)
+    gate  — quality gates that hard-stop the run on threshold breaches
+    train — model training (cxg, cxa, cxt)
 
 Examples
 --------
-Run the whole training pipeline on the active profile (auto-detected)::
+Run the full pipeline on the active profile (auto-detected)::
 
     python -m pipelines.flow
+
+Skip the long pre-analysis stage and only train::
+
+    python -m pipelines.flow --only-group train
 
 Run with an explicit profile and only the CxG stage::
 
     python -m pipelines.flow --profile gpu --only train_cxg
 
-Run on a fresh tracking URI (no caching)::
+Run on a fresh tracking URI (no Prefect cache)::
 
     python -m pipelines.flow --profile cpu --no-cache
 """
@@ -27,34 +29,62 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from typing import Iterable
 
 from prefect import flow
 
+from pipelines.gates import data_quality_gate_task, feature_stability_gate_task
 from pipelines.mlflow_helpers import pipeline_run
+from pipelines.stages.analysis import ANALYSIS_STAGE_NAMES, ANALYSIS_TASKS
 from pipelines.stages.train import train_cxa_task, train_cxg_task, train_cxt_task
 from src.runtime import load_profile
 
 logger = logging.getLogger(__name__)
 
-# Stage registry: name → (task callable, kwargs key in CLI overrides)
+# ── Stage registry ───────────────────────────────────────────────────────────
+PRE_STAGES: list[str] = list(ANALYSIS_STAGE_NAMES)
+GATE_STAGES: list[str] = ["gate.data_quality", "gate.feature_stability"]
 TRAIN_STAGES: dict[str, callable] = {
     "train_cxg": train_cxg_task,
     "train_cxa": train_cxa_task,
     "train_cxt": train_cxt_task,
 }
 
-ALL_STAGES = list(TRAIN_STAGES.keys())
+GROUPS: dict[str, list[str]] = {
+    "pre": PRE_STAGES,
+    "gate": GATE_STAGES,
+    "train": list(TRAIN_STAGES.keys()),
+}
+
+ALL_STAGES: list[str] = PRE_STAGES + GATE_STAGES + list(TRAIN_STAGES.keys())
 
 
-def _select_stages(only: list[str] | None, skip: list[str] | None) -> list[str]:
-    if only:
+def _select_stages(
+    only: list[str] | None,
+    skip: list[str] | None,
+    only_group: list[str] | None = None,
+    skip_group: list[str] | None = None,
+) -> list[str]:
+    """Resolve the final ordered list of stages to run."""
+    if only_group:
+        bad = set(only_group) - set(GROUPS)
+        if bad:
+            raise ValueError(f"Unknown group(s) in --only-group: {sorted(bad)}. Valid: {list(GROUPS)}")
+        selected = [s for g in only_group for s in GROUPS[g]]
+    elif only:
         bad = set(only) - set(ALL_STAGES)
         if bad:
             raise ValueError(f"Unknown stage(s) in --only: {sorted(bad)}. Valid: {ALL_STAGES}")
-        return [s for s in ALL_STAGES if s in only]
-    selected = list(ALL_STAGES)
+        selected = [s for s in ALL_STAGES if s in only]
+    else:
+        selected = list(ALL_STAGES)
+
+    if skip_group:
+        bad = set(skip_group) - set(GROUPS)
+        if bad:
+            raise ValueError(f"Unknown group(s) in --skip-group: {sorted(bad)}. Valid: {list(GROUPS)}")
+        skip_set = {s for g in skip_group for s in GROUPS[g]}
+        selected = [s for s in selected if s not in skip_set]
     if skip:
         bad = set(skip) - set(ALL_STAGES)
         if bad:
@@ -77,15 +107,40 @@ def cfm_pipeline(
     n_estimators_cxt: int = 400,
     feature_set_cxa: str = "contextual",
     random_state: int = 42,
+    gate_max_missing: float = 0.40,
+    gate_max_dtype: int = 5,
+    gate_max_psi: float = 0.25,
 ) -> dict[str, str]:
     """Run the configured pipeline stages under a single MLflow parent run."""
     cfg = load_profile(profile)
     stages = stages or ALL_STAGES
-    logger.info("Running stages %s on profile=%s", stages, cfg.name)
+    logger.info("Running %d stages on profile=%s", len(stages), cfg.name)
 
     results: dict[str, str] = {}
     with pipeline_run("cfm", stages=",".join(stages)) as parent:
         parent_id = parent.info.run_id
+
+        # ── pre-analysis ────────────────────────────────────────────────────
+        for stage in PRE_STAGES:
+            if stage in stages:
+                results[stage] = ANALYSIS_TASKS[stage](parent_run_id=parent_id)
+
+        # ── gates ───────────────────────────────────────────────────────────
+        if "gate.data_quality" in stages:
+            data_quality_gate_task(
+                parent_run_id=parent_id,
+                max_overall_missing_rate=gate_max_missing,
+                max_dtype_mismatches=gate_max_dtype,
+            )
+            results["gate.data_quality"] = "passed"
+        if "gate.feature_stability" in stages:
+            feature_stability_gate_task(
+                parent_run_id=parent_id,
+                max_psi=gate_max_psi,
+            )
+            results["gate.feature_stability"] = "passed"
+
+        # ── training ────────────────────────────────────────────────────────
         if "train_cxg" in stages:
             results["train_cxg"] = train_cxg_task(
                 parent_run_id=parent_id,
@@ -121,24 +176,14 @@ def cfm_pipeline(
 
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run the contextual-football-metrics pipeline.")
-    p.add_argument(
-        "--profile",
-        default="auto",
-        choices=["auto", "cpu", "gpu", "cloud"],
-        help="Runtime profile (default: auto).",
-    )
-    p.add_argument(
-        "--only",
-        nargs="+",
-        choices=ALL_STAGES,
-        help="Run only the listed stages.",
-    )
-    p.add_argument(
-        "--skip",
-        nargs="+",
-        choices=ALL_STAGES,
-        help="Skip the listed stages.",
-    )
+    p.add_argument("--profile", default="auto", choices=["auto", "cpu", "gpu", "cloud"],
+                   help="Runtime profile (default: auto).")
+    p.add_argument("--only", nargs="+", choices=ALL_STAGES, help="Run only the listed stages.")
+    p.add_argument("--skip", nargs="+", choices=ALL_STAGES, help="Skip the listed stages.")
+    p.add_argument("--only-group", nargs="+", choices=list(GROUPS),
+                   help="Run only the listed stage groups (pre, gate, train).")
+    p.add_argument("--skip-group", nargs="+", choices=list(GROUPS),
+                   help="Skip the listed stage groups.")
     p.add_argument("--no-promote", action="store_true", help="Skip writing production pointers.")
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-optuna-trials", type=int, default=0)
@@ -148,25 +193,24 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p.add_argument("--n-estimators-cxt", type=int, default=400)
     p.add_argument("--feature-set-cxa", default="contextual")
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument(
-        "--no-cache",
-        action="store_true",
-        help="Disable Prefect task caching for this run.",
-    )
+    p.add_argument("--gate-max-missing", type=float, default=0.40)
+    p.add_argument("--gate-max-dtype", type=int, default=5)
+    p.add_argument("--gate-max-psi", type=float, default=0.25)
+    p.add_argument("--no-cache", action="store_true",
+                   help="Disable Prefect task caching for this run.")
     return p.parse_args(argv)
 
 
 def main(argv: Iterable[str] | None = None) -> None:
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
+        format="%(asctime)s %(levelname)-8s %(name)s - %(message)s",
         datefmt="%H:%M:%S",
     )
     args = _parse_args(argv)
-    stages = _select_stages(args.only, args.skip)
+    stages = _select_stages(args.only, args.skip, args.only_group, args.skip_group)
 
     if args.no_cache:
-        # Disable Prefect caching globally for this process.
         import os as _os
 
         _os.environ["PREFECT_TASKS_REFRESH_CACHE"] = "true"
@@ -183,6 +227,9 @@ def main(argv: Iterable[str] | None = None) -> None:
         n_estimators_cxt=args.n_estimators_cxt,
         feature_set_cxa=args.feature_set_cxa,
         random_state=args.seed,
+        gate_max_missing=args.gate_max_missing,
+        gate_max_dtype=args.gate_max_dtype,
+        gate_max_psi=args.gate_max_psi,
     )
 
 
