@@ -1,0 +1,38 @@
+# Runtime profile: Cloud (Colab T4 / Kaggle).
+# Assumes Google Drive mounted at /content/drive and DagsHub MLflow remote.
+profile_name: cloud
+
+accelerator:
+  type: cuda
+  device: cuda:0
+  precision: bf16-mixed   # T4 supports bf16; faster + saves VRAM
+
+torch:
+  num_workers: 2          # Colab free tier has only 2 vCPUs
+  pin_memory: true
+
+gbm:
+  device: cuda
+  n_jobs: -1
+
+batch_size:
+  ffnn: 1024
+  transformer: 256
+  set_transformer: 128
+
+mlflow:
+  # Set DAGSHUB_MLFLOW_URI in Colab Secrets (or any remote tracking server).
+  tracking_uri: ${oc.env:DAGSHUB_MLFLOW_URI,${oc.env:MLFLOW_TRACKING_URI,file:./mlruns}}
+  experiment: contextual-football-metrics
+  artifact_root: null
+
+paths:
+  data_root: /content/drive/MyDrive/cfm/data
+  reports_root: /content/drive/MyDrive/cfm/reports
+  models_root: /content/drive/MyDrive/cfm/models
+  outputs_root: /content/drive/MyDrive/cfm/outputs
+  checkpoint_root: /content/drive/MyDrive/cfm/checkpoints
+
+prefect:
+  task_runner: SequentialTaskRunner
+  log_level: INFO

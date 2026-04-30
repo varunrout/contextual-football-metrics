@@ -1,0 +1,40 @@
+# Runtime profile: CPU-only.
+# Default for the Windows dev box; safe everywhere.
+profile_name: cpu
+
+accelerator:
+  type: cpu          # one of: cpu | cuda
+  device: cpu        # torch device string
+  precision: 32      # 32 | 16-mixed | bf16-mixed (only used by NN trainer)
+
+torch:
+  num_workers: 4
+  pin_memory: false
+
+# Gradient-boosted models (LightGBM / XGBoost)
+gbm:
+  device: cpu        # cpu | cuda
+  n_jobs: -1
+
+# Default batch sizes per neural family (overridable per-experiment)
+batch_size:
+  ffnn: 256
+  transformer: 64
+  set_transformer: 32
+
+mlflow:
+  # Local file store by default. Override via env: MLFLOW_TRACKING_URI=...
+  tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,file:./mlruns}
+  experiment: contextual-football-metrics
+  artifact_root: null   # null = use tracking_uri default
+
+paths:
+  data_root: ./data
+  reports_root: ./reports
+  models_root: ./models
+  outputs_root: ./outputs
+  checkpoint_root: ./models/checkpoints
+
+prefect:
+  task_runner: ConcurrentTaskRunner   # threads — fine on CPU
+  log_level: INFO

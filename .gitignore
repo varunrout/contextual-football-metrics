@@ -41,3 +41,6 @@ outputs/
 
 # Logs
 *.log
+
+# Local env
+.env

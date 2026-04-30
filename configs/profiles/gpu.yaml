@@ -1,0 +1,38 @@
+# Runtime profile: CPU + local NVIDIA GPU.
+# Tuned for a GTX 1050 (4 GB VRAM, no Tensor Cores → fp32 only).
+# Adjust batch sizes upward for larger GPUs.
+profile_name: gpu
+
+accelerator:
+  type: cuda
+  device: cuda:0
+  precision: 32        # 1050 has no Tensor Cores; fp16 gives no speedup
+
+torch:
+  num_workers: 6
+  pin_memory: true
+
+gbm:
+  device: cuda         # LightGBM device=cuda; XGBoost device=cuda (>=2.0)
+  n_jobs: -1
+
+batch_size:
+  ffnn: 512
+  transformer: 128
+  set_transformer: 64
+
+mlflow:
+  tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,file:./mlruns}
+  experiment: contextual-football-metrics
+  artifact_root: null
+
+paths:
+  data_root: ./data
+  reports_root: ./reports
+  models_root: ./models
+  outputs_root: ./outputs
+  checkpoint_root: ./models/checkpoints
+
+prefect:
+  task_runner: SequentialTaskRunner   # avoid GPU contention across tasks
+  log_level: INFO
