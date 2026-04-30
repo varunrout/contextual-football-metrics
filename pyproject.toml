@@ -18,6 +18,7 @@ tqdm         = ">=4.66"
 mlflow       = ">=2.12"
 statsbombpy  = ">=1.0"
 omegaconf    = ">=2.3"
+prefect      = ">=3.0"
 
 # ── Statistical & tree models ─────────────────────────────────────────────────
 [tool.poetry.group.models.dependencies]
