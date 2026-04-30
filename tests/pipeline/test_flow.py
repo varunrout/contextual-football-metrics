@@ -10,8 +10,11 @@ import pytest
 
 from pipelines.flow import (
     ALL_STAGES,
+    DEFAULT_STAGES,
     GATE_STAGES,
     GROUPS,
+    OPTIONAL_STAGES,
+    POST_STAGES,
     PRE_STAGES,
     TRAIN_STAGES,
     _parse_args,
@@ -20,16 +23,20 @@ from pipelines.flow import (
 
 
 def test_groups_registered() -> None:
-    assert set(GROUPS) == {"pre", "gate", "train"}
+    assert set(GROUPS) == {"pre", "gate", "train", "post", "optional"}
     assert "data_quality" in PRE_STAGES
     assert "gate.data_quality" in GATE_STAGES
     assert set(TRAIN_STAGES) == {"train_cxg", "train_cxa", "train_cxt"}
-    assert ALL_STAGES[: len(PRE_STAGES)] == PRE_STAGES
-    assert ALL_STAGES[-3:] == ["train_cxg", "train_cxa", "train_cxt"]
+    assert "interpretability" in POST_STAGES
+    assert OPTIONAL_STAGES == ["score", "drift_monitor"]
+    # Default stages do NOT include optional (they need real parquet inputs).
+    assert "score" not in DEFAULT_STAGES
+    assert "drift_monitor" not in DEFAULT_STAGES
+    assert ALL_STAGES == DEFAULT_STAGES + OPTIONAL_STAGES
 
 
-def test_select_stages_default_returns_all() -> None:
-    assert _select_stages(None, None) == ALL_STAGES
+def test_select_stages_default_returns_default_set() -> None:
+    assert _select_stages(None, None) == DEFAULT_STAGES
 
 
 def test_select_stages_only() -> None:
@@ -114,3 +121,17 @@ def test_gate_tasks_importable() -> None:
 
     assert data_quality_gate_task.name == "gate.data_quality"
     assert feature_stability_gate_task.name == "gate.feature_stability"
+
+
+def test_post_tasks_importable() -> None:
+    from pipelines.stages.post import POST_REGISTRY, POST_TASKS, drift_monitor_task, score_task
+
+    assert len(POST_REGISTRY) == 3
+    assert {"scoring_validation", "interpretability", "model_comparison"} <= set(POST_TASKS)
+    assert score_task.name == "score"
+    assert drift_monitor_task.name == "drift_monitor"
+
+
+def test_select_optional_stage_via_only() -> None:
+    assert _select_stages(["score"], None) == ["score"]
+    assert _select_stages(["drift_monitor"], None) == ["drift_monitor"]

@@ -36,6 +36,7 @@ from prefect import flow
 from pipelines.gates import data_quality_gate_task, feature_stability_gate_task
 from pipelines.mlflow_helpers import pipeline_run
 from pipelines.stages.analysis import ANALYSIS_STAGE_NAMES, ANALYSIS_TASKS
+from pipelines.stages.post import POST_STAGE_NAMES, POST_TASKS, drift_monitor_task, score_task
 from pipelines.stages.train import train_cxa_task, train_cxg_task, train_cxt_task
 from src.runtime import load_profile
 
@@ -49,14 +50,26 @@ TRAIN_STAGES: dict[str, callable] = {
     "train_cxa": train_cxa_task,
     "train_cxt": train_cxt_task,
 }
+POST_STAGES: list[str] = list(POST_STAGE_NAMES)
+# score + drift_monitor are opt-in (need real parquet inputs); excluded from default run.
+OPTIONAL_STAGES: list[str] = ["score", "drift_monitor"]
+
+GATE_TASKS = {
+    "gate.data_quality": data_quality_gate_task,
+    "gate.feature_stability": feature_stability_gate_task,
+}
 
 GROUPS: dict[str, list[str]] = {
     "pre": PRE_STAGES,
     "gate": GATE_STAGES,
     "train": list(TRAIN_STAGES.keys()),
+    "post": POST_STAGES,
+    "optional": OPTIONAL_STAGES,
 }
 
-ALL_STAGES: list[str] = PRE_STAGES + GATE_STAGES + list(TRAIN_STAGES.keys())
+# Default flow: pre → gate → train → post (optional stages must be opted-in).
+DEFAULT_STAGES: list[str] = PRE_STAGES + GATE_STAGES + list(TRAIN_STAGES.keys()) + POST_STAGES
+ALL_STAGES: list[str] = DEFAULT_STAGES + OPTIONAL_STAGES
 
 
 def _select_stages(
@@ -77,7 +90,7 @@ def _select_stages(
             raise ValueError(f"Unknown stage(s) in --only: {sorted(bad)}. Valid: {ALL_STAGES}")
         selected = [s for s in ALL_STAGES if s in only]
     else:
-        selected = list(ALL_STAGES)
+        selected = list(DEFAULT_STAGES)
 
     if skip_group:
         bad = set(skip_group) - set(GROUPS)
@@ -110,10 +123,14 @@ def cfm_pipeline(
     gate_max_missing: float = 0.40,
     gate_max_dtype: int = 5,
     gate_max_psi: float = 0.25,
+    score_events_path: str | None = None,
+    score_output_path: str | None = None,
+    drift_reference_path: str | None = None,
+    drift_current_path: str | None = None,
 ) -> dict[str, str]:
     """Run the configured pipeline stages under a single MLflow parent run."""
     cfg = load_profile(profile)
-    stages = stages or ALL_STAGES
+    stages = stages or DEFAULT_STAGES
     logger.info("Running %d stages on profile=%s", len(stages), cfg.name)
 
     results: dict[str, str] = {}
@@ -168,6 +185,27 @@ def cfm_pipeline(
                 promote=promote,
                 random_state=random_state,
             )
+
+        # ── post-modelling analysis ─────────────────────────────────────────
+        for stage in POST_STAGES:
+            if stage in stages:
+                results[stage] = POST_TASKS[stage](parent_run_id=parent_id)
+
+        # ── optional: scoring + drift monitor ───────────────────────────────
+        if "score" in stages:
+            results["score"] = score_task(
+                parent_run_id=parent_id,
+                events_path=score_events_path,
+                output_path=score_output_path,
+            )
+        if "drift_monitor" in stages:
+            drift_monitor_task(
+                parent_run_id=parent_id,
+                reference_path=drift_reference_path,
+                current_path=drift_current_path,
+                fail_on_drift=False,
+            )
+            results["drift_monitor"] = "completed"
     return results
 
 
@@ -196,6 +234,10 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p.add_argument("--gate-max-missing", type=float, default=0.40)
     p.add_argument("--gate-max-dtype", type=int, default=5)
     p.add_argument("--gate-max-psi", type=float, default=0.25)
+    p.add_argument("--score-events", default=None, help="Events parquet for scoring stage.")
+    p.add_argument("--score-output", default=None, help="Output parquet for scoring stage.")
+    p.add_argument("--drift-reference", default=None, help="Reference parquet for drift monitor.")
+    p.add_argument("--drift-current", default=None, help="Current parquet for drift monitor.")
     p.add_argument("--no-cache", action="store_true",
                    help="Disable Prefect task caching for this run.")
     return p.parse_args(argv)
@@ -230,6 +272,10 @@ def main(argv: Iterable[str] | None = None) -> None:
         gate_max_missing=args.gate_max_missing,
         gate_max_dtype=args.gate_max_dtype,
         gate_max_psi=args.gate_max_psi,
+        score_events_path=args.score_events,
+        score_output_path=args.score_output,
+        drift_reference_path=args.drift_reference,
+        drift_current_path=args.drift_current,
     )
 
 
