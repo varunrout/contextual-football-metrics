@@ -117,12 +117,14 @@ class XGBoostCxGModel:
         reg_alpha: float = 0.0,
         reg_lambda: float = 1.0,
         random_state: int = 42,
+        device: str | None = None,
     ) -> None:
         try:
             import xgboost  # noqa: F401
         except ImportError as exc:
             raise ImportError("xgboost not installed. Run: poetry install --with models") from exc
 
+        self.device = device
         self.feature_set = (
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
         )
@@ -154,11 +156,12 @@ class XGBoostCxGModel:
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+        from src.runtime.gbm_device import xgboost_kwargs
         return xgb.XGBClassifier(
             **params,
+            **xgboost_kwargs(self.device),
             objective="binary:logistic",
             eval_metric="logloss",
-            tree_method="hist",
             verbosity=0,
             random_state=self.random_state,
         )

@@ -263,9 +263,12 @@ class XGBoostShotQualityModel(_BaseShotQualityModel):
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+        from src.runtime.gbm_device import xgboost_kwargs
         return xgb.XGBRegressor(
-            **params, objective="reg:squarederror",
-            tree_method="hist", verbosity=0, random_state=self.random_state,
+            **params,
+            **xgboost_kwargs(getattr(self, "device", None)),
+            objective="reg:squarederror",
+            verbosity=0, random_state=self.random_state,
         )
 
     def fit(
@@ -325,8 +328,11 @@ class LightGBMShotQualityModel(_BaseShotQualityModel):
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+        from src.runtime.gbm_device import lightgbm_kwargs
         return lgb.LGBMRegressor(
-            **params, objective="regression", metric="rmse",
+            **params,
+            **lightgbm_kwargs(getattr(self, "device", None)),
+            objective="regression", metric="rmse",
             verbose=-1, random_state=self.random_state,
         )
 

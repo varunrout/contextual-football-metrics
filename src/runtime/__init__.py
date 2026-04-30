@@ -13,6 +13,7 @@ The profile is cached in a module-level global; subsequent ``get_profile()``
 calls return the same instance until ``load_profile`` is called again.
 """
 
+from .gbm_device import lightgbm_kwargs, xgboost_kwargs
 from .profile import (
     ProfileConfig,
     autodetect,
@@ -25,6 +26,8 @@ __all__ = [
     "ProfileConfig",
     "autodetect",
     "get_profile",
+    "lightgbm_kwargs",
     "load_profile",
     "require_profile",
+    "xgboost_kwargs",
 ]

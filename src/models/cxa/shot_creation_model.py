@@ -299,9 +299,12 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+        from src.runtime.gbm_device import xgboost_kwargs
         return xgb.XGBClassifier(
-            **params, objective="binary:logistic", eval_metric="logloss",
-            tree_method="hist", verbosity=0, random_state=self.random_state,
+            **params,
+            **xgboost_kwargs(getattr(self, "device", None)),
+            objective="binary:logistic", eval_metric="logloss",
+            verbosity=0, random_state=self.random_state,
         )
 
     def fit(
@@ -404,8 +407,11 @@ class LightGBMShotCreationModel(_BaseShotCreationModel):
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+        from src.runtime.gbm_device import lightgbm_kwargs
         return lgb.LGBMClassifier(
-            **params, objective="binary", metric="binary_logloss",
+            **params,
+            **lightgbm_kwargs(getattr(self, "device", None)),
+            objective="binary", metric="binary_logloss",
             verbose=-1, random_state=self.random_state,
         )
 

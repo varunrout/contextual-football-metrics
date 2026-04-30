@@ -450,6 +450,7 @@ class XGBoostStateValueModel(_BaseStateValueModel):
         if target_col not in actions_df.columns:
             raise ValueError(f"Missing target column: {target_col!r}")
         import xgboost as xgb
+        from src.runtime.gbm_device import xgboost_kwargs
         df = actions_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         if not numeric_all:
@@ -458,8 +459,9 @@ class XGBoostStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         est = xgb.XGBRegressor(
-            **self.params, objective="reg:squarederror",
-            tree_method="hist", verbosity=0, random_state=self.random_state,
+            **self.params, **xgboost_kwargs(getattr(self, "device", None)),
+            objective="reg:squarederror",
+            verbosity=0, random_state=self.random_state,
         )
         self.pipeline = _build_tree_reg_pipeline(est, numeric_all, cat_cols)
         self.pipeline.fit(self._X(df), df[target_col].astype(float).to_numpy())
@@ -504,6 +506,7 @@ class LightGBMStateValueModel(_BaseStateValueModel):
         if target_col not in actions_df.columns:
             raise ValueError(f"Missing target column: {target_col!r}")
         import lightgbm as lgb
+        from src.runtime.gbm_device import lightgbm_kwargs
         df = actions_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         if not numeric_all:
@@ -512,7 +515,8 @@ class LightGBMStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         est = lgb.LGBMRegressor(
-            **self.params, objective="regression", metric="rmse",
+            **self.params, **lightgbm_kwargs(getattr(self, "device", None)),
+            objective="regression", metric="rmse",
             verbose=-1, random_state=self.random_state,
         )
         self.pipeline = _build_tree_reg_pipeline(est, numeric_all, cat_cols)

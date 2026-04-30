@@ -59,6 +59,7 @@ class LightGBMCxGModel:
         reg_alpha: float = 0.0,
         reg_lambda: float = 0.0,
         random_state: int = 42,
+        device: str | None = None,
     ) -> None:
         try:
             import lightgbm  # noqa: F401
@@ -66,6 +67,7 @@ class LightGBMCxGModel:
             raise ImportError(
                 "lightgbm not installed. Run: poetry install --with models"
             ) from exc
+        self.device = device
 
         self.feature_set = (
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
@@ -98,8 +100,10 @@ class LightGBMCxGModel:
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+        from src.runtime.gbm_device import lightgbm_kwargs
         return lgb.LGBMClassifier(
             **params,
+            **lightgbm_kwargs(self.device),
             objective="binary",
             metric="binary_logloss",
             verbose=-1,

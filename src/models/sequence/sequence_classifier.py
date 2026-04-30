@@ -133,7 +133,9 @@ class SequenceClassifier:
             )
 
         X, y, w = self._build_Xyw(train_df)
-        self._model = lgb.LGBMClassifier(**self.lgb_params)
+        from src.runtime.gbm_device import lightgbm_kwargs
+        params = {**self.lgb_params, **lightgbm_kwargs()}
+        self._model = lgb.LGBMClassifier(**params)
         self._model.fit(X, y, sample_weight=w)
         logger.info(
             "SequenceClassifier trained on %d possessions (%d classes)",
