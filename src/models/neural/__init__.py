@@ -7,6 +7,7 @@ alongside their non-neural siblings in ``src/models/<family>/``.
 
 from src.models.neural.base import (
     TorchModelMixin,
+    is_neural_model,
     require_torch,
     resolve_batch_size,
     resolve_device,
@@ -30,6 +31,7 @@ from src.models.neural.freeze_frame_loader import (
 
 __all__ = [
     "TorchModelMixin",
+    "is_neural_model",
     "require_torch",
     "resolve_batch_size",
     "resolve_device",
