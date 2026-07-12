@@ -5,14 +5,14 @@
       "name": "baseline_logit",
       "family": "logistic",
       "feature_set": "traditional",
-      "cv_log_loss": 0.29604,
-      "cv_brier": 0.08587,
-      "cv_auc": 0.8052,
+      "cv_log_loss": 0.29615,
+      "cv_brier": 0.0859,
+      "cv_auc": 0.8048,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_log_loss": 0.25044,
-        "heldout_brier": 0.06938,
-        "heldout_auc": 0.7987
+        "heldout_log_loss": 0.25073,
+        "heldout_brier": 0.06946,
+        "heldout_auc": 0.7982
       },
       "model_path": "models\\cxg\\baseline_logit.joblib"
     },
@@ -21,13 +21,13 @@
       "name": "glm_contextual",
       "family": "logistic",
       "feature_set": "contextual",
-      "cv_log_loss": 0.29823,
-      "cv_brier": 0.08548,
-      "cv_auc": 0.8084,
+      "cv_log_loss": 0.29825,
+      "cv_brier": 0.08549,
+      "cv_auc": 0.8083,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_log_loss": 0.24129,
-        "heldout_brier": 0.06668,
+        "heldout_log_loss": 0.24131,
+        "heldout_brier": 0.06669,
         "heldout_auc": 0.8131
       },
       "model_path": "models\\cxg\\glm_contextual.joblib"
@@ -37,14 +37,14 @@
       "name": "xgb_contextual",
       "family": "xgboost",
       "feature_set": "contextual",
-      "cv_log_loss": 0.31187,
-      "cv_brier": 0.08654,
-      "cv_auc": 0.7863,
+      "cv_log_loss": 0.31154,
+      "cv_brier": 0.08691,
+      "cv_auc": 0.7886,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_log_loss": 0.25908,
-        "heldout_brier": 0.07034,
-        "heldout_auc": 0.7903
+        "heldout_log_loss": 0.25727,
+        "heldout_brier": 0.07044,
+        "heldout_auc": 0.7939
       },
       "model_path": "models\\cxg\\xgb_contextual.joblib"
     },
@@ -66,6 +66,22 @@
     },
     {
       "rank": 5,
+      "name": "set_transformer_360",
+      "family": "neural",
+      "feature_set": "contextual+360_set",
+      "cv_log_loss": 0.33981,
+      "cv_brier": 0.08938,
+      "cv_auc": 0.7865,
+      "n_cv_folds_used": 5,
+      "heldout": {
+        "heldout_log_loss": 0.26727,
+        "heldout_brier": 0.07293,
+        "heldout_auc": 0.7812
+      },
+      "model_path": "models\\cxg\\set_transformer_360.joblib"
+    },
+    {
+      "rank": 6,
       "name": "lgbm_traditional",
       "family": "lightgbm",
       "feature_set": "traditional",
@@ -81,18 +97,18 @@
       "model_path": "models\\cxg\\lgbm_traditional.joblib"
     },
     {
-      "rank": 6,
+      "rank": 7,
       "name": "lgbm_contextual",
       "family": "lightgbm",
       "feature_set": "contextual",
-      "cv_log_loss": 0.52215,
-      "cv_brier": 0.09479,
-      "cv_auc": 0.773,
+      "cv_log_loss": 0.52029,
+      "cv_brier": 0.09521,
+      "cv_auc": 0.7766,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_log_loss": 0.38231,
-        "heldout_brier": 0.07786,
-        "heldout_auc": 0.7831
+        "heldout_log_loss": 0.38653,
+        "heldout_brier": 0.07812,
+        "heldout_auc": 0.7801
       },
       "model_path": "models\\cxg\\lgbm_contextual.joblib"
     }

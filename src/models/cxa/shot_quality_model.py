@@ -374,8 +374,9 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         hidden_dims: tuple[int, ...] = (256, 128),
         lr: float = 1e-3,
         max_epochs: int = 50,
-        batch_size: int = 256,
+        batch_size: int | None = None,
         huber_delta: float = 0.1,
+        device: str | None = None,
         random_state: int = 42,
     ) -> None:
         self.feature_set = (
@@ -386,12 +387,21 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.huber_delta = huber_delta
+        self.device = device
+        self._resolved_device: str | None = None
         self.random_state = random_state
         self.pipeline: Pipeline | None = None   # scaler
         self._torch_model = None
         self._numeric_all: list[str] = []
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
+
+    def _torch_device(self) -> str:
+        if self._resolved_device is None:
+            from src.models.neural import resolve_device
+            self._resolved_device = resolve_device(self.device)
+            logger.info("MLPShotQuality: using torch device %s", self._resolved_device)
+        return self._resolved_device
 
     def _build_torch_model(self, in_dim: int):
         try:
@@ -453,9 +463,12 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         X_t = torch.tensor(X_np)
         y_t = torch.tensor(y_np)
         dataset = TensorDataset(X_t, y_t)
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        from src.models.neural import resolve_batch_size
+        bs = resolve_batch_size("ffnn", self.batch_size)
+        loader = DataLoader(dataset, batch_size=bs, shuffle=True)
 
-        model = self._build_torch_model(X_np.shape[1])
+        device = self._torch_device()
+        model = self._build_torch_model(X_np.shape[1]).to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=1e-4)
         criterion = nn.HuberLoss(delta=self.huber_delta)
         model.train()
@@ -463,6 +476,8 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         for epoch in range(self.max_epochs):
             epoch_loss = 0.0
             for X_batch, y_batch in loader:
+                X_batch = X_batch.to(device)
+                y_batch = y_batch.to(device)
                 optimizer.zero_grad()
                 pred = model(X_batch)
                 loss = criterion(pred, y_batch)
@@ -488,9 +503,10 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         df = actions_df.reset_index(drop=True)
         X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.transform(X_raw).astype(np.float32)
+        device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
-            out = self._torch_model(torch.tensor(X_np)).numpy()
+            out = self._torch_model(torch.tensor(X_np).to(device)).cpu().numpy()
         return np.clip(out, 1e-6, None)
 
 

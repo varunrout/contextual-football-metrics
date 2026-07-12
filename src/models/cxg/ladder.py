@@ -48,6 +48,16 @@ from src.models.cxg.xgboost_model import XGBoostCxGModel
 logger = logging.getLogger(__name__)
 
 
+def _build_set_transformer(frames_path: str | None, random_state: int):
+    """Lazy SetTransformer factory — torch import deferred until called."""
+    from src.models.cxg.set_transformer_model import SetTransformerCxGModel
+    return SetTransformerCxGModel(
+        feature_set="contextual",
+        frames_path=frames_path,
+        random_state=random_state,
+    )
+
+
 # ── Result container ──────────────────────────────────────────────────────────
 
 @dataclass
@@ -151,6 +161,8 @@ class CxGLadder:
         n_folds: int = 5,
         n_optuna_trials: int = 0,
         include_360: bool = False,
+        include_neural: bool = False,
+        frames_path: str | None = None,
         random_state: int = 42,
         n_estimators: int = 300,
     ) -> list[LadderResult]:
@@ -225,10 +237,23 @@ class CxGLadder:
                 ),
             ]
 
+        if include_neural:
+            candidates.append((
+                "set_transformer_360", "neural", "contextual+360_set",
+                lambda fp=frames_path: _build_set_transformer(fp, random_state),
+            ))
+
         results: list[LadderResult] = []
 
         for name, family, fset, factory in candidates:
             logger.info("CxGLadder: evaluating %s …", name)
+
+            try:
+                # Probe importability once before CV
+                factory()
+            except ImportError as exc:
+                logger.warning("CxGLadder: skipping %s — %s", name, exc)
+                continue
 
             cv_ll, cv_brier, cv_auc, n_valid = _cross_validate(
                 factory, shots_df, target_col, match_id_col, n_folds, random_state

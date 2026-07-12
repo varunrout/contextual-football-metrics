@@ -79,7 +79,7 @@ def _get_mlflow():
 def _start_run(mlflow, experiment: str, run_name: str):
     if mlflow is None:
         return None
-    mlflow.set_tracking_uri(str(PROJECT_ROOT / "mlruns"))
+    mlflow.set_tracking_uri((PROJECT_ROOT / "mlruns").as_uri())
     mlflow.set_experiment(experiment)
     return mlflow.start_run(run_name=run_name)
 
@@ -98,12 +98,21 @@ def _update_production_pointer(model_filename: str) -> None:
 # ── Save all candidate models as joblib ───────────────────────────────────────
 
 def _save_all_models(results: list[LadderResult], models_dir: Path) -> dict[str, str]:
-    """Save every candidate model as <name>.joblib. Returns {name: path_str}."""
+    """Save every candidate model as <name>.joblib. Returns {name: path_str}.
+
+    Models that expose a custom ``.save(path)`` (e.g. neural models with
+    locally-scoped ``nn.Module`` subclasses that vanilla pickle can't handle)
+    use that path; everything else falls back to ``joblib.dump``.
+    """
     models_dir.mkdir(parents=True, exist_ok=True)
     saved: dict[str, str] = {}
     for r in results:
         path = models_dir / f"{r.name}.joblib"
-        joblib.dump(r.model, path)
+        save_method = getattr(r.model, "save", None)
+        if callable(save_method) and getattr(r.model, "_torch_model", None) is not None:
+            save_method(path)
+        else:
+            joblib.dump(r.model, path)
         saved[r.name] = str(path.relative_to(PROJECT_ROOT))
         logger.info("Saved %s → %s", r.name, path.name)
     return saved
@@ -128,7 +137,7 @@ def _build_heldout(shots_path: Path) -> pd.DataFrame | None:
     if heldout.empty or "goal" not in heldout.columns:
         logger.warning("No held-out (val_test) shots or missing 'goal' column — skipping held-out eval.")
         return None
-    logger.info("Held-out set: %d shots (Euro 2024 val_test)", len(heldout))
+    logger.info("Held-out set: %d shots (val_test = Euro 2024)", len(heldout))
     return heldout
 
 
@@ -619,6 +628,8 @@ def train_cxg(
     n_folds: int = 5,
     n_optuna_trials: int = 0,
     include_360: bool = False,
+    include_neural: bool = False,
+    frames_path: Path | None = None,
     promote: bool = True,
     random_state: int = 42,
     n_estimators: int = 300,
@@ -642,9 +653,12 @@ def train_cxg(
         )
         shots_df = shots_df.merge(_matches, on="match_internal_id", how="left")
         n_before = len(shots_df)
-        shots_df = shots_df[shots_df["split_role"] != "val_test"].copy()
+        # val_test = Euro 2024 (held-out for evaluation).
+        # test = La Liga (reserved for downstream scoring only).
+        shots_df = shots_df[~shots_df["split_role"].isin({"val_test", "test"})].copy()
         logger.info(
-            "Excluded val_test (Euro 2024) shots: %d → %d rows for training",
+            "Excluded val_test (Euro 2024) + test (La Liga) shots from training: "
+            "%d → %d rows for training",
             n_before, len(shots_df),
         )
     else:
@@ -664,8 +678,8 @@ def train_cxg(
     with (_start_run(mlflow, "cfm/cxg", "ladder_run") or _NullContext()):
         ladder = CxGLadder()
         logger.info(
-            "Running CxGLadder: n_folds=%d n_optuna=%d include_360=%s n_estimators=%d",
-            n_folds, n_optuna_trials, include_360, n_estimators,
+            "Running CxGLadder: n_folds=%d n_optuna=%d include_360=%s include_neural=%s n_estimators=%d",
+            n_folds, n_optuna_trials, include_360, include_neural, n_estimators,
         )
         results = ladder.run(
             shots_df,
@@ -674,6 +688,8 @@ def train_cxg(
             n_folds=n_folds,
             n_optuna_trials=n_optuna_trials,
             include_360=include_360,
+            include_neural=include_neural,
+            frames_path=str(frames_path) if frames_path else None,
             random_state=random_state,
             n_estimators=n_estimators,
         )
@@ -761,6 +777,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Include full_360 feature set candidates (requires 360 data).",
     )
     p.add_argument(
+        "--include-neural",
+        action="store_true",
+        help="Include the SetTransformer-over-freeze-frames neural CxG model. "
+             "Requires PyTorch and freeze_frames_360.parquet.",
+    )
+    p.add_argument(
+        "--frames",
+        default=None,
+        help="Path to freeze_frames_360.parquet for the neural model "
+             "(default: data/processed/freeze_frames_360.parquet).",
+    )
+    p.add_argument(
         "--n-estimators",
         type=int,
         default=300,
@@ -782,6 +810,8 @@ if __name__ == "__main__":
         n_folds=args.n_folds,
         n_optuna_trials=args.n_optuna_trials,
         include_360=args.include_360,
+        include_neural=args.include_neural,
+        frames_path=Path(args.frames) if args.frames else None,
         promote=not args.no_promote,
         random_state=args.seed,
         n_estimators=args.n_estimators,

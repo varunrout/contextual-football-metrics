@@ -19,6 +19,7 @@ batch_size:
   ffnn: 1024
   transformer: 256
   set_transformer: 128
+  gnn: 128
 
 mlflow:
   # Set DAGSHUB_MLFLOW_URI in Colab Secrets (or any remote tracking server).

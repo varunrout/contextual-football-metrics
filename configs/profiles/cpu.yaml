@@ -21,6 +21,7 @@ batch_size:
   ffnn: 256
   transformer: 64
   set_transformer: 32
+  gnn: 32
 
 mlflow:
   # Local file store by default. Override via env: MLFLOW_TRACKING_URI=...
