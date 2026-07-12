@@ -1071,8 +1071,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                    help="Also train the GNN passing-network creation model. "
                         "Requires PyTorch and freeze frames.")
     p.add_argument("--frames", type=Path, default=None,
-                   help="Path to frames parquet for the neural model "
-                        "(default: data/processed/frames.parquet).")
+                   help="Path to the freeze-frame parquet for the neural model "
+                        "(default: data/processed/frames.parquet, falling back to "
+                        "data/processed/freeze_frames_360.parquet if that doesn't exist).")
     p.add_argument("--seed", type=int, default=42)
     return p.parse_args(argv)
 

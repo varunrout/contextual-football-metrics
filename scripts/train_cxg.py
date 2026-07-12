@@ -785,8 +785,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--frames",
         default=None,
-        help="Path to freeze_frames_360.parquet for the neural model "
-             "(default: data/processed/freeze_frames_360.parquet).",
+        help="Path to the freeze-frame parquet for the neural model "
+             "(default: data/processed/frames.parquet, falling back to "
+             "data/processed/freeze_frames_360.parquet if that doesn't exist).",
     )
     p.add_argument(
         "--n-estimators",

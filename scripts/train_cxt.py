@@ -815,7 +815,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--frames",
         default=None,
-        help="Path to freeze_frames_360.parquet (enables SetTransformer + GNN).",
+        help="Path to the freeze-frame parquet (enables SetTransformer + GNN). "
+             "Default: data/processed/frames.parquet, falling back to "
+             "data/processed/freeze_frames_360.parquet if that doesn't exist.",
     )
     p.add_argument(
         "--nn-max-epochs",
