@@ -64,9 +64,9 @@ poetry install
 poetry install --with neural
 # For CUDA: install a matching torch wheel afterwards, e.g.
 pip install torch --index-url https://download.pytorch.org/whl/cu121
-# torch-geometric is not a declared dependency — install separately if a
-# GNN model needs it:
-pip install torch-geometric torch-scatter torch-sparse
+# Note: the GNN models implement graph attention by hand on top of plain
+# torch (src/models/neural/encoders.py) — torch-geometric/torch-scatter/
+# torch-sparse are not used and do not need to be installed.
 
 # Add visualization/explainability (matplotlib, shap, plotly, …)
 poetry install --with viz
