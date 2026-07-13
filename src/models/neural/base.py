@@ -124,3 +124,18 @@ class TorchModelMixin:
         if getattr(self, "_torch_model", None) is not None:
             state["_torch_state_dict"] = self._torch_model.state_dict()  # type: ignore[union-attr]
         return state
+
+
+def is_neural_model(model: Any) -> bool:
+    """Return True if ``model`` needs its own ``.save()`` instead of joblib.
+
+    All neural model wrappers (``SetTransformerCxGModel``,
+    ``GNNPassingNetworkCxAModel``, ``GNNStateValueModel``,
+    ``SetTransformerStateValueModel``, ...) subclass :class:`TorchModelMixin`
+    and hold locally-scoped ``nn.Module`` state that vanilla ``joblib``/pickle
+    cannot round-trip. Training scripts across cxg/cxa/cxt should use this
+    single check instead of ad hoc attribute or family-string sniffing, so a
+    new neural family only needs to subclass ``TorchModelMixin`` to be picked
+    up everywhere.
+    """
+    return isinstance(model, TorchModelMixin)

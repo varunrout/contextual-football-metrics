@@ -48,6 +48,7 @@ from src.models.cxt.state_value_model import (
     StateValueLadderResult,
     compute_possession_cxg,
 )
+from src.models.neural import is_neural_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -256,16 +257,15 @@ def _filter_cxt_actions(df: pd.DataFrame, label: str = "dataset") -> pd.DataFram
 
 def _save_all_models(results: list[StateValueLadderResult], models_dir: Path) -> dict[str, str]:
     """Save every candidate model. Tree/GLM/GAM models use joblib;
-    neural models (FFNN/SetTransformer/GNN) use their own ``.save()``
-    pickle (they hold locally-defined ``nn.Module`` classes that joblib
-    cannot round-trip). Returns ``{name: path_str}``."""
+    ``TorchModelMixin`` subclasses (SetTransformer/GNN) use their own
+    ``.save()`` pickle (they hold locally-defined ``nn.Module`` classes
+    that joblib cannot round-trip). Returns ``{name: path_str}``."""
     import joblib
     models_dir.mkdir(parents=True, exist_ok=True)
     saved: dict[str, str] = {}
-    neural_families = {"ffnn", "set_transformer", "gnn"}
     for r in results:
         path = models_dir / f"{r.name}.joblib"
-        if r.family in neural_families and hasattr(r.model, "save"):
+        if is_neural_model(r.model):
             r.model.save(path)
         else:
             joblib.dump(r.model, path)

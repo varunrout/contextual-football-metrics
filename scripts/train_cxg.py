@@ -48,6 +48,7 @@ from sklearn.calibration import calibration_curve
 from sklearn.metrics import auc as sk_auc, brier_score_loss, log_loss, roc_auc_score, roc_curve
 
 from src.models.cxg.ladder import CxGLadder, LadderResult
+from src.models.neural import is_neural_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,9 +109,8 @@ def _save_all_models(results: list[LadderResult], models_dir: Path) -> dict[str,
     saved: dict[str, str] = {}
     for r in results:
         path = models_dir / f"{r.name}.joblib"
-        save_method = getattr(r.model, "save", None)
-        if callable(save_method) and getattr(r.model, "_torch_model", None) is not None:
-            save_method(path)
+        if is_neural_model(r.model):
+            r.model.save(path)
         else:
             joblib.dump(r.model, path)
         saved[r.name] = str(path.relative_to(PROJECT_ROOT))

@@ -43,6 +43,7 @@ import yaml
 from src.models.cxa.cxa_pipeline import CxAPipeline
 from src.models.cxa.shot_creation_model import ShotCreationModel
 from src.models.cxa.shot_quality_model import ShotQualityModel
+from src.models.neural import is_neural_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -857,7 +858,7 @@ def train_cxa(
                 # can't be pickled as part of a CxAPipeline. Skip the combined
                 # pickle in that case — score script reconstructs from the two
                 # stage files instead.
-                if c_family == "gnn":
+                if is_neural_model(creation_model):
                     logger.info(
                         "Skipping combined pipeline pickle for %s (neural creation "
                         "model — score via scripts/score_gnn_cxa.py).", name,
