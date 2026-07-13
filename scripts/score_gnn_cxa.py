@@ -55,7 +55,10 @@ def main() -> int:
     for f in (args.creation, args.quality, args.actions):
         if not f.exists():
             logger.error("Required file missing: %s", f)
-            logger.error("Train first:  python scripts/train_cxa.py --include-neural --no-promote")
+            logger.error(
+                "Train first:  python scripts/train_cxa.py --include-neural "
+                "--frames data/processed/frames.parquet --no-promote"
+            )
             return 1
 
     logger.info("Loading creation model: %s", args.creation)
