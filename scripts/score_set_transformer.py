@@ -58,7 +58,10 @@ def main() -> int:
 
     if not args.model.exists():
         logger.error("Model file not found: %s", args.model)
-        logger.error("Train it first:  python scripts/train_cxg.py --include-neural")
+        logger.error(
+            "Train it first:  python scripts/train_cxg.py --include-neural "
+            "--frames data/processed/frames.parquet"
+        )
         return 1
     if not args.shots.exists():
         logger.error("Shots file not found: %s", args.shots)
