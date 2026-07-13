@@ -126,6 +126,19 @@ consumes 360 freeze-frame data:
 | `scripts/score_set_transformer.py` | Score shots with a trained SetTransformer CxG model | trained `.joblib` |
 | `scripts/score_gnn_cxa.py` | Score actions with the GNN passing-network creation model | trained creation + quality models |
 
+Neural model classes (`SetTransformerCxGModel`, `GNNPassingNetworkCxAModel`,
+`GNNStateValueModel`, `SetTransformerStateValueModel`) are **not** re-exported
+from their package's `__init__.py` (`src/models/cxg/__init__.py` etc.) — this
+is deliberate, so importing `src.models.cxg`/`cxa`/`cxt` never requires torch
+to be installed. Import them directly from their module instead, e.g.:
+
+```python
+from src.models.cxg.set_transformer_model import SetTransformerCxGModel
+from src.models.cxa.gnn_passing_network import GNNPassingNetworkCxAModel
+from src.models.cxt.state_value_gnn import GNNStateValueModel
+from src.models.cxt.state_value_set_transformer import SetTransformerStateValueModel
+```
+
 ## Runtime profiles
 
 `src.runtime.load_profile` resolves `configs/profiles/{cpu,gpu,cloud}.yaml`
