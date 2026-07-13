@@ -257,8 +257,18 @@ def main(argv: Iterable[str] | None = None) -> None:
 
         _os.environ["PREFECT_TASKS_REFRESH_CACHE"] = "true"
 
-    cfm_pipeline(
-        profile=args.profile,
+    # Resolve the profile up front (idempotent — cfm_pipeline() re-resolves the
+    # same name internally) so its prefect.task_runner setting can be applied
+    # to the flow via with_options() before the flow body runs.
+    cfg = load_profile(args.profile)
+    task_runner = cfg.build_task_runner()
+    logger.info(
+        "Using task runner %s (max_workers=%s) for profile '%s'",
+        cfg.prefect_task_runner, cfg.prefect_max_workers, cfg.name,
+    )
+
+    cfm_pipeline.with_options(task_runner=task_runner)(
+        profile=cfg.name,
         stages=stages,
         promote=not args.no_promote,
         n_folds=args.n_folds,
