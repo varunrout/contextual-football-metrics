@@ -125,6 +125,7 @@ consumes 360 freeze-frame data:
 | `scripts/train_cxt.py --include-neural` | FFNN / SetTransformer / GNN state-value | `--frames <path>` (SetTransformer/GNN only) |
 | `scripts/score_set_transformer.py` | Score shots with a trained SetTransformer CxG model | trained `.joblib` |
 | `scripts/score_gnn_cxa.py` | Score actions with the GNN passing-network creation model | trained creation + quality models |
+| `scripts/score_state_value_gnn.py --model-class {gnn,set_transformer}` | Score actions with a trained CxT GNN or SetTransformer state-value model | trained `.joblib` |
 
 Neural model classes (`SetTransformerCxGModel`, `GNNPassingNetworkCxAModel`,
 `GNNStateValueModel`, `SetTransformerStateValueModel`) are **not** re-exported
