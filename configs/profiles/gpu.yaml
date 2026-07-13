@@ -35,5 +35,8 @@ paths:
   checkpoint_root: ./models/checkpoints
 
 prefect:
-  task_runner: SequentialTaskRunner   # avoid GPU contention across tasks
+  # Prefect 3 has no SequentialTaskRunner; a single-worker ThreadPoolTaskRunner
+  # gets the same effect (avoid GPU contention across concurrently-scheduled tasks).
+  task_runner: ThreadPoolTaskRunner
+  max_workers: 1
   log_level: INFO

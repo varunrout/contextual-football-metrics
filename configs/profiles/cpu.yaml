@@ -37,5 +37,8 @@ paths:
   checkpoint_root: ./models/checkpoints
 
 prefect:
-  task_runner: ConcurrentTaskRunner   # threads — fine on CPU
+  # Prefect 3 task runner class (from prefect.task_runners). max_workers: null
+  # means unbounded (ThreadPoolTaskRunner's own default).
+  task_runner: ThreadPoolTaskRunner   # threads — fine on CPU
+  max_workers: null
   log_level: INFO
