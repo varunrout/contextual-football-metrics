@@ -48,6 +48,7 @@ from src.models.cxt.state_value_model import (
     StateValueLadderResult,
     compute_possession_cxg,
 )
+from src.models.neural import is_neural_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -91,7 +92,7 @@ class _NullContext:
 def _start_run(mlflow, experiment: str, run_name: str):
     if mlflow is None:
         return None
-    mlflow.set_tracking_uri(str(PROJECT_ROOT / "mlruns"))
+    mlflow.set_tracking_uri((PROJECT_ROOT / "mlruns").as_uri())
     mlflow.set_experiment(experiment)
     return mlflow.start_run(run_name=run_name)
 
@@ -224,11 +225,16 @@ def _split_train_heldout(
         columns={"internal_id": match_id_col}
     )
     features_df = features_df.merge(matches, on=match_id_col, how="left")
+    # val_test = Euro 2024 (held-out for evaluation).
+    # test = La Liga (reserved for downstream scoring only — NOT used for
+    # training or evaluation).
     heldout = features_df[features_df["split_role"] == "val_test"].copy()
-    train = features_df[features_df["split_role"] != "val_test"].copy()
+    scoring = features_df[features_df["split_role"] == "test"].copy()
+    train = features_df[~features_df["split_role"].isin({"val_test", "test"})].copy()
     logger.info(
-        "Split: %d train rows, %d held-out (Euro 2024 val_test) rows",
-        len(train), len(heldout),
+        "Split: %d train rows, %d held-out (val_test/Euro 2024) rows, "
+        "%d reserved for scoring only (test/La Liga, excluded).",
+        len(train), len(heldout), len(scoring),
     )
     return train, heldout if not heldout.empty else None
 
@@ -250,13 +256,19 @@ def _filter_cxt_actions(df: pd.DataFrame, label: str = "dataset") -> pd.DataFram
 # ── Save all candidate models ─────────────────────────────────────────────────
 
 def _save_all_models(results: list[StateValueLadderResult], models_dir: Path) -> dict[str, str]:
-    """Save every candidate model as <name>.joblib. Returns {name: path_str}."""
+    """Save every candidate model. Tree/GLM/GAM models use joblib;
+    ``TorchModelMixin`` subclasses (SetTransformer/GNN) use their own
+    ``.save()`` pickle (they hold locally-defined ``nn.Module`` classes
+    that joblib cannot round-trip). Returns ``{name: path_str}``."""
     import joblib
     models_dir.mkdir(parents=True, exist_ok=True)
     saved: dict[str, str] = {}
     for r in results:
         path = models_dir / f"{r.name}.joblib"
-        joblib.dump(r.model, path)
+        if is_neural_model(r.model):
+            r.model.save(path)
+        else:
+            joblib.dump(r.model, path)
         saved[r.name] = str(path.relative_to(PROJECT_ROOT))
         logger.info("Saved %s → %s", r.name, path.name)
     return saved
@@ -656,6 +668,9 @@ def train_cxt(
     n_estimators: int = 400,
     promote: bool = True,
     random_state: int = 42,
+    include_neural: bool = False,
+    frames_path: Path | None = None,
+    nn_max_epochs: int = 30,
 ) -> None:
     if not features_path.exists():
         logger.error("features.parquet not found at %s — run build_features.py first.", features_path)
@@ -708,6 +723,9 @@ def train_cxt(
             n_folds=n_folds,
             n_estimators=n_estimators,
             random_state=random_state,
+            include_neural=include_neural,
+            frames_path=str(frames_path) if frames_path is not None else None,
+            nn_max_epochs=nn_max_epochs,
         )
 
         lb = ladder.leaderboard()
@@ -789,6 +807,24 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip updating the production pointer in configs/models.yaml.",
     )
     p.add_argument("--seed", type=int, default=42, help="Random seed (default: 42).")
+    p.add_argument(
+        "--include-neural",
+        action="store_true",
+        help="Also train neural candidates (FFNN; SetTransformer/GNN if --frames given).",
+    )
+    p.add_argument(
+        "--frames",
+        default=None,
+        help="Path to the freeze-frame parquet (enables SetTransformer + GNN). "
+             "Default: data/processed/frames.parquet, falling back to "
+             "data/processed/freeze_frames_360.parquet if that doesn't exist.",
+    )
+    p.add_argument(
+        "--nn-max-epochs",
+        type=int,
+        default=30,
+        help="Max training epochs for neural candidates (default: 30).",
+    )
     return p.parse_args(argv)
 
 
@@ -800,4 +836,7 @@ if __name__ == "__main__":
         n_estimators=args.n_estimators,
         promote=not args.no_promote,
         random_state=args.seed,
+        include_neural=args.include_neural,
+        frames_path=Path(args.frames) if args.frames else None,
+        nn_max_epochs=args.nn_max_epochs,
     )

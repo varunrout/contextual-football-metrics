@@ -540,8 +540,9 @@ class FFNNStateValueModel(_BaseStateValueModel):
         hidden_dims: tuple[int, ...] = (256, 128),
         lr: float = 1e-3,
         max_epochs: int = 50,
-        batch_size: int = 256,
+        batch_size: int | None = None,
         huber_delta: float = 0.1,
+        device: str | None = None,
         random_state: int = 42,
     ) -> None:
         self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
@@ -550,12 +551,21 @@ class FFNNStateValueModel(_BaseStateValueModel):
         self.max_epochs = max_epochs
         self.batch_size = batch_size
         self.huber_delta = huber_delta
+        self.device = device
+        self._resolved_device: str | None = None
         self.random_state = random_state
         self.pipeline: Pipeline | None = None  # scaler
         self._torch_model = None
         self._numeric_all: list[str] = []
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
+
+    def _torch_device(self) -> str:
+        if self._resolved_device is None:
+            from src.models.neural import resolve_device
+            self._resolved_device = resolve_device(self.device)
+            logger.info("FFNNStateValue: using torch device %s", self._resolved_device)
+        return self._resolved_device
 
     def _build_torch_model(self, in_dim: int):
         try:
@@ -611,8 +621,11 @@ class FFNNStateValueModel(_BaseStateValueModel):
         y_np = df[target_col].astype(float).to_numpy(dtype=np.float32)
 
         dataset = TensorDataset(torch.tensor(X_np), torch.tensor(y_np))
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        model = self._build_torch_model(X_np.shape[1])
+        from src.models.neural import resolve_batch_size
+        bs = resolve_batch_size("ffnn", self.batch_size)
+        loader = DataLoader(dataset, batch_size=bs, shuffle=True)
+        device = self._torch_device()
+        model = self._build_torch_model(X_np.shape[1]).to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=1e-4)
         criterion = nn.HuberLoss(delta=self.huber_delta)
         model.train()
@@ -620,6 +633,8 @@ class FFNNStateValueModel(_BaseStateValueModel):
         for epoch in range(self.max_epochs):
             epoch_loss = 0.0
             for X_batch, y_batch in loader:
+                X_batch = X_batch.to(device)
+                y_batch = y_batch.to(device)
                 optimizer.zero_grad()
                 pred = model(X_batch)
                 loss = criterion(pred, y_batch)
@@ -645,9 +660,10 @@ class FFNNStateValueModel(_BaseStateValueModel):
         df = actions_df.reset_index(drop=True)
         X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.transform(X_raw).astype(np.float32)
+        device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
-            out = self._torch_model(torch.tensor(X_np)).numpy()
+            out = self._torch_model(torch.tensor(X_np).to(device)).cpu().numpy()
         return np.clip(out, 0.0, None)
 
 
@@ -707,6 +723,9 @@ class StateValueLadder:
         n_folds: int = 5,
         n_estimators: int = 300,
         random_state: int = 42,
+        include_neural: bool = False,
+        frames_path: str | Path | None = None,
+        nn_max_epochs: int = 30,
     ) -> list[StateValueLadderResult]:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
@@ -728,6 +747,47 @@ class StateValueLadder:
             ("lgbm_contextual", "lightgbm", "contextual",
              lambda: LightGBMStateValueModel(feature_set="contextual", n_estimators=ne, random_state=rs), actions_df),
         ]
+
+        if include_neural:
+            candidates.append((
+                "ffnn_contextual", "ffnn", "contextual",
+                lambda: FFNNStateValueModel(
+                    feature_set="contextual",
+                    max_epochs=nn_max_epochs,
+                    random_state=rs,
+                ),
+                actions_df,
+            ))
+            if frames_path is not None:
+                from src.models.cxt.state_value_set_transformer import (
+                    SetTransformerStateValueModel,
+                )
+                from src.models.cxt.state_value_gnn import GNNStateValueModel
+                candidates.append((
+                    "set_transformer_contextual", "set_transformer", "contextual",
+                    lambda: SetTransformerStateValueModel(
+                        feature_set="contextual",
+                        frames_path=frames_path,
+                        max_epochs=nn_max_epochs,
+                        random_state=rs,
+                    ),
+                    actions_df,
+                ))
+                candidates.append((
+                    "gnn_contextual", "gnn", "contextual",
+                    lambda: GNNStateValueModel(
+                        feature_set="contextual",
+                        frames_path=frames_path,
+                        max_epochs=nn_max_epochs,
+                        random_state=rs,
+                    ),
+                    actions_df,
+                ))
+            else:
+                logger.info(
+                    "StateValueLadder: include_neural=True but frames_path is None; "
+                    "skipping SetTransformer and GNN (only FFNN registered)."
+                )
 
         results: list[StateValueLadderResult] = []
         for name, family, fset, factory, df_for_fit in candidates:

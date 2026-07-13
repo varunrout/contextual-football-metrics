@@ -130,11 +130,42 @@ class ProfileConfig:
     # ── Prefect ──────────────────────────────────────────────────────────
     @property
     def prefect_task_runner(self) -> str:
+        """Name of a class in ``prefect.task_runners`` (e.g. ``ThreadPoolTaskRunner``)."""
         return str(self.raw.prefect.task_runner)
+
+    @property
+    def prefect_max_workers(self) -> int | None:
+        """``max_workers`` kwarg for the task runner, or ``None`` for unbounded."""
+        v = self.raw.prefect.get("max_workers", None)
+        return None if v in (None, "null", "") else int(v)
 
     @property
     def prefect_log_level(self) -> str:
         return str(self.raw.prefect.log_level)
+
+    def build_task_runner(self):
+        """Instantiate the Prefect 3 task runner configured for this profile.
+
+        Resolves ``prefect_task_runner`` against ``prefect.task_runners`` by
+        name and applies ``prefect_max_workers`` when the runner accepts it.
+        Raises ``ValueError`` if the configured name isn't a real Prefect 3
+        task runner (e.g. a pre-Prefect-3 name like ``SequentialTaskRunner``).
+        """
+        import prefect.task_runners as _task_runners
+
+        name = self.prefect_task_runner
+        runner_cls = getattr(_task_runners, name, None)
+        if runner_cls is None:
+            raise ValueError(
+                f"Profile '{self.name}' configures prefect.task_runner={name!r}, "
+                f"which is not a valid Prefect 3 task runner in "
+                f"prefect.task_runners. Valid options include "
+                f"ThreadPoolTaskRunner, ProcessPoolTaskRunner."
+            )
+        max_workers = self.prefect_max_workers
+        if max_workers is not None:
+            return runner_cls(max_workers=max_workers)
+        return runner_cls()
 
     # ── Misc ─────────────────────────────────────────────────────────────
     def to_dict(self) -> dict[str, Any]:

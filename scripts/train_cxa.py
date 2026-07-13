@@ -43,6 +43,7 @@ import yaml
 from src.models.cxa.cxa_pipeline import CxAPipeline
 from src.models.cxa.shot_creation_model import ShotCreationModel
 from src.models.cxa.shot_quality_model import ShotQualityModel
+from src.models.neural import is_neural_model
 
 logging.basicConfig(
     level=logging.INFO,
@@ -77,7 +78,7 @@ class _NullContext:
 def _start_run(mlflow, experiment: str, run_name: str):
     if mlflow is None:
         return None
-    mlflow.set_tracking_uri(str(PROJECT_ROOT / "mlruns"))
+    mlflow.set_tracking_uri((PROJECT_ROOT / "mlruns").as_uri())
     mlflow.set_experiment(experiment)
     return mlflow.start_run(run_name=run_name)
 
@@ -161,8 +162,8 @@ def _chart_pr_calibration(
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     for ax, df, label, color in [
-        (axes[0], actions, "Train (CV-OOF not available — train set)", "steelblue"),
-        (axes[1], heldout, "Held-out (Euro 2024)", "darkorange"),
+        (axes[0], actions, "Train", "steelblue"),
+        (axes[1], heldout, "Held-out", "darkorange"),
     ]:
         if "shot_created" not in df.columns or "p_shot_created" not in df.columns:
             ax.set_title(f"PR Curve — {label}\n(no data)")
@@ -194,7 +195,7 @@ def _chart_pr_calibration(
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     for ax, df, label in [
         (axes[0], actions, "Train"),
-        (axes[1], heldout, "Held-out (Euro 2024)"),
+        (axes[1], heldout, "Held-out"),
     ]:
         if "shot_created" not in df.columns or "p_shot_created" not in df.columns:
             ax.set_title(f"Calibration — {label}\n(no data)")
@@ -262,7 +263,7 @@ def _chart_cxa_by_action_type(
         return
     ax.set_xlabel("CxA score")
     ax.set_ylabel("Density")
-    ax.set_title("CxA Score Distribution by Action Type\n(Held-out: Euro 2024)", fontweight="bold")
+    ax.set_title("CxA Score Distribution by Action Type (Held-out)", fontweight="bold")
     ax.legend(fontsize=9)
     fig.tight_layout()
     out = figures_dir / "cxa_by_action_type.png"
@@ -412,7 +413,7 @@ def _chart_cxa_pitch_heatmap(
     plt.setp(cb.ax.yaxis.get_ticklabels(), color="white")
 
     fig.suptitle(
-        "CxA Best Zones by Action Type\n(Held-out: Euro 2024 · internal 105x68 · attacking direction left to right)",
+        "CxA Best Zones by Action Type\n(Held-out · internal 105x68 · attacking direction left to right)",
         fontsize=14,
         fontweight="bold",
         color="white",
@@ -461,7 +462,7 @@ def _chart_creation_rate_by_zone(
     )
     ax.set_xlabel("Distance to goal band")
     ax.set_ylabel("Shot-creation rate")
-    ax.set_title("Empirical vs Predicted Shot-Creation Rate by Distance\n(Held-out: Euro 2024)", fontweight="bold")
+    ax.set_title("Empirical vs Predicted Shot-Creation Rate by Distance (Held-out)", fontweight="bold")
     ax.legend(fontsize=9)
     # Annotate n
     for i, n in enumerate(grouped["n"]):
@@ -527,7 +528,7 @@ def _chart_quality_scatter(
     ax.set_title("Quality Model: Binned Calibration")
     ax.legend(fontsize=8)
 
-    fig.suptitle("Shot-Quality Model (CxA Stage 2)\n(Held-out: Euro 2024, shot-creating actions only)",
+    fig.suptitle("Shot-Quality Model (CxA Stage 2)\n(Held-out, shot-creating actions only)",
                  fontsize=12, fontweight="bold")
     fig.tight_layout()
     out = figures_dir / "quality_scatter.png"
@@ -662,9 +663,15 @@ def _chart_leaderboard(
         return
 
     names  = [r["name"] for r in ladder_results]
-    aucs   = [r.get("creation_auc") or 0.0 for r in ladder_results]
-    aps    = [r.get("creation_ap") or 0.0  for r in ladder_results]
-    lls    = [r.get("creation_ll") or 0.0  for r in ladder_results]
+    # Prefer held-out metrics; fall back to train-set metrics when the
+    # held-out columns are absent (no Euro 2024 split available).
+    def _val(r: dict, primary: str, fallback: str) -> float:
+        v = r.get(primary)
+        return float(v) if v is not None else float(r.get(fallback) or 0.0)
+    aucs = [_val(r, "creation_auc",   "train_creation_auc")   for r in ladder_results]
+    aps  = [_val(r, "creation_ap",    "train_creation_ap")    for r in ladder_results]
+    lls  = [_val(r, "creation_ll",    "train_creation_ll")    for r in ladder_results]
+    using_train = all(r.get("creation_auc") is None for r in ladder_results)
 
     palette = plt.cm.Set2(np.linspace(0, 1, len(names)))
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -695,7 +702,9 @@ def _chart_leaderboard(
     axes[2].set_title(f"Creation Log-loss (↓)\n★ best: {best_ll}", fontsize=10, fontweight="bold")
 
     fig.suptitle(
-        "CxA Model Ladder — Held-out (Euro 2024) Creation Metrics",
+        "CxA Model Ladder — "
+        + ("Train-set Creation Metrics" if using_train
+           else "Held-out Creation Metrics"),
         fontsize=13, fontweight="bold",
     )
     fig.tight_layout()
@@ -722,6 +731,8 @@ def train_cxa(
     n_estimators: int = 300,
     promote: bool = True,
     random_state: int = 42,
+    include_neural: bool = False,
+    frames_path: Path | None = None,
 ) -> None:
     if not actions_path.exists():
         logger.error("actions.parquet not found at %s — run build_features.py first.", actions_path)
@@ -747,12 +758,42 @@ def train_cxa(
         )
         actions_df = actions_df.merge(_matches, on="match_internal_id", how="left")
         n_before = len(actions_df)
-        train_actions = actions_df[actions_df["split_role"] != "val_test"].copy()
-        heldout_actions = actions_df[actions_df["split_role"] == "val_test"].copy()
+        # val_test = Euro 2024 (held-out for evaluation).
+        # test = La Liga (reserved for downstream scoring only — NOT used for
+        # training or evaluation).
+        heldout_mask = actions_df["split_role"] == "val_test"
+        scoring_mask = actions_df["split_role"] == "test"
+        train_mask = ~heldout_mask & ~scoring_mask
+        train_actions = actions_df[train_mask].copy()
+        heldout_actions = actions_df[heldout_mask].copy()
+        n_scoring = int(scoring_mask.sum())
         logger.info(
-            "Excluded val_test (Euro 2024) actions: %d → %d rows for training, %d held-out",
-            n_before, len(train_actions), len(heldout_actions),
+            "Split: %d total → %d train, %d held-out (val_test/Euro 2024), "
+            "%d reserved for scoring only (test/La Liga, excluded).",
+            n_before, len(train_actions), len(heldout_actions), n_scoring,
         )
+
+        # Fallback: if every match shares the same split_role (i.e. no real
+        # train/holdout partition exists in matches.parquet), construct a
+        # deterministic 80/20 match-level split so we still produce honest
+        # generalization metrics instead of training on everything.
+        if train_actions.empty and not heldout_actions.empty:
+            import hashlib
+            all_match_ids = sorted(actions_df["match_internal_id"].dropna().unique().tolist())
+            def _hash01(mid: str) -> float:
+                h = hashlib.md5(str(mid).encode("utf-8")).hexdigest()
+                return int(h[:8], 16) / 0xFFFFFFFF
+            heldout_ids = {mid for mid in all_match_ids if _hash01(mid) < 0.20}
+            train_ids = [mid for mid in all_match_ids if mid not in heldout_ids]
+            train_actions = actions_df[actions_df["match_internal_id"].isin(train_ids)].copy()
+            heldout_actions = actions_df[actions_df["match_internal_id"].isin(heldout_ids)].copy()
+            logger.warning(
+                "No real train/holdout partition in matches.parquet. "
+                "Falling back to deterministic 80/20 match-level split: "
+                "%d train matches (%d actions) / %d held-out matches (%d actions).",
+                len(train_ids), len(train_actions),
+                len(heldout_ids), len(heldout_actions),
+            )
     else:
         logger.warning(
             "Could not filter val_test split — matches.parquet missing or "
@@ -777,16 +818,27 @@ def train_cxa(
     best_auc = -1.0
 
     # ── Model ladder ──────────────────────────────────────────────────────────
-    for name, c_family, q_family in _LADDER:
+    ladder = list(_LADDER)
+    if include_neural:
+        ladder.append(("gnn_passing_360", "gnn", "lgbm"))
+    for name, c_family, q_family in ladder:
         logger.info("── Training %s (creation=%s, quality=%s) ──", name, c_family, q_family)
         with (_start_run(mlflow, "cfm/cxa", f"cxa_{name}") or _NullContext()):
             try:
-                creation_model = ShotCreationModel(
-                    family=c_family,
-                    feature_set=feature_set,
-                    n_estimators=n_estimators,
-                    random_state=random_state,
-                )
+                if c_family == "gnn":
+                    from src.models.cxa.gnn_passing_network import GNNPassingNetworkCxAModel
+                    creation_model = GNNPassingNetworkCxAModel(
+                        feature_set=feature_set,
+                        frames_path=str(frames_path) if frames_path else None,
+                        random_state=random_state,
+                    )
+                else:
+                    creation_model = ShotCreationModel(
+                        family=c_family,
+                        feature_set=feature_set,
+                        n_estimators=n_estimators,
+                        random_state=random_state,
+                    )
                 quality_model = ShotQualityModel(
                     family=q_family,
                     feature_set=feature_set,
@@ -802,8 +854,18 @@ def train_cxa(
                 pipeline_path = MODELS_DIR / f"cxa_{name}.pkl"
                 pipeline.creation_model.save(creation_path)
                 pipeline.quality_model.save(quality_path)
-                with open(pipeline_path, "wb") as fh:
-                    pickle.dump(pipeline, fh, protocol=pickle.HIGHEST_PROTOCOL)
+                # Neural creation models embed locally-defined nn.Modules that
+                # can't be pickled as part of a CxAPipeline. Skip the combined
+                # pickle in that case — score script reconstructs from the two
+                # stage files instead.
+                if is_neural_model(creation_model):
+                    logger.info(
+                        "Skipping combined pipeline pickle for %s (neural creation "
+                        "model — score via scripts/score_gnn_cxa.py).", name,
+                    )
+                else:
+                    with open(pipeline_path, "wb") as fh:
+                        pickle.dump(pipeline, fh, protocol=pickle.HIGHEST_PROTOCOL)
                 logger.info("Saved: %s", pipeline_path.name)
 
                 record: dict = {
@@ -812,6 +874,33 @@ def train_cxa(
                     "quality_family": q_family,
                     "pipeline_path": str(pipeline_path.relative_to(PROJECT_ROOT)),
                 }
+
+                # Always compute metrics on the training set so the leaderboard
+                # is populated even when there is no held-out (Euro 2024) split.
+                try:
+                    train_c = _eval_creation_heldout(pipeline.creation_model, train_actions)
+                    train_q = _eval_quality_heldout(pipeline.quality_model, train_actions)
+                    record.update({
+                        "train_creation_auc":   train_c.get("auc"),
+                        "train_creation_ap":    train_c.get("average_precision"),
+                        "train_creation_ll":    train_c.get("log_loss"),
+                        "train_creation_brier": train_c.get("brier"),
+                        "train_quality_mae":      train_q.get("mae"),
+                        "train_quality_rmse":     train_q.get("rmse"),
+                        "train_quality_spearman": train_q.get("spearman"),
+                        "train_quality_n_rows":   train_q.get("n_rows"),
+                    })
+                    logger.info(
+                        "  %s [train]  AUC=%.4f  AP=%.4f  ll=%.5f | MAE=%.4f  Spearman=%.4f",
+                        name,
+                        train_c.get("auc") or 0,
+                        train_c.get("average_precision") or 0,
+                        train_c.get("log_loss") or 0,
+                        train_q.get("mae") or 0,
+                        train_q.get("spearman") or 0,
+                    )
+                except Exception as exc:
+                    logger.warning("Train-set metrics failed for %s: %s", name, exc)
 
                 # Held-out evaluation
                 if not heldout_actions.empty:
@@ -841,8 +930,22 @@ def train_cxa(
                         best_auc = auc_val
                         best_pipeline = pipeline
                         best_name = name
+                else:
+                    # No held-out set → fall back to train-AUC ranking.
+                    auc_val = float(record.get("train_creation_auc") or 0.0)
+                    if auc_val > best_auc:
+                        best_auc = auc_val
+                        best_pipeline = pipeline
+                        best_name = name
 
                 ladder_records.append(record)
+
+                # Fallback: when there is no held-out set we still want a
+                # ``best_pipeline`` to drive charts and the production pointer.
+                # Use the last-trained pipeline as the best in that case.
+                if heldout_actions.empty and best_pipeline is None:
+                    best_pipeline = pipeline
+                    best_name = name
 
             except Exception as exc:
                 logger.error("Training %s failed: %s", name, exc, exc_info=True)
@@ -858,36 +961,51 @@ def train_cxa(
     logger.info("Generating diagnostic charts for best model: %s …", best_name)
 
     heldout_scored: pd.DataFrame = pd.DataFrame()
-    if not heldout_actions.empty:
+    # Use the held-out set for charts when available; otherwise fall back to
+    # the training set so the pitch / action-type charts still render.
+    chart_actions = heldout_actions if not heldout_actions.empty else train_actions
+    if not chart_actions.empty:
         try:
-            heldout_actions = heldout_actions.copy()
-            heldout_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(heldout_actions)
+            chart_actions = chart_actions.copy()
+            chart_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(chart_actions)
+            # Mirror the scored chart frame back into heldout_actions so
+            # downstream chart helpers receive p_shot_created for the
+            # held-out side. Without this assignment the held-out panels
+            # render as "no data" because p_shot_created lives only on
+            # the local copy.
+            if not heldout_actions.empty:
+                heldout_actions = chart_actions
             train_actions = train_actions.copy()
-            train_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(train_actions)
+            if "p_shot_created" not in train_actions.columns:
+                train_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(train_actions)
 
-            heldout_scored = best_pipeline.score(heldout_actions)
+            heldout_scored = best_pipeline.score(chart_actions)
 
             quality_col = "resulting_shot_cxg"
-            if not heldout_scored.empty and quality_col in heldout_actions.columns:
+            if not heldout_scored.empty and quality_col in chart_actions.columns:
                 try:
                     heldout_scored = heldout_scored.merge(
-                        heldout_actions[["possession_internal_id", quality_col]].drop_duplicates(),
+                        chart_actions[["possession_internal_id", quality_col]].drop_duplicates(),
                         on="possession_internal_id", how="left",
                     )
                 except Exception:
                     pass
             # Merge event_type for action-type chart
-            if not heldout_scored.empty and "event_type" in heldout_actions.columns:
+            if not heldout_scored.empty and "event_type" in chart_actions.columns:
                 _mc = next((c for c in ("event_id", "possession_internal_id")
-                            if c in heldout_actions.columns and c in heldout_scored.columns), None)
+                            if c in chart_actions.columns and c in heldout_scored.columns), None)
                 if _mc:
                     try:
                         heldout_scored = heldout_scored.merge(
-                            heldout_actions[[_mc, "event_type"]].drop_duplicates(_mc),
+                            chart_actions[[_mc, "event_type"]].drop_duplicates(_mc),
                             on=_mc, how="left",
                         )
                     except Exception:
                         pass
+            # Keep the held-out variable name for downstream charts that
+            # accept either (chart_pr_calibration treats empty as train-only).
+            if heldout_actions.empty:
+                heldout_actions = chart_actions
         except Exception as exc:
             logger.warning("Chart data prep failed: %s", exc)
 
@@ -918,7 +1036,13 @@ def train_cxa(
 
     if promote:
         best_path = MODELS_DIR / f"cxa_{best_name}.pkl"
-        _update_production_pointer(str(best_path.relative_to(PROJECT_ROOT)))
+        if not best_path.exists():
+            logger.warning(
+                "Best model %s has no combined pickle (likely a neural model) "
+                "\u2014 skipping production promotion.", best_name,
+            )
+        else:
+            _update_production_pointer(str(best_path.relative_to(PROJECT_ROOT)))
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
@@ -944,6 +1068,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-estimators", type=int, default=300)
     p.add_argument("--no-promote", action="store_true")
+    p.add_argument("--include-neural", action="store_true",
+                   help="Also train the GNN passing-network creation model. "
+                        "Requires PyTorch and freeze frames.")
+    p.add_argument("--frames", type=Path, default=None,
+                   help="Path to the freeze-frame parquet for the neural model "
+                        "(default: data/processed/frames.parquet, falling back to "
+                        "data/processed/freeze_frames_360.parquet if that doesn't exist).")
     p.add_argument("--seed", type=int, default=42)
     return p.parse_args(argv)
 
@@ -958,4 +1089,6 @@ if __name__ == "__main__":
         n_estimators=args.n_estimators,
         promote=not args.no_promote,
         random_state=args.seed,
+        include_neural=args.include_neural,
+        frames_path=args.frames,
     )

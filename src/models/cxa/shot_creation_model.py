@@ -478,7 +478,8 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         mlp_hidden: int = 128,
         lr: float = 1e-3,
         max_epochs: int = 30,
-        batch_size: int = 256,
+        batch_size: int | None = None,
+        device: str | None = None,
         random_state: int = 42,
     ) -> None:
         self.feature_set = (
@@ -491,6 +492,8 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         self.lr = lr
         self.max_epochs = max_epochs
         self.batch_size = batch_size
+        self.device = device
+        self._resolved_device: str | None = None
         self.random_state = random_state
         self.pipeline: Pipeline | None = None      # tabular scaler only
         self._numeric_all: list[str] = []
@@ -498,6 +501,13 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         self._bool_set: frozenset[str] = frozenset()
         self._torch_model = None
         self._tabular_dim: int = 0
+
+    def _torch_device(self) -> str:
+        if self._resolved_device is None:
+            from src.models.neural import resolve_device
+            self._resolved_device = resolve_device(self.device)
+            logger.info("TransformerShotCreation: using torch device %s", self._resolved_device)
+        return self._resolved_device
 
     def _build_torch_model(self, tabular_dim: int):
         try:
@@ -660,9 +670,12 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         y = torch.tensor(df[target_col].astype(float).to_numpy(), dtype=torch.float32)
 
         dataset = TensorDataset(seq_et, seq_bp, seq_num, seq_mask, X_tab, y)
-        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        from src.models.neural import resolve_batch_size
+        bs = resolve_batch_size("transformer", self.batch_size)
+        loader = DataLoader(dataset, batch_size=bs, shuffle=True)
 
-        model = self._build_torch_model(self._tabular_dim)
+        device = self._torch_device()
+        model = self._build_torch_model(self._tabular_dim).to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.lr, weight_decay=1e-4)
         criterion = nn.BCEWithLogitsLoss()
         model.train()
@@ -670,7 +683,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         for epoch in range(self.max_epochs):
             epoch_loss = 0.0
             for batch in loader:
-                b_et, b_bp, b_num, b_mask, b_tab, b_y = batch
+                b_et, b_bp, b_num, b_mask, b_tab, b_y = [t.to(device) for t in batch]
                 optimizer.zero_grad()
                 logits = model(b_et, b_bp, b_num, b_mask, b_tab)
                 loss = criterion(logits, b_y)
@@ -697,10 +710,14 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         seq_et, seq_bp, seq_num, seq_mask = self._encode_sequences(df)
+        device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
-            logits = self._torch_model(seq_et, seq_bp, seq_num, seq_mask, X_tab)
-        return torch.sigmoid(logits).numpy()
+            logits = self._torch_model(
+                seq_et.to(device), seq_bp.to(device), seq_num.to(device),
+                seq_mask.to(device), X_tab.to(device),
+            )
+        return torch.sigmoid(logits).cpu().numpy()
 
     def save(self, path: str | Path) -> None:
         import torch

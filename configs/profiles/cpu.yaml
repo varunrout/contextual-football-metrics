@@ -21,6 +21,7 @@ batch_size:
   ffnn: 256
   transformer: 64
   set_transformer: 32
+  gnn: 32
 
 mlflow:
   # Local file store by default. Override via env: MLFLOW_TRACKING_URI=...
@@ -36,5 +37,8 @@ paths:
   checkpoint_root: ./models/checkpoints
 
 prefect:
-  task_runner: ConcurrentTaskRunner   # threads — fine on CPU
+  # Prefect 3 task runner class (from prefect.task_runners). max_workers: null
+  # means unbounded (ThreadPoolTaskRunner's own default).
+  task_runner: ThreadPoolTaskRunner   # threads — fine on CPU
+  max_workers: null
   log_level: INFO

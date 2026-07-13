@@ -40,8 +40,10 @@ optional = true
 [tool.poetry.group.neural.dependencies]
 torch   = ">=2.2"
 captum  = ">=0.7"
-# torch-geometric: install separately after torch is set up
-# pip install torch-geometric torch-scatter torch-sparse
+# Note: the GNN models (src/models/cxa/gnn_passing_network.py,
+# src/models/cxt/state_value_gnn.py) implement graph attention by hand on
+# top of plain torch (see src/models/neural/encoders.py). They do not use
+# and do not require torch-geometric/torch-scatter/torch-sparse.
 
 # ── Visualisation & explainability ───────────────────────────────────────────
 [tool.poetry.group.viz.dependencies]
