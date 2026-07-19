@@ -37,12 +37,25 @@ bootstrap with 95% confidence intervals):
   improvement on our traditional baseline; it is not promoted because it is not
   selected by the pre-committed criterion and does not beat off-the-shelf xG.
 
+The same matched, CI-bounded evaluation is run for the other two metrics on the
+identical Euro 2024 held-out split (98,029 actions, 2,000-sample bootstrap):
+
+- **CxA** ([`analysis/21`](analysis/21_incremental_lift_cxa.py),
+  [writeup](docs/modeling/cxa/07_incremental_lift.md)): the contextual
+  shot-creation model beats a base-rate null decisively (AUC 0.729, log-loss
+  −0.0069, both CIs exclude zero), but it is miscalibrated (ECE 0.081) and has no
+  traditional-feature baseline yet, so this shows signal, not that context
+  specifically earns it.
+- **CxT** ([`analysis/22`](analysis/22_incremental_lift_cxt.py),
+  [writeup](docs/modeling/cxt/07_incremental_lift.md)): the contextual
+  state-value model beats a static per-zone baseline on the same target (MAE
+  0.0304 vs 0.0324, Spearman 0.303 vs 0.180, CIs exclude zero). This is the
+  clearest win for context of the three.
+
 The point of a contextual metric is the incremental lift over an already-strong
-baseline, measured on the same data with an error bar, not a fresh AUC. That
-comparison is produced by
-[`analysis/20_incremental_lift_vs_baselines.py`](analysis/20_incremental_lift_vs_baselines.py)
-and written up in
-[`docs/modeling/cxg/07_incremental_lift_and_reconciliation.md`](docs/modeling/cxg/07_incremental_lift_and_reconciliation.md).
+baseline, measured on the same data with an error bar, not a fresh AUC. Each
+comparison is produced by its `analysis/2x` script and written up in the matching
+`docs/modeling/<metric>/07` note.
 
 ```bash
 python analysis/20_incremental_lift_vs_baselines.py          # real data (dvc pull first)

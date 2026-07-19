@@ -1,0 +1,51 @@
+{
+  "metric": "cxa_composite",
+  "evaluation": "Euro 2024 held-out creative actions; predicted cxa vs realised resulting_shot_cxg",
+  "n_actions": 98029,
+  "n_bins": 10,
+  "mean_predicted_cxa": 0.01654852216975498,
+  "mean_realised_shot_cxg": 0.018152727224494406,
+  "expected_calibration_error": 0.002322119879734543,
+  "spearman_pred_vs_realised": 0.3635661284396203,
+  "reliability_curve": {
+    "mean_predicted": [
+      0.0018832140191782814,
+      0.0045605298434868834,
+      0.006577914284762294,
+      0.008469802142227733,
+      0.010500185224110555,
+      0.01294898251035405,
+      0.01625308723792744,
+      0.021164746124442763,
+      0.02946356897547468,
+      0.05366697777398198
+    ],
+    "mean_realised": [
+      0.0013250838635174467,
+      0.004118873584663311,
+      0.006568112090899263,
+      0.010347632462785104,
+      0.012595114325892727,
+      0.017511224028339156,
+      0.01955074869213626,
+      0.026907230291817512,
+      0.03151984682454008,
+      0.05108676566807571
+    ],
+    "n_per_bin": [
+      9803,
+      9803,
+      9803,
+      9803,
+      9803,
+      9803,
+      9803,
+      9803,
+      9803,
+      9802
+    ]
+  },
+  "verdict": "WELL CALIBRATED: composite cxa tracks realised shot value across deciles.",
+  "usable_resolution": "The composite discriminates high- from low-value creative actions (Spearman 0.364 vs realised shot value) but its ECE of 0.0023 means the absolute cxa value is only approximately an expected shot value.",
+  "smoke": false
+}
