@@ -19,13 +19,14 @@ All functions are framework-agnostic; models only need to expose
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import log_loss as _sk_log_loss, mean_absolute_error as _sk_mae
+from sklearn.metrics import log_loss as _sk_log_loss
+from sklearn.metrics import mean_absolute_error as _sk_mae
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,11 @@ logger = logging.getLogger(__name__)
 # -1 → feature should have a *negative* effect on the metric
 
 EXPECTED_SIGNS_CXG: dict[str, int] = {
-    "distance_to_goal": -1,       # farther from goal → lower xG
-    "in_box": +1,                  # inside box → higher xG
-    "under_pressure": -1,          # under pressure → worse chance quality
-    "is_central": +1,              # central position → higher xG
-    "progressive_distance": +1,    # further upfield → higher threat
+    "distance_to_goal": -1,  # farther from goal → lower xG
+    "in_box": +1,  # inside box → higher xG
+    "under_pressure": -1,  # under pressure → worse chance quality
+    "is_central": +1,  # central position → higher xG
+    "progressive_distance": +1,  # further upfield → higher threat
 }
 
 EXPECTED_SIGNS_CXT: dict[str, int] = {
@@ -47,18 +48,19 @@ EXPECTED_SIGNS_CXT: dict[str, int] = {
     "in_box": +1,
     "under_pressure": -1,
     "progressive_distance": +1,
-    "nearest_defender_distance": +1,   # more space → higher state value
+    "nearest_defender_distance": +1,  # more space → higher state value
 }
 
 
 # ── Dataclasses ───────────────────────────────────────────────────────────────
 
+
 @dataclass
 class SHAPResult:
     """SHAP explanation for a batch of predictions."""
 
-    shap_values: np.ndarray      # shape (n_samples, n_features)
-    base_value: float            # global expected value (explainer baseline)
+    shap_values: np.ndarray  # shape (n_samples, n_features)
+    base_value: float  # global expected value (explainer baseline)
     feature_names: list[str]
 
     def to_dataframe(self) -> pd.DataFrame:
@@ -69,11 +71,7 @@ class SHAPResult:
         """Return features ranked by mean |SHAP| value, descending."""
         mean_abs = np.abs(self.shap_values).mean(axis=0)
         df = pd.DataFrame({"feature": self.feature_names, "mean_abs_shap": mean_abs})
-        return (
-            df.sort_values("mean_abs_shap", ascending=False)
-            .head(n)
-            .reset_index(drop=True)
-        )
+        return df.sort_values("mean_abs_shap", ascending=False).head(n).reset_index(drop=True)
 
     def waterfall_data(self, row_idx: int = 0) -> list[dict]:
         """
@@ -83,13 +81,15 @@ class SHAPResult:
         row = self.shap_values[row_idx]
         result = []
         running = self.base_value
-        for feat, val in zip(self.feature_names, row):
+        for feat, val in zip(self.feature_names, row, strict=False):
             running += float(val)
-            result.append({
-                "feature": feat,
-                "shap_value": float(val),
-                "running_total": running,
-            })
+            result.append(
+                {
+                    "feature": feat,
+                    "shap_value": float(val),
+                    "running_total": running,
+                }
+            )
         return result
 
 
@@ -98,7 +98,7 @@ class DirectionViolation:
     """A single feature whose coefficient sign disagrees with domain expectations."""
 
     feature: str
-    expected_sign: int    # +1 or -1
+    expected_sign: int  # +1 or -1
     actual_sign: int
     coefficient: float
 
@@ -110,7 +110,7 @@ class DirectionCheckResult:
     violations: list[DirectionViolation]
     n_checked: int
     n_violations: int
-    pass_rate: float    # fraction of checked features that passed
+    pass_rate: float  # fraction of checked features that passed
 
     @property
     def passed(self) -> bool:
@@ -125,8 +125,8 @@ class AblationEntry:
     features_removed: list[str]
     baseline_metric: float
     ablated_metric: float
-    degradation: float            # ablated − baseline (positive = worse for MAE/log_loss)
-    relative_degradation: float   # degradation / |baseline|
+    degradation: float  # ablated − baseline (positive = worse for MAE/log_loss)
+    relative_degradation: float  # degradation / |baseline|
 
 
 @dataclass
@@ -184,15 +184,17 @@ class PlayerReport:
     total_cxa: float
     total_cxt: float
     per_90: dict[str, float]
-    vs_average: dict[str, float]          # z-scores relative to league_df
-    top_features: pd.DataFrame | None      # mean |SHAP| if available
+    vs_average: dict[str, float]  # z-scores relative to league_df
+    top_features: pd.DataFrame | None  # mean |SHAP| if available
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+
 def _get_final_estimator(model):
     """Walk a Pipeline (possibly nested) to return the terminal estimator."""
     from sklearn.pipeline import Pipeline
+
     while isinstance(model, Pipeline):
         model = model.steps[-1][1]
     return model
@@ -220,9 +222,7 @@ def _get_named_coefficients(model, feature_names: list[str]) -> dict[str, float]
 
         # Try to recover transformed feature names from the preprocessor
         try:
-            transformed_names: list[str] | None = list(
-                preprocessor.get_feature_names_out()
-            )
+            transformed_names: list[str] | None = list(preprocessor.get_feature_names_out())
         except Exception:
             transformed_names = None
 
@@ -240,29 +240,27 @@ def _get_named_coefficients(model, feature_names: list[str]) -> dict[str, float]
 
         if transformed_names and len(transformed_names) == len(coefs):
             result: dict[str, float] = {}
-            for tname, coef in zip(transformed_names, coefs):
+            for tname, coef in zip(transformed_names, coefs, strict=False):
                 # Strip ColumnTransformer prefixes (e.g. "num__", "cat__")
                 bare = tname
                 for prefix in ("num__", "cat__", "remainder__"):
                     if bare.startswith(prefix):
-                        bare = bare[len(prefix):]
+                        bare = bare[len(prefix) :]
                         break
                 result[bare] = float(coef)
             return result
 
         # Positional fallback
-        return {
-            fn: float(c) for fn, c in zip(feature_names[: len(coefs)], coefs)
-        }
+        return {fn: float(c) for fn, c in zip(feature_names[: len(coefs)], coefs, strict=False)}
 
     # Non-pipeline estimator
     if hasattr(model, "coef_"):
         coefs = np.asarray(model.coef_).ravel()
-        return {fn: float(c) for fn, c in zip(feature_names[: len(coefs)], coefs)}
+        return {fn: float(c) for fn, c in zip(feature_names[: len(coefs)], coefs, strict=False)}
 
     if hasattr(model, "feature_importances_"):
         imps = np.asarray(model.feature_importances_).ravel()
-        return {fn: float(i) for fn, i in zip(feature_names[: len(imps)], imps)}
+        return {fn: float(i) for fn, i in zip(feature_names[: len(imps)], imps, strict=False)}
 
     raise ValueError(
         f"Cannot extract coefficients from {type(model).__name__}. "
@@ -271,6 +269,7 @@ def _get_named_coefficients(model, feature_names: list[str]) -> dict[str, float]
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def compute_shap_values(
     model,
@@ -307,8 +306,7 @@ def compute_shap_values(
         import shap  # noqa: F401  (triggers ImportError early)
     except ImportError as exc:
         raise ImportError(
-            "shap is required for compute_shap_values. "
-            "Install it with: pip install shap"
+            "shap is required for compute_shap_values. Install it with: pip install shap"
         ) from exc
 
     import shap  # re-import after guard
@@ -347,13 +345,14 @@ def compute_shap_values(
         idx = rng.choice(len(X), size=min(n_background, len(X)), replace=False)
         background = X.iloc[idx]
         if hasattr(model, "predict_proba"):
+
             def _pred(x):
-                return model.predict_proba(
-                    pd.DataFrame(x, columns=feature_cols)
-                )[:, 1]
+                return model.predict_proba(pd.DataFrame(x, columns=feature_cols))[:, 1]
         else:
+
             def _pred(x):
                 return model.predict(pd.DataFrame(x, columns=feature_cols))
+
         explainer = shap.KernelExplainer(_pred, background)
         shap_vals = explainer.shap_values(X)
         base = float(explainer.expected_value)
@@ -474,16 +473,20 @@ def run_ablation_study(
     AblationResult
     """
     if task_type not in ("classification", "regression"):
-        raise ValueError(
-            f"task_type must be 'classification' or 'regression', got {task_type!r}"
-        )
+        raise ValueError(f"task_type must be 'classification' or 'regression', got {task_type!r}")
 
     if metric_fn is None:
         if task_type == "classification":
-            metric_fn = lambda yt, yp: float(_sk_log_loss(yt, yp))
+
+            def metric_fn(yt, yp):
+                return float(_sk_log_loss(yt, yp))
+
             metric_name = "log_loss"
         else:
-            metric_fn = lambda yt, yp: float(_sk_mae(yt, yp))
+
+            def metric_fn(yt, yp):
+                return float(_sk_mae(yt, yp))
+
             metric_name = "mae"
     else:
         metric_name = getattr(metric_fn, "__name__", "custom_metric")
@@ -594,15 +597,9 @@ def build_match_report(
     # Team summary
     team_summary = pd.DataFrame()
     if team_id_col in match_df.columns:
-        agg_cols = {
-            col: "sum"
-            for col in [cxg_col, cxa_col, cxt_col]
-            if col in match_df.columns
-        }
+        agg_cols = {col: "sum" for col in [cxg_col, cxa_col, cxt_col] if col in match_df.columns}
         if agg_cols:
-            team_summary = (
-                match_df.groupby(team_id_col).agg(agg_cols).reset_index()
-            )
+            team_summary = match_df.groupby(team_id_col).agg(agg_cols).reset_index()
 
     return MatchReport(
         match_id=str(match_id),
@@ -657,16 +654,12 @@ def build_player_report(
     if player_df.empty:
         raise ValueError(f"No actions found for player_id={player_id!r}")
 
-    n_matches = (
-        int(player_df[match_id_col].nunique()) if match_id_col in player_df.columns else 1
-    )
+    n_matches = int(player_df[match_id_col].nunique()) if match_id_col in player_df.columns else 1
     total_minutes = n_matches * minutes_per_match
 
     total_cxg = float(player_df[cxg_col].sum()) if cxg_col in player_df.columns else 0.0
     total_cxa = float(player_df[cxa_col].sum()) if cxa_col in player_df.columns else 0.0
-    total_cxt = (
-        float(player_df[cxt_col].sum(skipna=True)) if cxt_col in player_df.columns else 0.0
-    )
+    total_cxt = float(player_df[cxt_col].sum(skipna=True)) if cxt_col in player_df.columns else 0.0
 
     safe_min = max(total_minutes, 1e-6)
     per_90 = {
@@ -716,6 +709,7 @@ def build_player_report(
 
 
 # ── HTML report ───────────────────────────────────────────────────────────────
+
 
 def build_interpretability_html(
     shap_result: SHAPResult | None = None,
@@ -781,14 +775,15 @@ def build_interpretability_html(
         parts.append('<p class="empty">No SHAP result provided.</p>')
     else:
         top = shap_result.top_features(n=15)
-        parts.append(f"<p>Base value: <strong>{shap_result.base_value:.4f}</strong> "
-                     f"| Samples: <strong>{len(shap_result.shap_values)}</strong></p>")
+        parts.append(
+            f"<p>Base value: <strong>{shap_result.base_value:.4f}</strong> "
+            f"| Samples: <strong>{len(shap_result.shap_values)}</strong></p>"
+        )
         parts.append("<table>")
         parts.append("<tr><th>Rank</th><th>Feature</th><th>Mean |SHAP|</th></tr>")
         for rank, row in enumerate(top.itertuples(index=False), start=1):
             parts.append(
-                f"<tr><td>{rank}</td><td>{row.feature}</td>"
-                f"<td>{row.mean_abs_shap:.6f}</td></tr>"
+                f"<tr><td>{rank}</td><td>{row.feature}</td><td>{row.mean_abs_shap:.6f}</td></tr>"
             )
         parts.append("</table>")
 
@@ -798,7 +793,11 @@ def build_interpretability_html(
         parts.append('<p class="empty">No direction check provided.</p>')
     else:
         badge_cls = "badge-ok" if direction_check.passed else "badge-fail"
-        verdict = "ALL CLEAR" if direction_check.passed else f"{direction_check.n_violations} VIOLATION(S)"
+        verdict = (
+            "ALL CLEAR"
+            if direction_check.passed
+            else f"{direction_check.n_violations} VIOLATION(S)"
+        )
         parts.append(
             f"<p>Checked <strong>{direction_check.n_checked}</strong> features — "
             f'<span class="badge {badge_cls}">{verdict}</span> '
@@ -806,7 +805,9 @@ def build_interpretability_html(
         )
         if direction_check.violations:
             parts.append("<table>")
-            parts.append("<tr><th>Feature</th><th>Expected Sign</th><th>Actual Sign</th><th>Coefficient</th></tr>")
+            parts.append(
+                "<tr><th>Feature</th><th>Expected Sign</th><th>Actual Sign</th><th>Coefficient</th></tr>"
+            )
             for v in direction_check.violations:
                 exp_str = "+" if v.expected_sign > 0 else "−"
                 act_str = "+" if v.actual_sign > 0 else "−"
@@ -832,8 +833,10 @@ def build_interpretability_html(
             parts.append('<p class="empty">No feature groups evaluated.</p>')
         else:
             parts.append("<table>")
-            parts.append("<tr><th>Group</th><th>Features Removed</th>"
-                         "<th>Ablated Metric</th><th>Degradation</th><th>Relative</th></tr>")
+            parts.append(
+                "<tr><th>Group</th><th>Features Removed</th>"
+                "<th>Ablated Metric</th><th>Degradation</th><th>Relative</th></tr>"
+            )
             for row in df_abl.itertuples(index=False):
                 rel_pct = row.relative_degradation * 100
                 badge_cls = "badge-warn" if rel_pct > 2 else "badge-ok"

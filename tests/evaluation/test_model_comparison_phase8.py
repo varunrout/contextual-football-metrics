@@ -36,8 +36,8 @@ from src.evaluation.model_comparison import (
     leaderboard_rank_correlation,
 )
 
-
 # ── Synthetic data helpers ─────────────────────────────────────────────────────
+
 
 def _rng(seed: int = 0) -> np.random.Generator:
     return np.random.default_rng(seed)
@@ -61,19 +61,22 @@ def _make_test_df(n: int = 300, n_matches: int = 10, seed: int = 0) -> pd.DataFr
     rng = _rng(seed)
     match_ids = [f"m{i % n_matches}" for i in range(n)]
     player_ids = [f"p{i % 20}" for i in range(n)]
-    return pd.DataFrame({
-        "match_id": match_ids,
-        "player_id": player_ids,
-        "x_location": rng.uniform(20, 105, n),
-        "y_location": rng.uniform(0, 68, n),
-        "goal": rng.integers(0, 2, n).astype(float),
-        "shot_created": rng.integers(0, 2, n).astype(float),
-        "possession_cxg": rng.uniform(0, 0.4, n),
-    })
+    return pd.DataFrame(
+        {
+            "match_id": match_ids,
+            "player_id": player_ids,
+            "x_location": rng.uniform(20, 105, n),
+            "y_location": rng.uniform(0, 68, n),
+            "goal": rng.integers(0, 2, n).astype(float),
+            "shot_created": rng.integers(0, 2, n).astype(float),
+            "possession_cxg": rng.uniform(0, 0.4, n),
+        }
+    )
 
 
 class _FakeClassifier:
     """Stub binary classifier for testing."""
+
     def __init__(self, n: int = 300, seed: int = 0):
         rng = _rng(seed)
         self._proba = rng.uniform(0.1, 0.9, n)
@@ -85,6 +88,7 @@ class _FakeClassifier:
 
 class _FakeRegressor:
     """Stub regressor for testing."""
+
     def __init__(self, n: int = 300, seed: int = 0):
         rng = _rng(seed)
         self._pred = rng.uniform(0, 0.3, n)
@@ -97,6 +101,7 @@ class _FakeRegressor:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Classification Metrics
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestComputeClassificationMetrics:
     def test_returns_classification_metrics_instance(self):
@@ -152,6 +157,7 @@ class TestComputeClassificationMetrics:
 # Regression Metrics
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestComputeRegressionMetrics:
     def test_returns_regression_metrics_instance(self):
         y_true, y_pred = _reg_data()
@@ -190,18 +196,21 @@ class TestComputeRegressionMetrics:
 # ECE helper
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestEce:
     def test_perfectly_calibrated_has_near_zero_ece(self):
         from src.evaluation.model_comparison import _ece
+
         # Create perfectly calibrated predictions
         y_prob = np.linspace(0.05, 0.95, 100)
         y_true = (np.random.default_rng(0).uniform(0, 1, 100) < y_prob).astype(float)
         ece = _ece(y_true, y_prob)
         assert ece >= 0.0  # can't be negative
-        assert ece < 0.3   # should be relatively small
+        assert ece < 0.3  # should be relatively small
 
     def test_wrong_way_predictions_have_high_ece(self):
         from src.evaluation.model_comparison import _ece
+
         y_prob = np.array([0.9] * 100)  # all predict positive
         y_true = np.array([0.0] * 100)  # all actually negative
         ece = _ece(y_true, y_prob)
@@ -212,9 +221,11 @@ class TestEce:
 # Bootstrap helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestBootstrap:
     def test_bootstrap_classification_returns_non_negative_stds(self):
         from src.evaluation.model_comparison import _bootstrap_classification
+
         y_true, y_prob = _clf_data(n=200)
         ll_std, br_std, auc_std = _bootstrap_classification(y_true, y_prob, n_bootstrap=10)
         assert ll_std >= 0
@@ -223,6 +234,7 @@ class TestBootstrap:
 
     def test_bootstrap_regression_returns_non_negative_stds(self):
         from src.evaluation.model_comparison import _bootstrap_regression
+
         y_true, y_pred = _reg_data(n=200)
         mae_std, rmse_std, sp_std = _bootstrap_regression(y_true, y_pred, n_bootstrap=10)
         assert mae_std >= 0
@@ -231,6 +243,7 @@ class TestBootstrap:
 
     def test_constant_true_values_have_zero_std(self):
         from src.evaluation.model_comparison import _bootstrap_regression
+
         # When y_true is constant, MAE vs any constant prediction won't vary across resamples
         y_true = np.full(100, 0.3)  # constant true values
         y_pred = np.full(100, 0.5)  # constant predictions
@@ -242,17 +255,20 @@ class TestBootstrap:
 # Leaderboard rank correlation
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestLeaderboardRankCorrelation:
     def _make_scored_df(self, n: int = 300, n_matches: int = 20, seed: int = 0) -> pd.DataFrame:
         rng = _rng(seed)
         player_ids = [f"p{i % 15}" for i in range(n)]
         # Give consistent ranking: players with higher id have systematically higher cxt
         cxt = np.array([int(p[1:]) * 0.01 + rng.normal(0, 0.03) for p in player_ids])
-        return pd.DataFrame({
-            "match_id": [f"m{i % n_matches}" for i in range(n)],
-            "player_id": player_ids,
-            "cxt": cxt,
-        })
+        return pd.DataFrame(
+            {
+                "match_id": [f"m{i % n_matches}" for i in range(n)],
+                "player_id": player_ids,
+                "cxt": cxt,
+            }
+        )
 
     def test_returns_float_for_valid_data(self):
         df = self._make_scored_df()
@@ -276,11 +292,13 @@ class TestLeaderboardRankCorrelation:
         assert corr is None
 
     def test_returns_none_if_too_few_common_players(self):
-        df = pd.DataFrame({
-            "match_id": ["m1", "m2"],
-            "player_id": ["p1", "p2"],
-            "cxt": [0.1, 0.2],
-        })
+        df = pd.DataFrame(
+            {
+                "match_id": ["m1", "m2"],
+                "player_id": ["p1", "p2"],
+                "cxt": [0.1, 0.2],
+            }
+        )
         corr = leaderboard_rank_correlation(df, min_actions=10)
         assert corr is None
 
@@ -289,19 +307,30 @@ class TestLeaderboardRankCorrelation:
 # Promotion evaluation
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _clf_result(name, family, log_loss=0.5, brier=0.15, ece=0.05):
     m = ClassificationMetrics(log_loss=log_loss, brier=brier, roc_auc=0.75, pr_auc=0.5, ece=ece)
     return ModelComparisonResult(
-        name=name, family=family, metric_type="cxg", task_type="classification",
-        feature_set="contextual", metrics=m
+        name=name,
+        family=family,
+        metric_type="cxg",
+        task_type="classification",
+        feature_set="contextual",
+        metrics=m,
     )
 
 
-def _reg_result(name, family, mae=0.05, rmse=0.08, cal={}):
+def _reg_result(name, family, mae=0.05, rmse=0.08, cal=None):
+    if cal is None:
+        cal = {}
     m = RegressionMetrics(mae=mae, rmse=rmse, spearman=0.6, calibration_by_bucket=cal)
     return ModelComparisonResult(
-        name=name, family=family, metric_type="cxt", task_type="regression",
-        feature_set="contextual", metrics=m
+        name=name,
+        family=family,
+        metric_type="cxt",
+        task_type="regression",
+        feature_set="contextual",
+        metrics=m,
     )
 
 
@@ -361,6 +390,7 @@ class TestEvaluatePromotion:
 # ModelEntry
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestModelEntry:
     def test_predict_dispatches_to_predict_proba_for_clf(self):
         df = _make_test_df(n=300)
@@ -381,9 +411,13 @@ class TestModelEntry:
 
     def test_predict_uses_custom_predict_fn(self):
         df = _make_test_df(n=10)
-        custom_fn = lambda df: np.ones(len(df)) * 0.42
-        entry = ModelEntry("custom", "glm", "cxg", "classification", "contextual",
-                           None, predict_fn=custom_fn)
+
+        def custom_fn(df):
+            return np.ones(len(df)) * 0.42
+
+        entry = ModelEntry(
+            "custom", "glm", "cxg", "classification", "contextual", None, predict_fn=custom_fn
+        )
         p = entry.predict(df)
         np.testing.assert_array_almost_equal(p, 0.42)
 
@@ -391,6 +425,7 @@ class TestModelEntry:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ModelComparisonSuite
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.fixture(scope="module")
 def test_df():
@@ -402,17 +437,33 @@ def suite_with_models(test_df):
     n = len(test_df)
     suite = ModelComparisonSuite(n_bootstrap=5, random_state=42)
     # CxG classifiers
-    suite.add_model(ModelEntry("glm_cxg", "glm", "cxg", "classification",
-                               "contextual", _FakeClassifier(n, seed=0)))
-    suite.add_model(ModelEntry("tree_cxg", "tree", "cxg", "classification",
-                               "contextual", _FakeClassifier(n, seed=1)))
-    suite.add_model(ModelEntry("ffnn_cxg", "neural_tabular", "cxg", "classification",
-                               "contextual", _FakeClassifier(n, seed=2)))
+    suite.add_model(
+        ModelEntry(
+            "glm_cxg", "glm", "cxg", "classification", "contextual", _FakeClassifier(n, seed=0)
+        )
+    )
+    suite.add_model(
+        ModelEntry(
+            "tree_cxg", "tree", "cxg", "classification", "contextual", _FakeClassifier(n, seed=1)
+        )
+    )
+    suite.add_model(
+        ModelEntry(
+            "ffnn_cxg",
+            "neural_tabular",
+            "cxg",
+            "classification",
+            "contextual",
+            _FakeClassifier(n, seed=2),
+        )
+    )
     # CxT regressors
-    suite.add_model(ModelEntry("gamma_cxt", "glm", "cxt", "regression",
-                               "contextual", _FakeRegressor(n, seed=3)))
-    suite.add_model(ModelEntry("tree_cxt", "tree", "cxt", "regression",
-                               "contextual", _FakeRegressor(n, seed=4)))
+    suite.add_model(
+        ModelEntry("gamma_cxt", "glm", "cxt", "regression", "contextual", _FakeRegressor(n, seed=3))
+    )
+    suite.add_model(
+        ModelEntry("tree_cxt", "tree", "cxt", "regression", "contextual", _FakeRegressor(n, seed=4))
+    )
     return suite
 
 
@@ -443,8 +494,11 @@ class TestModelComparisonSuite:
 
     def test_non_neural_models_not_applicable(self, suite_with_models, test_df):
         report = suite_with_models.run(test_df)
-        non_neural = [r for r in report.results if r.family not in
-                      ("neural_tabular", "neural_seq", "neural_360")]
+        non_neural = [
+            r
+            for r in report.results
+            if r.family not in ("neural_tabular", "neural_seq", "neural_360")
+        ]
         for r in non_neural:
             assert r.promotion_verdict == "not_applicable"
 
@@ -465,8 +519,9 @@ class TestModelComparisonSuite:
     def test_skips_missing_target_column(self, test_df):
         n = len(test_df)
         suite = ModelComparisonSuite(n_bootstrap=3)
-        suite.add_model(ModelEntry("m1", "glm", "cxg", "classification",
-                                   "contextual", _FakeClassifier(n)))
+        suite.add_model(
+            ModelEntry("m1", "glm", "cxg", "classification", "contextual", _FakeClassifier(n))
+        )
         report = suite.run(test_df, target_map={"cxg": "nonexistent_column"})
         assert len(report.results) == 0
 
@@ -485,6 +540,7 @@ class TestModelComparisonSuite:
 # ═══════════════════════════════════════════════════════════════════════════════
 # ComparisonReport.to_dataframe
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestComparisonReportToDataframe:
     def test_returns_dataframe(self, suite_with_models, test_df):
@@ -522,6 +578,7 @@ class TestComparisonReportToDataframe:
 # HTML report builder
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestBuildHtmlReport:
     def test_returns_string(self, suite_with_models, test_df):
         report = suite_with_models.run(test_df)
@@ -548,7 +605,7 @@ class TestBuildHtmlReport:
     def test_writes_file(self, suite_with_models, test_df, tmp_path):
         report = suite_with_models.run(test_df)
         output = tmp_path / "comparison.html"
-        html = build_html_report(report, output_path=str(output))
+        build_html_report(report, output_path=str(output))
         assert output.exists()
         content = output.read_text(encoding="utf-8")
         assert "<!DOCTYPE html>" in content
@@ -564,10 +621,10 @@ class TestBuildHtmlReport:
 # Dataclass construction
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestDataclasses:
     def test_classification_metrics_construction(self):
-        m = ClassificationMetrics(log_loss=0.5, brier=0.2, roc_auc=0.7,
-                                  pr_auc=0.4, ece=0.05)
+        m = ClassificationMetrics(log_loss=0.5, brier=0.2, roc_auc=0.7, pr_auc=0.4, ece=0.05)
         assert m.log_loss == 0.5
         assert m.brier == 0.2
         assert isinstance(m.reliability_bins, list)
@@ -580,8 +637,12 @@ class TestDataclasses:
     def test_model_comparison_result_construction(self):
         m = ClassificationMetrics(log_loss=0.5, brier=0.2, roc_auc=0.7, pr_auc=0.4, ece=0.05)
         r = ModelComparisonResult(
-            name="test", family="glm", metric_type="cxg",
-            task_type="classification", feature_set="contextual", metrics=m
+            name="test",
+            family="glm",
+            metric_type="cxg",
+            task_type="classification",
+            feature_set="contextual",
+            metrics=m,
         )
         assert r.name == "test"
         assert r.promotion_verdict == "not_evaluated"

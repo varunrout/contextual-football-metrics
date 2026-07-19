@@ -33,22 +33,23 @@ import logging
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
 
-from src.models.cxt.state_value_model import (
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.models.cxt.state_value_model import (  # noqa: E402
     StateValueLadder,
     StateValueLadderResult,
     compute_possession_cxg,
 )
-from src.models.neural import is_neural_model
+from src.models.neural import is_neural_model  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,16 +69,24 @@ MODELS_YAML = PROJECT_ROOT / "configs" / "models.yaml"
 _CXT_ACTION_TYPES = {"pass", "carry", "cross", "cutback"}
 
 _PALETTE = [
-    "#2196F3", "#4CAF50", "#FF5722", "#9C27B0",
-    "#FF9800", "#00BCD4", "#E91E63", "#607D8B",
+    "#2196F3",
+    "#4CAF50",
+    "#FF5722",
+    "#9C27B0",
+    "#FF9800",
+    "#00BCD4",
+    "#E91E63",
+    "#607D8B",
 ]
 
 
 # ── MLflow helpers ────────────────────────────────────────────────────────────
 
+
 def _get_mlflow():
     try:
         import mlflow
+
         return mlflow
     except ImportError:
         logger.warning("mlflow not installed — skipping experiment tracking.")
@@ -85,8 +94,11 @@ def _get_mlflow():
 
 
 class _NullContext:
-    def __enter__(self): return self
-    def __exit__(self, *_): pass
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        pass
 
 
 def _start_run(mlflow, experiment: str, run_name: str):
@@ -99,6 +111,7 @@ def _start_run(mlflow, experiment: str, run_name: str):
 
 # ── Production pointer ────────────────────────────────────────────────────────
 
+
 def _update_production_pointer(model_filename: str) -> None:
     with open(MODELS_YAML, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh)
@@ -110,6 +123,7 @@ def _update_production_pointer(model_filename: str) -> None:
 
 # ── Inline CxG scoring ────────────────────────────────────────────────────────
 
+
 def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
     """
     Load the production CxG model and score shot rows, adding a 'cxg' column.
@@ -117,6 +131,7 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
     """
     try:
         import joblib
+
         with open(MODELS_YAML, encoding="utf-8") as fh:
             cfg = yaml.safe_load(fh)
         cxg_path_rel = cfg.get("production", {}).get("cxg")
@@ -132,9 +147,7 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
         logger.warning("Could not load CxG model (%s) — skipping CxG scoring.", exc)
         return features_df
 
-    _type_col = next(
-        (c for c in ("event_type", "action_type") if c in features_df.columns), None
-    )
+    _type_col = next((c for c in ("event_type", "action_type") if c in features_df.columns), None)
     if _type_col is None:
         logger.warning("No event_type/action_type column — cannot identify shots for CxG scoring.")
         return features_df
@@ -152,7 +165,9 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
         features_df.loc[shot_mask, "cxg"] = scores.astype(float)
         logger.info(
             "CxG scores attached to %d shot rows (mean=%.4f, max=%.4f)",
-            len(shot_df), float(scores.mean()), float(scores.max()),
+            len(shot_df),
+            float(scores.mean()),
+            float(scores.max()),
         )
     except Exception as exc:
         logger.warning("CxG scoring failed (%s) — possession_cxg target unavailable.", exc)
@@ -162,9 +177,12 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
 
 # ── Compute discounted possession_cxg target ─────────────────────────────────
 
+
 def _build_target(features_df: pd.DataFrame) -> pd.DataFrame:
     """Attach possession_cxg column. Raises SystemExit if no CxG source found."""
-    cxg_col = next((c for c in ("cxg", "event_cxg", "predicted_cxg") if c in features_df.columns), None)
+    cxg_col = next(
+        (c for c in ("cxg", "event_cxg", "predicted_cxg") if c in features_df.columns), None
+    )
 
     if cxg_col is None:
         logger.error(
@@ -189,7 +207,9 @@ def _build_target(features_df: pd.DataFrame) -> pd.DataFrame:
             match_id_col=match_id_col,
         )
     else:
-        logger.warning("Cannot find possession/match ID columns — using %s directly as target.", cxg_col)
+        logger.warning(
+            "Cannot find possession/match ID columns — using %s directly as target.", cxg_col
+        )
         features_df["possession_cxg"] = features_df[cxg_col].fillna(0.0)
 
     logger.info(
@@ -202,6 +222,7 @@ def _build_target(features_df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ── Split helpers ─────────────────────────────────────────────────────────────
+
 
 def _split_train_heldout(
     features_df: pd.DataFrame,
@@ -234,26 +255,32 @@ def _split_train_heldout(
     logger.info(
         "Split: %d train rows, %d held-out (val_test/Euro 2024) rows, "
         "%d reserved for scoring only (test/La Liga, excluded).",
-        len(train), len(heldout), len(scoring),
+        len(train),
+        len(heldout),
+        len(scoring),
     )
     return train, heldout if not heldout.empty else None
 
 
 def _filter_cxt_actions(df: pd.DataFrame, label: str = "dataset") -> pd.DataFrame:
     """Keep only CxT-eligible action types (pass, carry, cross, cutback)."""
-    type_col = next(
-        (c for c in ("action_type", "event_type") if c in df.columns), None
-    )
+    type_col = next((c for c in ("action_type", "event_type") if c in df.columns), None)
     if type_col is None:
         logger.warning("No action_type/event_type column in %s — keeping all rows.", label)
         return df
     filtered = df[df[type_col].isin(_CXT_ACTION_TYPES)].copy()
-    logger.info("Filtered %s to CxT action types via '%s': %d → %d rows",
-                label, type_col, len(df), len(filtered))
+    logger.info(
+        "Filtered %s to CxT action types via '%s': %d → %d rows",
+        label,
+        type_col,
+        len(df),
+        len(filtered),
+    )
     return filtered
 
 
 # ── Save all candidate models ─────────────────────────────────────────────────
+
 
 def _save_all_models(results: list[StateValueLadderResult], models_dir: Path) -> dict[str, str]:
     """Save every candidate model. Tree/GLM/GAM models use joblib;
@@ -261,6 +288,7 @@ def _save_all_models(results: list[StateValueLadderResult], models_dir: Path) ->
     ``.save()`` pickle (they hold locally-defined ``nn.Module`` classes
     that joblib cannot round-trip). Returns ``{name: path_str}``."""
     import joblib
+
     models_dir.mkdir(parents=True, exist_ok=True)
     saved: dict[str, str] = {}
     for r in results:
@@ -276,12 +304,11 @@ def _save_all_models(results: list[StateValueLadderResult], models_dir: Path) ->
 
 # ── Held-out evaluation ───────────────────────────────────────────────────────
 
-def _eval_heldout(
-    results: list[StateValueLadderResult], heldout: pd.DataFrame
-) -> dict[str, dict]:
+
+def _eval_heldout(results: list[StateValueLadderResult], heldout: pd.DataFrame) -> dict[str, dict]:
     """Evaluate each fitted model on the held-out set. Returns {name: metrics}."""
-    from sklearn.metrics import mean_absolute_error, mean_squared_error
     from scipy.stats import spearmanr
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
 
     y_true = heldout["possession_cxg"].astype(float).to_numpy()
     evals: dict[str, dict] = {}
@@ -304,6 +331,7 @@ def _eval_heldout(
 
 
 # ── JSON report ───────────────────────────────────────────────────────────────
+
 
 def _save_report(
     results: list[StateValueLadderResult],
@@ -339,6 +367,7 @@ def _save_report(
 
 
 # ── Charts ────────────────────────────────────────────────────────────────────
+
 
 def _chart_leaderboard(results: list[StateValueLadderResult], figures_dir: Path) -> None:
     names = [r.name for r in results]
@@ -387,12 +416,14 @@ def _chart_target_distribution(train_df: pd.DataFrame, figures_dir: Path) -> Non
     axes[0].set_ylabel("Count")
     axes[0].set_title(
         f"CxT Target Distribution (all)\n"
-        f"n={len(vals):,}  zero={100*(vals==0).mean():.1f}%  mean={vals.mean():.4f}"
+        f"n={len(vals):,}  zero={100 * (vals == 0).mean():.1f}%  mean={vals.mean():.4f}"
     )
 
     # Positive values only
     if pos_vals.size:
-        axes[1].hist(pos_vals, bins=50, color="#4CAF50", alpha=0.8, edgecolor="white", linewidth=0.3)
+        axes[1].hist(
+            pos_vals, bins=50, color="#4CAF50", alpha=0.8, edgecolor="white", linewidth=0.3
+        )
         axes[1].set_xlabel("possession_cxg")
         axes[1].set_ylabel("Count")
         axes[1].set_title(
@@ -417,19 +448,25 @@ def _chart_predicted_vs_actual(
     pos_mask = y_true > 0
 
     if pos_mask.sum() < 20:
-        logger.warning("Skipping predicted-vs-actual chart — fewer than 20 positive held-out targets.")
+        logger.warning(
+            "Skipping predicted-vs-actual chart — fewer than 20 positive held-out targets."
+        )
         return
 
     n_models = len(results)
     fig, axes = plt.subplots(1, n_models, figsize=(5 * n_models, 5), squeeze=False)
     axes = axes[0]
 
-    for ax, r, color in zip(axes, results, _PALETTE):
+    for ax, r, color in zip(axes, results, _PALETTE, strict=False):
         try:
             p = r.model.predict(heldout)
             ax.scatter(
-                y_true[pos_mask], p[pos_mask],
-                alpha=0.25, s=8, color=color, rasterized=True,
+                y_true[pos_mask],
+                p[pos_mask],
+                alpha=0.25,
+                s=8,
+                color=color,
+                rasterized=True,
             )
             lim = max(y_true[pos_mask].max(), p[pos_mask].max()) * 1.05
             ax.plot([0, lim], [0, lim], "k--", lw=1, label="Perfect")
@@ -463,7 +500,7 @@ def _chart_residuals(
     fig, axes = plt.subplots(1, len(results), figsize=(5 * len(results), 5), squeeze=False)
     axes = axes[0]
 
-    for ax, r, color in zip(axes, results, _PALETTE):
+    for ax, r, color in zip(axes, results, _PALETTE, strict=False):
         try:
             p = r.model.predict(heldout)
             residuals = y_true - p
@@ -514,7 +551,6 @@ def _chart_pitch_value_surface(
         return
 
     # Pick best two models for the plot
-    model_names = [r.name for r in results]
     to_plot = [(r.name, r.model) for r in results[:2]]
 
     # Build a grid over the full pitch
@@ -574,7 +610,7 @@ def _chart_pitch_value_surface(
     vmax = float(max(np.nanpercentile(a, 98) for a in finite_vals))
 
     hm = None
-    for ax, (name, v) in zip(axes, surfaces):
+    for ax, (name, v) in zip(axes, surfaces, strict=False):
         if v.size == 0:
             ax.set_title(f"{name} — error")
             continue
@@ -637,15 +673,23 @@ def _chart_calibration_by_zone(
     empirical = np.array([y_true[bin_labels == b].mean() for b in range(1, n_actual + 1)])
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    ax.scatter(bin_centres, empirical, s=80, zorder=5, color="black",
-               label="Empirical mean", marker="D")
+    ax.scatter(
+        bin_centres, empirical, s=80, zorder=5, color="black", label="Empirical mean", marker="D"
+    )
 
     for i, r in enumerate(results):
         try:
             p = r.model.predict(heldout)
             pred_mean = np.array([p[bin_labels == b].mean() for b in range(1, n_actual + 1)])
-            ax.plot(bin_centres, pred_mean, "o-", color=_PALETTE[i % len(_PALETTE)],
-                    lw=1.8, ms=5, label=r.name)
+            ax.plot(
+                bin_centres,
+                pred_mean,
+                "o-",
+                color=_PALETTE[i % len(_PALETTE)],
+                lw=1.8,
+                ms=5,
+                label=r.name,
+            )
         except Exception as exc:
             logger.warning("Calibration-by-zone skipped for %s: %s", r.name, exc)
 
@@ -662,6 +706,7 @@ def _chart_calibration_by_zone(
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def train_cxt(
     features_path: Path,
     n_folds: int = 5,
@@ -673,7 +718,9 @@ def train_cxt(
     nn_max_epochs: int = 30,
 ) -> None:
     if not features_path.exists():
-        logger.error("features.parquet not found at %s — run build_features.py first.", features_path)
+        logger.error(
+            "features.parquet not found at %s — run build_features.py first.", features_path
+        )
         sys.exit(1)
 
     features_df = pd.read_parquet(features_path)
@@ -710,11 +757,12 @@ def train_cxt(
 
     mlflow = _get_mlflow()
 
-    with (_start_run(mlflow, "cfm/cxt", "ladder_run") or _NullContext()):
+    with _start_run(mlflow, "cfm/cxt", "ladder_run") or _NullContext():
         ladder = StateValueLadder()
         logger.info(
             "Running StateValueLadder: n_folds=%d, n_estimators=%d",
-            n_folds, n_estimators,
+            n_folds,
+            n_estimators,
         )
         results = ladder.run(
             train_df,
@@ -734,7 +782,9 @@ def train_cxt(
         best = ladder.best()
         logger.info(
             "Best model: %s  cv_mae=%.5f  cv_rmse=%.5f  cv_spearman=%s",
-            best.name, best.cv_mae, best.cv_rmse,
+            best.name,
+            best.cv_mae,
+            best.cv_rmse,
             f"{best.cv_spearman:.4f}" if best.cv_spearman is not None else "N/A",
         )
 
@@ -749,7 +799,9 @@ def train_cxt(
 
         # ── JSON report ────────────────────────────────────────────────────────
         _save_report(
-            results, heldout_evals, saved_paths,
+            results,
+            heldout_evals,
+            saved_paths,
             n_train=len(train_df),
             n_heldout=len(heldout_df) if heldout_df is not None else 0,
             reports_dir=REPORTS_DIR,
@@ -787,6 +839,7 @@ def train_cxt(
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train the CxT state-value ladder.")
     p.add_argument(
@@ -816,8 +869,8 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--frames",
         default=None,
         help="Path to the freeze-frame parquet (enables SetTransformer + GNN). "
-             "Default: data/processed/frames.parquet, falling back to "
-             "data/processed/freeze_frames_360.parquet if that doesn't exist.",
+        "Default: data/processed/frames.parquet, falling back to "
+        "data/processed/freeze_frames_360.parquet if that doesn't exist.",
     )
     p.add_argument(
         "--nn-max-epochs",

@@ -23,19 +23,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.cluster.hierarchy import leaves_list, linkage
 from scipy.stats import pointbiserialr, spearmanr
-from scipy.cluster.hierarchy import linkage, dendrogram, leaves_list
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
+    categorical_feature_cols,
     derive_shot_created,
+    load_actions,
     load_features,
     load_shots,
-    load_actions,
     numeric_feature_cols,
-    categorical_feature_cols,
     save_fig,
     save_json,
 )
@@ -93,8 +93,16 @@ def pearson_heatmap(df: pd.DataFrame) -> pd.DataFrame:
     fig, ax = plt.subplots(figsize=(fig_size, fig_size))
     mask = np.triu(np.ones_like(corr, dtype=bool))
     sns.heatmap(
-        corr, mask=mask, annot=False, cmap="RdBu_r", center=0,
-        vmin=-1, vmax=1, ax=ax, xticklabels=True, yticklabels=True,
+        corr,
+        mask=mask,
+        annot=False,
+        cmap="RdBu_r",
+        center=0,
+        vmin=-1,
+        vmax=1,
+        ax=ax,
+        xticklabels=True,
+        yticklabels=True,
         linewidths=0.3,
     )
     ax.tick_params(axis="x", labelsize=6, rotation=90)
@@ -117,8 +125,6 @@ def spearman_flagged(df: pd.DataFrame) -> list[dict]:
     cols = list(sample.columns)
     for i in range(len(cols)):
         for j in range(i + 1, len(cols)):
-            s1 = pd.to_numeric(sample[cols[i]], errors="coerce").dropna()
-            s2 = pd.to_numeric(sample[cols[j]], errors="coerce").dropna()
             common = sample[[cols[i], cols[j]]].dropna()
             if len(common) < 30:
                 continue
@@ -126,11 +132,13 @@ def spearman_flagged(df: pd.DataFrame) -> list[dict]:
                 continue
             rho, _ = spearmanr(common[cols[i]], common[cols[j]])
             if abs(rho) > _SPEARMAN_FLAG:
-                high_pairs.append({
-                    "feature_a": cols[i],
-                    "feature_b": cols[j],
-                    "spearman_rho": round(float(rho), 4),
-                })
+                high_pairs.append(
+                    {
+                        "feature_a": cols[i],
+                        "feature_b": cols[j],
+                        "spearman_rho": round(float(rho), 4),
+                    }
+                )
 
     high_pairs.sort(key=lambda x: abs(x["spearman_rho"]), reverse=True)
     logger.info("High Spearman pairs (|ρ| > %.2f): %d", _SPEARMAN_FLAG, len(high_pairs))
@@ -152,11 +160,7 @@ def point_biserial_plot(df: pd.DataFrame, target_col: str, figure_name: str) -> 
         s = pd.to_numeric(df[col], errors="coerce")
         t = pd.to_numeric(df[target_col], errors="coerce")
         valid = pd.concat([s, t], axis=1).dropna()
-        if (
-            len(valid) < 30
-            or valid[target_col].nunique() < 2
-            or valid[col].nunique() < 2
-        ):
+        if len(valid) < 30 or valid[target_col].nunique() < 2 or valid[col].nunique() < 2:
             continue
         r, pval = pointbiserialr(valid[col], valid[target_col])
         results[col] = {"r": round(float(r), 4), "pval": round(float(pval), 6)}
@@ -218,8 +222,16 @@ def cramers_v_heatmap(df: pd.DataFrame) -> None:
     fig_size = max(8, n * 0.5)
     fig, ax = plt.subplots(figsize=(fig_size, fig_size))
     sns.heatmap(
-        corr_df, annot=n <= 15, fmt=".2f", cmap="YlOrRd", vmin=0, vmax=1,
-        ax=ax, xticklabels=True, yticklabels=True, linewidths=0.3,
+        corr_df,
+        annot=n <= 15,
+        fmt=".2f",
+        cmap="YlOrRd",
+        vmin=0,
+        vmax=1,
+        ax=ax,
+        xticklabels=True,
+        yticklabels=True,
+        linewidths=0.3,
     )
     ax.tick_params(axis="x", labelsize=7, rotation=90)
     ax.tick_params(axis="y", labelsize=7, rotation=0)
@@ -257,11 +269,13 @@ def vif_analysis(df: pd.DataFrame) -> list[dict]:
             vif_val = variance_inflation_factor(X.values, i)
         except Exception:
             vif_val = float("nan")
-        vif_results.append({
-            "feature": col,
-            "vif": round(float(vif_val), 2),
-            "flagged": bool(vif_val > _VIF_FLAG),
-        })
+        vif_results.append(
+            {
+                "feature": col,
+                "vif": round(float(vif_val), 2),
+                "flagged": bool(vif_val > _VIF_FLAG),
+            }
+        )
 
     vif_results.sort(key=lambda x: x["vif"] if not np.isnan(x["vif"]) else 0, reverse=True)
     flagged = [r for r in vif_results if r["flagged"]]
@@ -335,8 +349,12 @@ def main() -> None:
         "n_spearman_high_pairs": len(spearman_pairs),
         "spearman_high_pairs": spearman_pairs[:20],
         "top_10_pearson_pairs": top_pearson,
-        "top_features_cxg": sorted(pbcorr_cxg, key=lambda k: abs(pbcorr_cxg[k]["r"]), reverse=True)[:10],
-        "top_features_cxa": sorted(pbcorr_cxa, key=lambda k: abs(pbcorr_cxa[k]["r"]), reverse=True)[:10],
+        "top_features_cxg": sorted(pbcorr_cxg, key=lambda k: abs(pbcorr_cxg[k]["r"]), reverse=True)[
+            :10
+        ],
+        "top_features_cxa": sorted(pbcorr_cxa, key=lambda k: abs(pbcorr_cxa[k]["r"]), reverse=True)[
+            :10
+        ],
         "focus_360_metrics": focus_360_metric_summary(features, pbcorr_cxg, pbcorr_cxa),
         "n_vif_flagged": sum(1 for r in vif_results if r.get("flagged")),
     }

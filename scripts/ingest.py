@@ -24,25 +24,24 @@ import sys
 from pathlib import Path
 
 # ── Path bootstrap ────────────────────────────────────────────────────────────
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import pandas as pd
 import yaml
 
-from src.ingestion.statsbomb_loader import (
-    load_competitions,
-    load_match_complete,
-    load_matches,
-)
-from src.ingestion.provider_mapper import (
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.features.sequence_labeler import label_possessions_dataframe  # noqa: E402
+from src.ingestion.possession_builder import build_possessions  # noqa: E402
+from src.ingestion.provider_mapper import (  # noqa: E402
     make_internal_id,
     normalise_x,
     normalise_y,
 )
-from src.ingestion.possession_builder import build_possessions
-from src.ingestion.schema import Provider
-from src.features.sequence_labeler import label_possessions_dataframe
+from src.ingestion.schema import Provider  # noqa: E402
+from src.ingestion.statsbomb_loader import (  # noqa: E402
+    load_match_complete,
+    load_matches,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +55,7 @@ COMPETITIONS_CFG = PROJECT_ROOT / "configs" / "competitions.yaml"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _load_competition_cfg() -> list[dict]:
     with open(COMPETITIONS_CFG, encoding="utf-8") as fh:
@@ -78,10 +78,15 @@ def _normalise_events_df(raw_events: pd.DataFrame, match_internal_id: str) -> pd
     # Normalise coordinates from location column
     if "location" in df.columns:
         df[["x_location", "y_location"]] = pd.DataFrame(
-            df["location"].apply(
-                lambda loc: list(loc[:2]) if isinstance(loc, list) and len(loc) >= 2
-                else [float("nan"), float("nan")]
-            ).tolist(),
+            df["location"]
+            .apply(
+                lambda loc: (
+                    list(loc[:2])
+                    if isinstance(loc, list) and len(loc) >= 2
+                    else [float("nan"), float("nan")]
+                )
+            )
+            .tolist(),
             index=df.index,
         )
         df["x_location"] = df["x_location"].apply(
@@ -94,11 +99,15 @@ def _normalise_events_df(raw_events: pd.DataFrame, match_internal_id: str) -> pd
     # End location — statsbombpy provides flat pass_end_location / carry_end_location columns
     if "pass_end_location" in df.columns:
         ends = pd.DataFrame(
-            df["pass_end_location"].apply(
-                lambda loc: [normalise_x(loc[0]), normalise_y(loc[1])]
-                if isinstance(loc, list) and len(loc) >= 2
-                else [float("nan"), float("nan")]
-            ).tolist(),
+            df["pass_end_location"]
+            .apply(
+                lambda loc: (
+                    [normalise_x(loc[0]), normalise_y(loc[1])]
+                    if isinstance(loc, list) and len(loc) >= 2
+                    else [float("nan"), float("nan")]
+                )
+            )
+            .tolist(),
             columns=["end_x", "end_y"],
             index=df.index,
         )
@@ -107,11 +116,15 @@ def _normalise_events_df(raw_events: pd.DataFrame, match_internal_id: str) -> pd
 
     if "carry_end_location" in df.columns:
         carry_ends = pd.DataFrame(
-            df["carry_end_location"].apply(
-                lambda loc: [normalise_x(loc[0]), normalise_y(loc[1])]
-                if isinstance(loc, list) and len(loc) >= 2
-                else [float("nan"), float("nan")]
-            ).tolist(),
+            df["carry_end_location"]
+            .apply(
+                lambda loc: (
+                    [normalise_x(loc[0]), normalise_y(loc[1])]
+                    if isinstance(loc, list) and len(loc) >= 2
+                    else [float("nan"), float("nan")]
+                )
+            )
+            .tolist(),
             columns=["end_x", "end_y"],
             index=df.index,
         )
@@ -132,13 +145,17 @@ def _normalise_events_df(raw_events: pd.DataFrame, match_internal_id: str) -> pd
         )
     if "player_id" in df.columns:
         df["player_internal_id"] = df["player_id"].apply(
-            lambda p: make_internal_id(Provider.STATSBOMB, "player", int(p)) if pd.notna(p) else None
+            lambda p: (
+                make_internal_id(Provider.STATSBOMB, "player", int(p)) if pd.notna(p) else None
+            )
         )
 
     # Possession internal ID
     if "possession" in df.columns:
         df["possession_internal_id"] = df.apply(
-            lambda r: make_internal_id(Provider.STATSBOMB, match_internal_id, r.get("possession", "")),
+            lambda r: make_internal_id(
+                Provider.STATSBOMB, match_internal_id, r.get("possession", "")
+            ),
             axis=1,
         )
 
@@ -151,7 +168,9 @@ def _normalise_events_df(raw_events: pd.DataFrame, match_internal_id: str) -> pd
     return df
 
 
-def _normalise_frames_df(raw_frames: pd.DataFrame, events_df: pd.DataFrame, match_internal_id: str) -> pd.DataFrame:
+def _normalise_frames_df(
+    raw_frames: pd.DataFrame, events_df: pd.DataFrame, match_internal_id: str
+) -> pd.DataFrame:
     """Normalise raw 360 frame rows to event-linked internal schema."""
     if raw_frames is None or raw_frames.empty:
         return pd.DataFrame()
@@ -170,8 +189,11 @@ def _normalise_frames_df(raw_frames: pd.DataFrame, events_df: pd.DataFrame, matc
 
     if "location" in frames.columns:
         xy = frames["location"].apply(
-            lambda loc: [normalise_x(loc[0]), normalise_y(loc[1])]
-            if isinstance(loc, list) and len(loc) >= 2 else [float("nan"), float("nan")]
+            lambda loc: (
+                [normalise_x(loc[0]), normalise_y(loc[1])]
+                if isinstance(loc, list) and len(loc) >= 2
+                else [float("nan"), float("nan")]
+            )
         )
         frames[["x", "y"]] = pd.DataFrame(xy.tolist(), index=frames.index)
     else:
@@ -213,8 +235,12 @@ def _normalise_match_row(
         "away_team_name": match_row.get("away_team"),
         "home_team_id": home_team_id,
         "away_team_id": away_team_id,
-        "home_team_internal_id": make_internal_id(Provider.STATSBOMB, "team", home_team_id) if home_team_id else None,
-        "away_team_internal_id": make_internal_id(Provider.STATSBOMB, "team", away_team_id) if away_team_id else None,
+        "home_team_internal_id": make_internal_id(Provider.STATSBOMB, "team", home_team_id)
+        if home_team_id
+        else None,
+        "away_team_internal_id": make_internal_id(Provider.STATSBOMB, "team", away_team_id)
+        if away_team_id
+        else None,
         "match_date": match_row.get("match_date"),
         "home_score": match_row.get("home_score"),
         "away_score": match_row.get("away_score"),
@@ -222,6 +248,7 @@ def _normalise_match_row(
 
 
 # ── Main ingestion logic ──────────────────────────────────────────────────────
+
 
 def ingest(
     competition_filter: list[str] | None = None,
@@ -233,8 +260,7 @@ def ingest(
     if competition_filter:
         allowed = {tuple(c.split("/")) for c in competition_filter}
         comp_cfgs = [
-            c for c in comp_cfgs
-            if (str(c["competition_id"]), str(c["season_id"])) in allowed
+            c for c in comp_cfgs if (str(c["competition_id"]), str(c["season_id"])) in allowed
         ]
         if not comp_cfgs:
             logger.error("No competitions matched filter: %s", competition_filter)
@@ -293,17 +319,26 @@ def ingest(
                 away_tid = int(at.iloc[0]) if not at.empty else None
 
             match_meta = _normalise_match_row(
-                match_row, cid, sid, has_360, split_role,
-                home_team_id=home_tid, away_team_id=away_tid,
+                match_row,
+                cid,
+                sid,
+                has_360,
+                split_role,
+                home_team_id=home_tid,
+                away_team_id=away_tid,
             )
             all_matches.append(match_meta)
 
             events_df = _normalise_events_df(raw_events, match_internal_id)
-            events_df["competition_internal_id"] = make_internal_id(Provider.STATSBOMB, "comp", cid, sid)
+            events_df["competition_internal_id"] = make_internal_id(
+                Provider.STATSBOMB, "comp", cid, sid
+            )
             events_df["has_360"] = bool(has_360)
             all_events.append(events_df)
 
-            frames_df = _normalise_frames_df(data.get("frames", pd.DataFrame()), events_df, match_internal_id)
+            frames_df = _normalise_frames_df(
+                data.get("frames", pd.DataFrame()), events_df, match_internal_id
+            )
             if not frames_df.empty:
                 all_frames.append(frames_df)
 
@@ -352,6 +387,7 @@ def ingest(
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Ingest StatsBomb data for configured competitions.")
     p.add_argument(
@@ -359,7 +395,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         nargs="+",
         metavar="CID/SID",
         help="Subset of competitions to ingest, e.g. --competitions 43/106 55/282. "
-             "Default: all competitions in configs/competitions.yaml.",
+        "Default: all competitions in configs/competitions.yaml.",
     )
     p.add_argument(
         "--force-reload",

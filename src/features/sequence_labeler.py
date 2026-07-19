@@ -15,21 +15,21 @@ First matching rule wins. Possessions matching no rule → SequenceType.UNKNOWN.
 from __future__ import annotations
 
 import logging
-from typing import Callable, NamedTuple
+from collections.abc import Callable
+from typing import NamedTuple
 
 import pandas as pd
 
-from src.ingestion.schema import SequenceType
 from src.features.sequence_features import (
-    is_in_box,
-    is_wide_byline,
-    is_central,
-    normalise_x,
-    normalise_y,
-    _BOX_X_MIN,
     _ATK_THIRD_MIN_X,
     _DEF_THIRD_MAX_X,
+    is_central,
+    is_in_box,
+    is_wide_byline,
+    normalise_x,
+    normalise_y,
 )
+from src.ingestion.schema import SequenceType
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +52,13 @@ def _pass_events(events: pd.DataFrame) -> pd.DataFrame:
 
 class LabelResult(NamedTuple):
     sequence_type: SequenceType
-    confidence: float     # 1.0 = hard rule, 0.5 = softer heuristic
-    source: str           # "rule"
+    confidence: float  # 1.0 = hard rule, 0.5 = softer heuristic
+    source: str  # "rule"
 
 
 # ── Individual rule functions ─────────────────────────────────────────────────
 # Each function receives a possession row (pd.Series) and an events sub-DataFrame.
+
 
 def _is_set_piece_first_phase(poss: pd.Series, events: pd.DataFrame) -> bool:
     """Possession begins from a set-piece and has ≤ 3 events before a shot."""
@@ -267,28 +268,29 @@ def _is_settled_possession(poss: pd.Series, events: pd.DataFrame) -> bool:
 # Earlier entries take priority over later ones when multiple rules match.
 
 _RULE_REGISTRY: list[tuple[SequenceType, Callable, float]] = [
-    (SequenceType.SET_PIECE_FIRST_PHASE,   _is_set_piece_first_phase,   1.0),
-    (SequenceType.SET_PIECE_SECOND_PHASE,  _is_set_piece_second_phase,  1.0),
-    (SequenceType.FAST_COUNTERATTACK,      _is_fast_counterattack,      1.0),
-    (SequenceType.HIGH_PRESS_REGAIN,       _is_high_press_regain,       1.0),
-    (SequenceType.CUTBACK_SEQUENCE,        _is_cutback_sequence,        0.9),
-    (SequenceType.THROUGH_BALL_SEQUENCE,   _is_through_ball_sequence,   0.85),
-    (SequenceType.DIRECT_LONG_BALL,        _is_direct_long_ball,        0.85),
-    (SequenceType.CARRY_LED_PROGRESSION,   _is_carry_led_progression,   0.85),
-    (SequenceType.WIDE_CROSSING_SEQUENCE,  _is_wide_crossing_sequence,  0.80),
-    (SequenceType.SWITCH_OF_PLAY_ATTACK,   _is_switch_of_play_attack,   0.80),
-    (SequenceType.CENTRAL_COMBINATION,     _is_central_combination,     0.75),
-    (SequenceType.CHAOTIC_LOOSE_BALL,      _is_chaotic_loose_ball,      0.70),
-    (SequenceType.HIGH_PRESS_REGAIN,       _is_high_press_regain,       0.70),   # second pass
-    (SequenceType.MID_BLOCK_REGAIN,        _is_mid_block_regain,        0.70),
-    (SequenceType.LOW_BLOCK_REGAIN,        _is_low_block_regain,        0.65),
-    (SequenceType.RECYCLED_ATTACK,         _is_recycled_attack,         0.65),
-    (SequenceType.DEEP_BUILDUP,            _is_deep_buildup,            0.65),
-    (SequenceType.SETTLED_POSSESSION,      _is_settled_possession,      0.60),
+    (SequenceType.SET_PIECE_FIRST_PHASE, _is_set_piece_first_phase, 1.0),
+    (SequenceType.SET_PIECE_SECOND_PHASE, _is_set_piece_second_phase, 1.0),
+    (SequenceType.FAST_COUNTERATTACK, _is_fast_counterattack, 1.0),
+    (SequenceType.HIGH_PRESS_REGAIN, _is_high_press_regain, 1.0),
+    (SequenceType.CUTBACK_SEQUENCE, _is_cutback_sequence, 0.9),
+    (SequenceType.THROUGH_BALL_SEQUENCE, _is_through_ball_sequence, 0.85),
+    (SequenceType.DIRECT_LONG_BALL, _is_direct_long_ball, 0.85),
+    (SequenceType.CARRY_LED_PROGRESSION, _is_carry_led_progression, 0.85),
+    (SequenceType.WIDE_CROSSING_SEQUENCE, _is_wide_crossing_sequence, 0.80),
+    (SequenceType.SWITCH_OF_PLAY_ATTACK, _is_switch_of_play_attack, 0.80),
+    (SequenceType.CENTRAL_COMBINATION, _is_central_combination, 0.75),
+    (SequenceType.CHAOTIC_LOOSE_BALL, _is_chaotic_loose_ball, 0.70),
+    (SequenceType.HIGH_PRESS_REGAIN, _is_high_press_regain, 0.70),  # second pass
+    (SequenceType.MID_BLOCK_REGAIN, _is_mid_block_regain, 0.70),
+    (SequenceType.LOW_BLOCK_REGAIN, _is_low_block_regain, 0.65),
+    (SequenceType.RECYCLED_ATTACK, _is_recycled_attack, 0.65),
+    (SequenceType.DEEP_BUILDUP, _is_deep_buildup, 0.65),
+    (SequenceType.SETTLED_POSSESSION, _is_settled_possession, 0.60),
 ]
 
 
 # ── Public labeller ───────────────────────────────────────────────────────────
+
 
 def label_possession(poss: pd.Series, events: pd.DataFrame) -> LabelResult:
     """
@@ -337,10 +339,14 @@ def label_possessions_dataframe(
     for _, poss in possessions_df.iterrows():
         match_id = poss[match_id_col]
         poss_idx = int(poss[poss_idx_col])
-        poss_events = events_df[
-            (events_df.get("match_internal_id", pd.Series()) == match_id)
-            & (events_df["possession"] == poss_idx)
-        ] if not events_df.empty else pd.DataFrame()
+        poss_events = (
+            events_df[
+                (events_df.get("match_internal_id", pd.Series()) == match_id)
+                & (events_df["possession"] == poss_idx)
+            ]
+            if not events_df.empty
+            else pd.DataFrame()
+        )
 
         result = label_possession(poss, poss_events)
         results.append(

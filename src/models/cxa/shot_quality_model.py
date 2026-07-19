@@ -21,29 +21,29 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from statistics import mean
-from typing import Callable
 
 import numpy as np
 import pandas as pd
+from scipy.stats import spearmanr
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import TweedieRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
-from scipy.stats import spearmanr
 
 from src.evaluation.validation_splits import match_kfold
 from src.models.cxa.feature_sets import CxAFeatureSetSpec, get_feature_set
-from src.models.cxa.shot_creation_model import _make_X
+from src.models.cxa.shot_creation_model import _make_x
 
 logger = logging.getLogger(__name__)
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ShotQualityMetrics:
@@ -68,6 +68,7 @@ class ShotQualityLadderResult:
 
 # ── Shared pipeline builders ──────────────────────────────────────────────────
 
+
 def _build_gamma_pipeline(
     numeric_all: list[str],
     cat_cols: list[str],
@@ -75,17 +76,32 @@ def _build_gamma_pipeline(
 ) -> Pipeline:
     """Gamma GLM with log link via TweedieRegressor(power=2, link='log')."""
     from sklearn.preprocessing import OneHotEncoder
+
     transformers: list = [
-        ("num", Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ]), numeric_all),
+        (
+            "num",
+            Pipeline(
+                [
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler()),
+                ]
+            ),
+            numeric_all,
+        ),
     ]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
     # power=2 → Gamma family, link='log' (default for power>1)
     glm = TweedieRegressor(power=2, alpha=alpha, max_iter=2000, link="log")
@@ -99,19 +115,31 @@ def _build_tree_reg_pipeline(
 ) -> Pipeline:
     transformers: list = [("num", SimpleImputer(strategy="median"), numeric_all)]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("enc", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, dtype=float)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        (
+                            "enc",
+                            OrdinalEncoder(
+                                handle_unknown="use_encoded_value", unknown_value=-1, dtype=float
+                            ),
+                        ),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
     return Pipeline([("pre", pre), ("reg", estimator)])
 
 
 # ── Shared evaluation logic ───────────────────────────────────────────────────
 
-def _evaluate_regression(
-    y_true: np.ndarray, y_pred: np.ndarray
-) -> ShotQualityMetrics:
+
+def _evaluate_regression(y_true: np.ndarray, y_pred: np.ndarray) -> ShotQualityMetrics:
     mae = float(mean_absolute_error(y_true, y_pred))
     rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
     corr, _ = spearmanr(y_true, y_pred)
@@ -125,7 +153,7 @@ def _evaluate_regression(
         for i in range(len(edges) - 1):
             mask = (y_true >= edges[i]) & (y_true < edges[i + 1])
             if mask.sum() > 0:
-                bucket_name = f"q{i+1}"
+                bucket_name = f"q{i + 1}"
                 buckets[bucket_name] = float(np.mean(y_pred[mask]) - np.mean(y_true[mask]))
     except Exception:
         pass
@@ -133,6 +161,7 @@ def _evaluate_regression(
 
 
 # ── Base class ────────────────────────────────────────────────────────────────
+
 
 class _BaseShotQualityModel:
     feature_set: CxAFeatureSetSpec
@@ -146,13 +175,13 @@ class _BaseShotQualityModel:
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
-        return _make_X(df, self._numeric_all, self._cat_cols, self._bool_set)
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
+        return _make_x(df, self._numeric_all, self._cat_cols, self._bool_set)
 
     def predict(self, actions_df: pd.DataFrame) -> np.ndarray:
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return np.clip(self.pipeline.predict(self._X(actions_df)), 1e-6, None)
+        return np.clip(self.pipeline.predict(self._x(actions_df)), 1e-6, None)
 
     def evaluate(
         self, actions_df: pd.DataFrame, target_col: str = "resulting_shot_cxg"
@@ -173,6 +202,7 @@ class _BaseShotQualityModel:
 
 
 # ── Gamma GLM ─────────────────────────────────────────────────────────────────
+
 
 class GammaShotQualityModel(_BaseShotQualityModel):
     """
@@ -202,7 +232,7 @@ class GammaShotQualityModel(_BaseShotQualityModel):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "resulting_shot_cxg",
-    ) -> "GammaShotQualityModel":
+    ) -> GammaShotQualityModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -220,11 +250,12 @@ class GammaShotQualityModel(_BaseShotQualityModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         self.pipeline = _build_gamma_pipeline(numeric_all, cat_cols, self.alpha)
-        self.pipeline.fit(self._X(actions_df), y.to_numpy())
+        self.pipeline.fit(self._x(actions_df), y.to_numpy())
         return self
 
 
 # ── XGBoost regressor ─────────────────────────────────────────────────────────
+
 
 class XGBoostShotQualityModel(_BaseShotQualityModel):
     """XGBoost regressor for resulting shot CxG."""
@@ -250,10 +281,14 @@ class XGBoostShotQualityModel(_BaseShotQualityModel):
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
         )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            max_depth=max_depth, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_weight=min_child_weight,
-            reg_alpha=reg_alpha, reg_lambda=reg_lambda,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_weight=min_child_weight,
+            reg_alpha=reg_alpha,
+            reg_lambda=reg_lambda,
         )
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -263,19 +298,22 @@ class XGBoostShotQualityModel(_BaseShotQualityModel):
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+
         from src.runtime.gbm_device import xgboost_kwargs
+
         return xgb.XGBRegressor(
             **params,
             **xgboost_kwargs(getattr(self, "device", None)),
             objective="reg:squarederror",
-            verbosity=0, random_state=self.random_state,
+            verbosity=0,
+            random_state=self.random_state,
         )
 
     def fit(
         self,
         actions_df: pd.DataFrame,
         target_col: str = "resulting_shot_cxg",
-    ) -> "XGBoostShotQualityModel":
+    ) -> XGBoostShotQualityModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -287,12 +325,15 @@ class XGBoostShotQualityModel(_BaseShotQualityModel):
         self._numeric_all = numeric_all
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
-        self.pipeline = _build_tree_reg_pipeline(self._make_estimator(self.params), numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(float).to_numpy())
+        self.pipeline = _build_tree_reg_pipeline(
+            self._make_estimator(self.params), numeric_all, cat_cols
+        )
+        self.pipeline.fit(self._x(df), df[target_col].astype(float).to_numpy())
         return self
 
 
 # ── LightGBM regressor ────────────────────────────────────────────────────────
+
 
 class LightGBMShotQualityModel(_BaseShotQualityModel):
     """LightGBM regressor for resulting shot CxG."""
@@ -316,9 +357,12 @@ class LightGBMShotQualityModel(_BaseShotQualityModel):
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
         )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            num_leaves=num_leaves, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_samples=min_child_samples,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            num_leaves=num_leaves,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_samples=min_child_samples,
         )
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -328,19 +372,23 @@ class LightGBMShotQualityModel(_BaseShotQualityModel):
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+
         from src.runtime.gbm_device import lightgbm_kwargs
+
         return lgb.LGBMRegressor(
             **params,
             **lightgbm_kwargs(getattr(self, "device", None)),
-            objective="regression", metric="rmse",
-            verbose=-1, random_state=self.random_state,
+            objective="regression",
+            metric="rmse",
+            verbose=-1,
+            random_state=self.random_state,
         )
 
     def fit(
         self,
         actions_df: pd.DataFrame,
         target_col: str = "resulting_shot_cxg",
-    ) -> "LightGBMShotQualityModel":
+    ) -> LightGBMShotQualityModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -352,12 +400,15 @@ class LightGBMShotQualityModel(_BaseShotQualityModel):
         self._numeric_all = numeric_all
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
-        self.pipeline = _build_tree_reg_pipeline(self._make_estimator(self.params), numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(float).to_numpy())
+        self.pipeline = _build_tree_reg_pipeline(
+            self._make_estimator(self.params), numeric_all, cat_cols
+        )
+        self.pipeline.fit(self._x(df), df[target_col].astype(float).to_numpy())
         return self
 
 
 # ── MLP regressor ─────────────────────────────────────────────────────────────
+
 
 class MLPShotQualityModel(_BaseShotQualityModel):
     """
@@ -390,7 +441,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         self.device = device
         self._resolved_device: str | None = None
         self.random_state = random_state
-        self.pipeline: Pipeline | None = None   # scaler
+        self.pipeline: Pipeline | None = None  # scaler
         self._torch_model = None
         self._numeric_all: list[str] = []
         self._cat_cols: list[str] = []
@@ -399,6 +450,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
     def _torch_device(self) -> str:
         if self._resolved_device is None:
             from src.models.neural import resolve_device
+
             self._resolved_device = resolve_device(self.device)
             logger.info("MLPShotQuality: using torch device %s", self._resolved_device)
         return self._resolved_device
@@ -420,6 +472,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
             def __init__(self, layers):
                 super().__init__()
                 self.net = nn.Sequential(*layers)
+
             def forward(self, x):
                 return self.net(x).squeeze(-1)
 
@@ -429,7 +482,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "resulting_shot_cxg",
-    ) -> "MLPShotQualityModel":
+    ) -> MLPShotQualityModel:
         try:
             import torch
             import torch.nn as nn
@@ -448,15 +501,17 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         if not numeric_all:
             raise ValueError("No feature columns found")
         self._numeric_all = numeric_all
-        self._cat_cols = []   # MLP uses numeric only
+        self._cat_cols = []  # MLP uses numeric only
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
 
         # Fit scaler
-        self.pipeline = Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        self.pipeline = Pipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.fit_transform(X_raw).astype(np.float32)
         y_np = df[target_col].astype(float).to_numpy(dtype=np.float32)
 
@@ -464,6 +519,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         y_t = torch.tensor(y_np)
         dataset = TensorDataset(X_t, y_t)
         from src.models.neural import resolve_batch_size
+
         bs = resolve_batch_size("ffnn", self.batch_size)
         loader = DataLoader(dataset, batch_size=bs, shuffle=True)
 
@@ -501,7 +557,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
         if self._torch_model is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
         df = actions_df.reset_index(drop=True)
-        X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.transform(X_raw).astype(np.float32)
         device = self._torch_device()
         self._torch_model.eval()
@@ -512,6 +568,7 @@ class MLPShotQualityModel(_BaseShotQualityModel):
 
 # ── Shot-Quality Ladder ───────────────────────────────────────────────────────
 
+
 def _cv_shot_quality(
     factory: Callable[[], _BaseShotQualityModel],
     actions_df: pd.DataFrame,
@@ -521,10 +578,17 @@ def _cv_shot_quality(
     random_state: int,
 ) -> tuple[float, float, float | None, int]:
     df = actions_df.reset_index(drop=True)
-    folds = list(match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)) \
-        if match_id_col in df.columns else \
-        list(__import__("sklearn.model_selection", fromlist=["KFold"]).KFold(
-            n_splits=n_folds, shuffle=True, random_state=random_state).split(df))
+    folds = (
+        list(
+            match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)
+        )
+        if match_id_col in df.columns
+        else list(
+            __import__("sklearn.model_selection", fromlist=["KFold"])
+            .KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+            .split(df)
+        )
+    )
     maes, rmses, spearmans = [], [], []
     for tr_idx, va_idx in folds:
         tr_df, va_df = df.loc[tr_idx], df.loc[va_idx]
@@ -545,7 +609,8 @@ def _cv_shot_quality(
     if not maes:
         return float("inf"), float("inf"), None, 0
     return (
-        float(np.mean(maes)), float(np.mean(rmses)),
+        float(np.mean(maes)),
+        float(np.mean(rmses)),
         float(np.mean(spearmans)) if spearmans else None,
         len(maes),
     )
@@ -576,12 +641,31 @@ class ShotQualityLadder:
 
         ne, rs = n_estimators, random_state
         candidates: list[tuple[str, str, str, Callable, pd.DataFrame]] = [
-            ("gamma_glm", "glm", "contextual",
-             lambda: GammaShotQualityModel(feature_set="contextual", random_state=rs), pos_df),
-            ("xgb_contextual", "xgboost", "contextual",
-             lambda: XGBoostShotQualityModel(feature_set="contextual", n_estimators=ne, random_state=rs), actions_df),
-            ("lgbm_contextual", "lightgbm", "contextual",
-             lambda: LightGBMShotQualityModel(feature_set="contextual", n_estimators=ne, random_state=rs), actions_df),
+            (
+                "gamma_glm",
+                "glm",
+                "contextual",
+                lambda: GammaShotQualityModel(feature_set="contextual", random_state=rs),
+                pos_df,
+            ),
+            (
+                "xgb_contextual",
+                "xgboost",
+                "contextual",
+                lambda: XGBoostShotQualityModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+                actions_df,
+            ),
+            (
+                "lgbm_contextual",
+                "lightgbm",
+                "contextual",
+                lambda: LightGBMShotQualityModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+                actions_df,
+            ),
         ]
 
         results: list[ShotQualityLadderResult] = []
@@ -597,11 +681,18 @@ class ShotQualityLadder:
             )
             final = factory()
             final.fit(df_for_fit, target_col)
-            results.append(ShotQualityLadderResult(
-                name=name, family=family, feature_set=fset,
-                cv_mae=cv_mae, cv_rmse=cv_rmse, cv_spearman=cv_sp,
-                n_cv_folds_used=n_valid, model=final,
-            ))
+            results.append(
+                ShotQualityLadderResult(
+                    name=name,
+                    family=family,
+                    feature_set=fset,
+                    cv_mae=cv_mae,
+                    cv_rmse=cv_rmse,
+                    cv_spearman=cv_sp,
+                    n_cv_folds_used=n_valid,
+                    model=final,
+                )
+            )
 
         results.sort(key=lambda r: r.cv_mae)
         for i, r in enumerate(results):
@@ -612,13 +703,18 @@ class ShotQualityLadder:
     def leaderboard(self) -> pd.DataFrame:
         if not self._results:
             raise RuntimeError("No results yet. Call run() first.")
-        rows = [{
-            "rank": r.rank, "name": r.name, "family": r.family,
-            "feature_set": r.feature_set,
-            "cv_mae": round(r.cv_mae, 5),
-            "cv_rmse": round(r.cv_rmse, 5),
-            "cv_spearman": round(r.cv_spearman, 4) if r.cv_spearman is not None else None,
-        } for r in self._results]
+        rows = [
+            {
+                "rank": r.rank,
+                "name": r.name,
+                "family": r.family,
+                "feature_set": r.feature_set,
+                "cv_mae": round(r.cv_mae, 5),
+                "cv_rmse": round(r.cv_rmse, 5),
+                "cv_spearman": round(r.cv_spearman, 4) if r.cv_spearman is not None else None,
+            }
+            for r in self._results
+        ]
         return pd.DataFrame(rows).set_index("rank")
 
     def best(self) -> ShotQualityLadderResult:
@@ -628,6 +724,7 @@ class ShotQualityLadder:
 
 
 # ── Factory ───────────────────────────────────────────────────────────────────
+
 
 class ShotQualityModel(_BaseShotQualityModel):
     """
@@ -672,7 +769,9 @@ class ShotQualityModel(_BaseShotQualityModel):
         self._bool_set = self._delegate._bool_set
         self.pipeline = self._delegate.pipeline
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "resulting_shot_cxg", **kwargs) -> "ShotQualityModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "resulting_shot_cxg", **kwargs
+    ) -> ShotQualityModel:
         self._delegate.fit(actions_df, target_col, **kwargs)
         self._numeric_all = self._delegate._numeric_all
         self._cat_cols = self._delegate._cat_cols
@@ -683,5 +782,7 @@ class ShotQualityModel(_BaseShotQualityModel):
     def predict(self, actions_df: pd.DataFrame) -> np.ndarray:
         return self._delegate.predict(actions_df)
 
-    def evaluate(self, actions_df: pd.DataFrame, target_col: str = "resulting_shot_cxg") -> ShotQualityMetrics:
+    def evaluate(
+        self, actions_df: pd.DataFrame, target_col: str = "resulting_shot_cxg"
+    ) -> ShotQualityMetrics:
         return self._delegate.evaluate(actions_df, target_col)

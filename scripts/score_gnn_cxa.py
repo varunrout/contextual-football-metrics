@@ -22,13 +22,13 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import pandas as pd
-
-from src.models.cxa.gnn_passing_network import GNNPassingNetworkCxAModel
-from src.models.cxa.shot_quality_model import ShotQualityModel
+from src.models.cxa.gnn_passing_network import GNNPassingNetworkCxAModel  # noqa: E402
+from src.models.cxa.shot_quality_model import ShotQualityModel  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,16 +39,28 @@ logger = logging.getLogger("score_gnn_cxa")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--creation", type=Path,
-                        default=PROJECT_ROOT / "models" / "cxa" / "shot_creation_gnn_passing_360.pkl")
-    parser.add_argument("--quality", type=Path,
-                        default=PROJECT_ROOT / "models" / "cxa" / "shot_quality_gnn_passing_360.pkl")
-    parser.add_argument("--actions", type=Path,
-                        default=PROJECT_ROOT / "data" / "features" / "actions.parquet")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--creation",
+        type=Path,
+        default=PROJECT_ROOT / "models" / "cxa" / "shot_creation_gnn_passing_360.pkl",
+    )
+    parser.add_argument(
+        "--quality",
+        type=Path,
+        default=PROJECT_ROOT / "models" / "cxa" / "shot_quality_gnn_passing_360.pkl",
+    )
+    parser.add_argument(
+        "--actions", type=Path, default=PROJECT_ROOT / "data" / "features" / "actions.parquet"
+    )
     parser.add_argument("--frames", type=Path, default=None)
-    parser.add_argument("--output", type=Path,
-                        default=PROJECT_ROOT / "outputs" / "scores" / "cxa_gnn_passing.parquet")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "scores" / "cxa_gnn_passing.parquet",
+    )
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
 
@@ -88,7 +100,9 @@ def main() -> int:
     logger.info(
         "Wrote %s  (mean p_creation=%.4f, mean E[cxg]=%.4f, mean cxa=%.5f)",
         args.output,
-        float(p_creation.mean()), float(expected_cxg.mean()), float((p_creation * expected_cxg).mean()),
+        float(p_creation.mean()),
+        float(expected_cxg.mean()),
+        float((p_creation * expected_cxg).mean()),
     )
     return 0
 

@@ -34,13 +34,13 @@ import logging
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import pandas as pd
 import yaml
 
-from src.monitoring.drift_detector import DriftDetector
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.monitoring.drift_detector import DriftDetector  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,17 +55,26 @@ MODELS_YAML = PROJECT_ROOT / "configs" / "models.yaml"
 
 # Default numeric columns to monitor
 _DEFAULT_NUMERIC_COLS = [
-    "x_location", "y_location", "end_x", "end_y",
-    "distance_to_goal", "angle_to_goal",
-    "cxg", "cxa", "cxt",
+    "x_location",
+    "y_location",
+    "end_x",
+    "end_y",
+    "distance_to_goal",
+    "angle_to_goal",
+    "cxg",
+    "cxa",
+    "cxt",
 ]
 # Default categorical columns to monitor
 _DEFAULT_CATEGORICAL_COLS = [
-    "action_type", "body_part", "play_pattern",
+    "action_type",
+    "body_part",
+    "play_pattern",
 ]
 
 
 # ── Config helpers ────────────────────────────────────────────────────────────
+
 
 def _read_monitoring_config() -> dict:
     if not MODELS_YAML.exists():
@@ -77,6 +86,7 @@ def _read_monitoring_config() -> dict:
 
 # ── Column selection ──────────────────────────────────────────────────────────
 
+
 def _select_cols(
     df: pd.DataFrame,
     candidates: list[str],
@@ -85,6 +95,7 @@ def _select_cols(
 
 
 # ── Report serialisation ──────────────────────────────────────────────────────
+
 
 def _report_to_dict(report) -> dict:
     """Convert a DriftReport to a JSON-serialisable dict."""
@@ -111,6 +122,7 @@ def _report_to_dict(report) -> dict:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def monitor(
     reference_path: Path,
     current_path: Path,
@@ -132,18 +144,23 @@ def monitor(
     cur_df = pd.read_parquet(current_path)
     logger.info(
         "Reference: %d rows × %d cols | Current: %d rows × %d cols",
-        len(ref_df), len(ref_df.columns), len(cur_df), len(cur_df.columns),
+        len(ref_df),
+        len(ref_df.columns),
+        len(cur_df),
+        len(cur_df.columns),
     )
 
     # Resolve thresholds from config (then CLI, then default)
     mon_cfg = _read_monitoring_config()
-    resolved_psi = psi_threshold if psi_threshold is not None else float(mon_cfg.get("psi_threshold", 0.2))
-    resolved_kl = kl_threshold if kl_threshold is not None else float(mon_cfg.get("kl_threshold", 0.1))
+    resolved_psi = (
+        psi_threshold if psi_threshold is not None else float(mon_cfg.get("psi_threshold", 0.2))
+    )
+    resolved_kl = (
+        kl_threshold if kl_threshold is not None else float(mon_cfg.get("kl_threshold", 0.1))
+    )
     resolved_bins = n_bins if n_bins is not None else int(mon_cfg.get("n_bins", 10))
     resolved_numeric = (
-        numeric_cols
-        or mon_cfg.get("numeric_monitor_cols", None)
-        or _DEFAULT_NUMERIC_COLS
+        numeric_cols or mon_cfg.get("numeric_monitor_cols", None) or _DEFAULT_NUMERIC_COLS
     )
     resolved_categorical = (
         categorical_cols
@@ -159,8 +176,11 @@ def monitor(
     logger.info(
         "Monitoring %d numeric cols, %d categorical cols  "
         "(psi_threshold=%.2f, kl_threshold=%.2f, n_bins=%d)",
-        len(numeric_present), len(categorical_present),
-        resolved_psi, resolved_kl, resolved_bins,
+        len(numeric_present),
+        len(categorical_present),
+        resolved_psi,
+        resolved_kl,
+        resolved_bins,
     )
 
     if not numeric_present and not categorical_present:
@@ -168,7 +188,8 @@ def monitor(
             "No monitorable columns found in both datasets. "
             "Monitoring will be skipped. Check that features.parquet and "
             "scored.parquet share columns: %s / %s",
-            resolved_numeric, resolved_categorical,
+            resolved_numeric,
+            resolved_categorical,
         )
         return False
 
@@ -215,8 +236,11 @@ def monitor(
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Detect feature drift between reference and current datasets.")
+    p = argparse.ArgumentParser(
+        description="Detect feature drift between reference and current datasets."
+    )
     p.add_argument(
         "--reference",
         default=str(FEATURES_DIR / "features.parquet"),

@@ -38,8 +38,9 @@ Promotion criteria (from configs/models.yaml):
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Sequence
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -66,9 +67,11 @@ PROMO_MIN_RANK_CORR = 0.80
 
 # ── Metric dataclasses ────────────────────────────────────────────────────────
 
+
 @dataclass
 class ClassificationMetrics:
     """Discrimination + calibration for binary classifiers."""
+
     log_loss: float
     brier: float
     roc_auc: float | None
@@ -84,6 +87,7 @@ class ClassificationMetrics:
 @dataclass
 class RegressionMetrics:
     """Discrimination + calibration for regression models."""
+
     mae: float
     rmse: float
     spearman: float | None
@@ -97,10 +101,11 @@ class RegressionMetrics:
 @dataclass
 class ModelComparisonResult:
     """Single model's full evaluation result."""
+
     name: str
-    family: str          # 'baseline' | 'glm' | 'tree' | 'neural_tabular' | 'neural_seq' | 'neural_360'
-    metric_type: str     # 'cxg' | 'cxa' | 'cxt'
-    task_type: str       # 'classification' | 'regression'
+    family: str  # 'baseline' | 'glm' | 'tree' | 'neural_tabular' | 'neural_seq' | 'neural_360'
+    metric_type: str  # 'cxg' | 'cxa' | 'cxt'
+    task_type: str  # 'classification' | 'regression'
     feature_set: str
     metrics: ClassificationMetrics | RegressionMetrics
     leaderboard_rank_corr: float | None = None
@@ -111,9 +116,10 @@ class ModelComparisonResult:
 @dataclass
 class ComparisonReport:
     """Full comparison report across all models and metric families."""
+
     results: list[ModelComparisonResult]
-    promotion_summary: dict[str, str]   # metric_type → recommended_model_name
-    best_tree: dict[str, str]           # metric_type → best tree model name
+    promotion_summary: dict[str, str]  # metric_type → recommended_model_name
+    best_tree: dict[str, str]  # metric_type → best tree model name
 
     def to_dataframe(self) -> pd.DataFrame:
         """Flatten results to a single DataFrame."""
@@ -131,37 +137,42 @@ class ComparisonReport:
                 "is_360_only": r.is_360_only,
             }
             if isinstance(m, ClassificationMetrics):
-                row.update({
-                    "log_loss": m.log_loss,
-                    "brier": m.brier,
-                    "roc_auc": m.roc_auc,
-                    "pr_auc": m.pr_auc,
-                    "ece": m.ece,
-                    "log_loss_std": m.log_loss_std,
-                    "brier_std": m.brier_std,
-                    "roc_auc_std": m.roc_auc_std,
-                })
+                row.update(
+                    {
+                        "log_loss": m.log_loss,
+                        "brier": m.brier,
+                        "roc_auc": m.roc_auc,
+                        "pr_auc": m.pr_auc,
+                        "ece": m.ece,
+                        "log_loss_std": m.log_loss_std,
+                        "brier_std": m.brier_std,
+                        "roc_auc_std": m.roc_auc_std,
+                    }
+                )
             elif isinstance(m, RegressionMetrics):
-                row.update({
-                    "mae": m.mae,
-                    "rmse": m.rmse,
-                    "spearman": m.spearman,
-                    "mae_std": m.mae_std,
-                    "rmse_std": m.rmse_std,
-                    "spearman_std": m.spearman_std,
-                })
+                row.update(
+                    {
+                        "mae": m.mae,
+                        "rmse": m.rmse,
+                        "spearman": m.spearman,
+                        "mae_std": m.mae_std,
+                        "rmse_std": m.rmse_std,
+                        "spearman_std": m.spearman_std,
+                    }
+                )
             rows.append(row)
         return pd.DataFrame(rows)
 
 
 # ── Metric computation helpers ────────────────────────────────────────────────
 
+
 def _ece(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
     """Expected Calibration Error (classification)."""
     bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
     ece = 0.0
     n = len(y_true)
-    for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+    for lo, hi in zip(bin_edges[:-1], bin_edges[1:], strict=False):
         mask = (y_prob >= lo) & (y_prob < hi)
         if mask.sum() == 0:
             continue
@@ -175,21 +186,21 @@ def _reliability_bins(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) 
     """Reliability diagram data for a classifier."""
     bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
     bins: list[dict] = []
-    for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+    for lo, hi in zip(bin_edges[:-1], bin_edges[1:], strict=False):
         mask = (y_prob >= lo) & (y_prob < hi)
-        bins.append({
-            "bin_lo": round(lo, 2),
-            "bin_hi": round(hi, 2),
-            "count": int(mask.sum()),
-            "mean_pred": float(y_prob[mask].mean()) if mask.sum() > 0 else 0.0,
-            "mean_actual": float(y_true[mask].mean()) if mask.sum() > 0 else 0.0,
-        })
+        bins.append(
+            {
+                "bin_lo": round(lo, 2),
+                "bin_hi": round(hi, 2),
+                "count": int(mask.sum()),
+                "mean_pred": float(y_prob[mask].mean()) if mask.sum() > 0 else 0.0,
+                "mean_actual": float(y_true[mask].mean()) if mask.sum() > 0 else 0.0,
+            }
+        )
     return bins
 
 
-def _ece_regression(
-    y_true: np.ndarray, y_pred: np.ndarray, n_bins: int = 10
-) -> dict[str, float]:
+def _ece_regression(y_true: np.ndarray, y_pred: np.ndarray, n_bins: int = 10) -> dict[str, float]:
     """Calibration by value bucket for regressors."""
     try:
         non_neg = y_true > 0
@@ -200,15 +211,13 @@ def _ece_regression(
         for i in range(n_bins):
             mask = (y_true >= q[i]) & (y_true < q[i + 1])
             if mask.sum() > 0:
-                buckets[f"q{i+1}"] = float(np.mean(y_pred[mask]) - np.mean(y_true[mask]))
+                buckets[f"q{i + 1}"] = float(np.mean(y_pred[mask]) - np.mean(y_true[mask]))
         return buckets
     except Exception:
         return {}
 
 
-def compute_classification_metrics(
-    y_true: np.ndarray, y_prob: np.ndarray
-) -> ClassificationMetrics:
+def compute_classification_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> ClassificationMetrics:
     """Compute full classification metric set."""
     ll = float(log_loss(y_true, y_prob))
     br = float(brier_score_loss(y_true, y_prob))
@@ -223,8 +232,7 @@ def compute_classification_metrics(
     ece = _ece(y_true, y_prob)
     rel_bins = _reliability_bins(y_true, y_prob)
     return ClassificationMetrics(
-        log_loss=ll, brier=br, roc_auc=auc, pr_auc=prauc,
-        ece=ece, reliability_bins=rel_bins
+        log_loss=ll, brier=br, roc_auc=auc, pr_auc=prauc, ece=ece, reliability_bins=rel_bins
     )
 
 
@@ -291,6 +299,7 @@ def _bootstrap_regression(
 
 # ── Leaderboard reliability ───────────────────────────────────────────────────
 
+
 def leaderboard_rank_correlation(
     scored_df: pd.DataFrame,
     player_id_col: str = "player_id",
@@ -323,8 +332,11 @@ def leaderboard_rank_correlation(
     # Apply minimum actions filter
     odd_counts = df_odd.groupby(player_id_col)[value_col].count()
     even_counts = df_even.groupby(player_id_col)[value_col].count()
-    valid = [p for p in common
-             if odd_counts.get(p, 0) >= min_actions and even_counts.get(p, 0) >= min_actions]
+    valid = [
+        p
+        for p in common
+        if odd_counts.get(p, 0) >= min_actions and even_counts.get(p, 0) >= min_actions
+    ]
 
     if len(valid) < 5:
         return None
@@ -334,6 +346,7 @@ def leaderboard_rank_correlation(
 
 
 # ── Promotion logic ───────────────────────────────────────────────────────────
+
 
 def evaluate_promotion(
     candidate: ModelComparisonResult,
@@ -355,14 +368,16 @@ def evaluate_promotion(
     if candidate.task_type == "classification":
         cand_m = candidate.metrics
         tree_m = best_tree.metrics
-        if not isinstance(cand_m, ClassificationMetrics) or not isinstance(tree_m, ClassificationMetrics):
+        if not isinstance(cand_m, ClassificationMetrics) or not isinstance(
+            tree_m, ClassificationMetrics
+        ):
             return "insufficient_data"
 
         ll_improvement = (tree_m.log_loss - cand_m.log_loss) / max(tree_m.log_loss, 1e-9)
         br_improvement = (tree_m.brier - cand_m.brier) / max(tree_m.brier, 1e-9)
         ece_ratio = cand_m.ece / max(tree_m.ece, 1e-9)
 
-        passes_discrimination = (ll_improvement > min_improvement or br_improvement > min_improvement)
+        passes_discrimination = ll_improvement > min_improvement or br_improvement > min_improvement
         passes_calibration = ece_ratio <= max_ece_ratio
 
     elif candidate.task_type == "regression":
@@ -374,8 +389,16 @@ def evaluate_promotion(
         mae_improvement = (tree_m.mae - cand_m.mae) / max(tree_m.mae, 1e-9)
         passes_discrimination = mae_improvement > min_improvement
         # ECE proxy: mean absolute calibration bucket error
-        cand_cal = float(np.mean(np.abs(list(cand_m.calibration_by_bucket.values())))) if cand_m.calibration_by_bucket else float("inf")
-        tree_cal = float(np.mean(np.abs(list(tree_m.calibration_by_bucket.values())))) if tree_m.calibration_by_bucket else float("inf")
+        cand_cal = (
+            float(np.mean(np.abs(list(cand_m.calibration_by_bucket.values()))))
+            if cand_m.calibration_by_bucket
+            else float("inf")
+        )
+        tree_cal = (
+            float(np.mean(np.abs(list(tree_m.calibration_by_bucket.values()))))
+            if tree_m.calibration_by_bucket
+            else float("inf")
+        )
         ece_ratio = cand_cal / max(tree_cal, 1e-9) if tree_cal < float("inf") else 0.0
         passes_calibration = ece_ratio <= max_ece_ratio
     else:
@@ -401,17 +424,19 @@ def evaluate_promotion(
 
 # ── Model entry specification ─────────────────────────────────────────────────
 
+
 @dataclass
 class ModelEntry:
     """Descriptor for a model to be evaluated."""
+
     name: str
-    family: str           # 'baseline' | 'glm' | 'gam' | 'tree' | 'neural_tabular' | ...
-    metric_type: str      # 'cxg' | 'cxa' | 'cxt'
-    task_type: str        # 'classification' | 'regression'
+    family: str  # 'baseline' | 'glm' | 'gam' | 'tree' | 'neural_tabular' | ...
+    metric_type: str  # 'cxg' | 'cxa' | 'cxt'
+    task_type: str  # 'classification' | 'regression'
     feature_set: str
-    model: Any            # must expose predict_proba(df) or predict(df)
+    model: Any  # must expose predict_proba(df) or predict(df)
     is_360_only: bool = False
-    predict_fn: Callable | None = None   # override for custom predict logic
+    predict_fn: Callable | None = None  # override for custom predict logic
 
     def predict(self, df: pd.DataFrame) -> np.ndarray:
         """Dispatch to predict_proba (classifiers) or predict (regressors)."""
@@ -428,6 +453,7 @@ class ModelEntry:
 
 
 # ── Main comparison suite ─────────────────────────────────────────────────────
+
 
 class ModelComparisonSuite:
     """
@@ -455,11 +481,11 @@ class ModelComparisonSuite:
         self.random_state = random_state
         self._entries: list[ModelEntry] = []
 
-    def add_model(self, entry: ModelEntry) -> "ModelComparisonSuite":
+    def add_model(self, entry: ModelEntry) -> ModelComparisonSuite:
         self._entries.append(entry)
         return self
 
-    def add_models(self, entries: Sequence[ModelEntry]) -> "ModelComparisonSuite":
+    def add_models(self, entries: Sequence[ModelEntry]) -> ModelComparisonSuite:
         self._entries.extend(entries)
         return self
 
@@ -498,7 +524,9 @@ class ModelComparisonSuite:
         for entry in self._entries:
             target_col = target_map.get(entry.metric_type)
             if target_col is None or target_col not in test_df.columns:
-                logger.warning("Skipping %s — target column %r not in test_df", entry.name, target_col)
+                logger.warning(
+                    "Skipping %s — target column %r not in test_df", entry.name, target_col
+                )
                 continue
 
             logger.info("Evaluating %s (%s / %s)…", entry.name, entry.metric_type, entry.task_type)
@@ -541,16 +569,18 @@ class ModelComparisonSuite:
                     value_col=leaderboard_value_col,
                 )
 
-            results.append(ModelComparisonResult(
-                name=entry.name,
-                family=entry.family,
-                metric_type=entry.metric_type,
-                task_type=entry.task_type,
-                feature_set=entry.feature_set,
-                metrics=metrics,
-                leaderboard_rank_corr=rank_corr,
-                is_360_only=entry.is_360_only,
-            ))
+            results.append(
+                ModelComparisonResult(
+                    name=entry.name,
+                    family=entry.family,
+                    metric_type=entry.metric_type,
+                    task_type=entry.task_type,
+                    feature_set=entry.feature_set,
+                    metrics=metrics,
+                    leaderboard_rank_corr=rank_corr,
+                    is_360_only=entry.is_360_only,
+                )
+            )
 
         # Determine best tree per metric_type
         best_tree: dict[str, ModelComparisonResult] = {}
@@ -603,6 +633,7 @@ def _pick_best(results: list[ModelComparisonResult]) -> ModelComparisonResult | 
 
 # ── HTML report builder ───────────────────────────────────────────────────────
 
+
 def build_html_report(report: ComparisonReport, output_path: str | None = None) -> str:
     """
     Generate an HTML model comparison matrix from a ComparisonReport.
@@ -626,12 +657,14 @@ def build_html_report(report: ComparisonReport, output_path: str | None = None) 
 <body><h1>Model Comparison Matrix</h1><p>No results to display.</p></body></html>"""
         if output_path is not None:
             from pathlib import Path as _Path
+
             _Path(output_path).parent.mkdir(parents=True, exist_ok=True)
             _Path(output_path).write_text(empty_html, encoding="utf-8")
         return empty_html
 
     # ── CSS & header ──────────────────────────────────────────────────────────
-    html = ["""<!DOCTYPE html>
+    html = [
+        """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -673,15 +706,19 @@ def build_html_report(report: ComparisonReport, output_path: str | None = None) 
 <h1>Model Comparison Matrix</h1>
 <p class="subtitle">Contextual Football Metrics — Phase 8 Evaluation &mdash;
   Comparing all model families across CxG, CxA, and CxT on the held-out test set.</p>
-"""]
+"""
+    ]
 
     # ── Promotion summary cards ────────────────────────────────────────────────
     html.append('<div class="summary-box">')
     for metric_type, model_name in report.promotion_summary.items():
-        verdict = "promote" if any(
-            r.promotion_verdict == "promote" and r.name == model_name
-            for r in report.results
-        ) else "keep"
+        verdict = (
+            "promote"
+            if any(
+                r.promotion_verdict == "promote" and r.name == model_name for r in report.results
+            )
+            else "keep"
+        )
         html.append(f"""<div class="card {verdict}">
   <div class="label">{metric_type.upper()} — recommended</div>
   <div class="value">{model_name}</div>
@@ -695,10 +732,7 @@ def build_html_report(report: ComparisonReport, output_path: str | None = None) 
         is_clf = (sub["task_type"] == "classification").any()
         primary_col = "log_loss" if is_clf else "mae"
         std_col = "log_loss_std" if is_clf else "mae_std"
-        secondary_cols = (
-            ["brier", "roc_auc", "pr_auc", "ece"] if is_clf
-            else ["rmse", "spearman"]
-        )
+        secondary_cols = ["brier", "roc_auc", "pr_auc", "ece"] if is_clf else ["rmse", "spearman"]
 
         html.append(f"<h2>{metric_type.upper()}</h2>")
         html.append("<table>")
@@ -718,8 +752,11 @@ def build_html_report(report: ComparisonReport, output_path: str | None = None) 
             tag = f'<span class="tag {verdict}">{verdict.replace("_", " ")}</span>'
             primary_val = row.get(primary_col)
             std_val = row.get(std_col, 0.0)
-            is_best = (primary_val is not None and best_primary is not None and
-                       abs(primary_val - best_primary) < 1e-9)
+            is_best = (
+                primary_val is not None
+                and best_primary is not None
+                and abs(primary_val - best_primary) < 1e-9
+            )
             cls = 'class="best"' if is_best else ""
             cells = [
                 f"<td {cls}>{row['name']}</td>",

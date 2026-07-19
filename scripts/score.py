@@ -26,13 +26,12 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import pandas as pd
-import yaml
-
-from src.pipeline.inference_pipeline import InferencePipeline, InferencePipelineConfig
+from src.pipeline.inference_pipeline import InferencePipeline  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +54,7 @@ _CENTRAL_Y_MAX = 41.0
 
 
 # ── Feature enrichment ────────────────────────────────────────────────────────
+
 
 def _enrich_for_scoring(events_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -81,8 +81,7 @@ def _enrich_for_scoring(events_df: pd.DataFrame) -> pd.DataFrame:
 
     if "is_central" not in df.columns and "y_location" in df.columns:
         df["is_central"] = (
-            (df["y_location"] >= _CENTRAL_Y_MIN)
-            & (df["y_location"] <= _CENTRAL_Y_MAX)
+            (df["y_location"] >= _CENTRAL_Y_MIN) & (df["y_location"] <= _CENTRAL_Y_MAX)
         ).astype(float)
 
     # Merge end_x / end_y from processed events (needed for CxT V(after) computation)
@@ -114,7 +113,6 @@ def _enrich_for_scoring(events_df: pd.DataFrame) -> pd.DataFrame:
                 logger.warning("Could not merge end_x/end_y from processed events: %s", exc)
 
     return df
-
 
 
 def _load_pipeline(
@@ -161,6 +159,7 @@ def _load_pipeline(
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def score(
     events_path: Path,
     output_path: Path,
@@ -193,9 +192,11 @@ def score(
     pipeline = _load_pipeline(config_path, cxg_override, cxa_override, cxt_override)
     logger.info("Pipeline: %s", pipeline)
 
-    if (pipeline.cxg_model is None
-            and pipeline.cxa_pipeline is None
-            and pipeline.cxt_pipeline is None):
+    if (
+        pipeline.cxg_model is None
+        and pipeline.cxa_pipeline is None
+        and pipeline.cxt_pipeline is None
+    ):
         logger.warning(
             "All production model pointers are null in configs/models.yaml. "
             "Train models first with train_cxg.py / train_cxa.py / train_cxt.py, "
@@ -216,11 +217,15 @@ def score(
             valid = scored_df[col].dropna()
             logger.info(
                 "  %s: n=%d  mean=%.4f  max=%.4f",
-                col, len(valid), valid.mean() if len(valid) else float("nan"), valid.max() if len(valid) else float("nan"),
+                col,
+                len(valid),
+                valid.mean() if len(valid) else float("nan"),
+                valid.max() if len(valid) else float("nan"),
             )
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Score events with the trained InferencePipeline.")
@@ -260,15 +265,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 if __name__ == "__main__":
     args = _parse_args()
 
-    output = (
-        Path(args.output) if args.output
-        else OUTPUTS_DIR / "scored.parquet"
-    )
+    output = Path(args.output) if args.output else OUTPUTS_DIR / "scored.parquet"
 
-    comp_filter = (
-        (args.competition, args.season)
-        if args.competition is not None else None
-    )
+    comp_filter = (args.competition, args.season) if args.competition is not None else None
 
     score(
         events_path=Path(args.events),

@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
@@ -36,36 +37,39 @@ sys.path.insert(0, str(_ROOT))
 from analysis._utils import save_fig  # noqa: E402
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-SCORED_PATH  = _ROOT / "outputs" / "scores" / "scored.parquet"
-EVENTS_PATH  = _ROOT / "data" / "processed" / "events.parquet"
-FIGURE_DIR   = "scoring"
+SCORED_PATH = _ROOT / "outputs" / "scores" / "scored.parquet"
+EVENTS_PATH = _ROOT / "data" / "processed" / "events.parquet"
+FIGURE_DIR = "scoring"
 
 # ── Pitch constants ───────────────────────────────────────────────────────────
-_BOX_X_MIN   = 88.5
-_BOX_Y_MIN   = 13.84
-_BOX_Y_MAX   = 54.16
+_BOX_X_MIN = 88.5
+_BOX_Y_MIN = 13.84
+_BOX_Y_MAX = 54.16
 
 # ── Style ─────────────────────────────────────────────────────────────────────
-BARCA_BLUE   = "#004D98"
-BARCA_RED    = "#A50044"
+BARCA_BLUE = "#004D98"
+BARCA_RED = "#A50044"
 NEUTRAL_GREY = "#666666"
-ACCENT       = "#F5A623"
+ACCENT = "#F5A623"
 
-plt.rcParams.update({
-    "figure.facecolor":  "white",
-    "axes.facecolor":    "#F8F8F8",
-    "axes.grid":         True,
-    "grid.color":        "white",
-    "grid.linewidth":    0.8,
-    "axes.spines.top":   False,
-    "axes.spines.right": False,
-    "font.family":       "DejaVu Sans",
-    "axes.titlesize":    13,
-    "axes.labelsize":    11,
-})
+plt.rcParams.update(
+    {
+        "figure.facecolor": "white",
+        "axes.facecolor": "#F8F8F8",
+        "axes.grid": True,
+        "grid.color": "white",
+        "grid.linewidth": 0.8,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "font.family": "DejaVu Sans",
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+    }
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _load_data():
     """Load scored output and attach player names + actual outcomes."""
@@ -109,15 +113,20 @@ def _team_name(events: pd.DataFrame, team_internal_id: str) -> str:
 
 # ── Chart 1 — CxG Calibration ─────────────────────────────────────────────────
 
+
 def plot_cxg_calibration(shots: pd.DataFrame) -> None:
     bins = [0, 0.04, 0.08, 0.12, 0.18, 0.25, 0.35, 0.50, 1.01]
     shots = shots.copy()
     shots["bin"] = pd.cut(shots["cxg"], bins=bins, right=True)
-    cal = shots.groupby("bin", observed=True).agg(
-        mean_xg=("cxg", "mean"),
-        actual_rate=("goal", "mean"),
-        n=("goal", "count"),
-    ).dropna()
+    cal = (
+        shots.groupby("bin", observed=True)
+        .agg(
+            mean_xg=("cxg", "mean"),
+            actual_rate=("goal", "mean"),
+            n=("goal", "count"),
+        )
+        .dropna()
+    )
 
     fig, ax = plt.subplots(figsize=(7, 5))
 
@@ -126,9 +135,15 @@ def plot_cxg_calibration(shots: pd.DataFrame) -> None:
 
     # Size by sample count
     sizes = (cal["n"] / cal["n"].max() * 350 + 50).values
-    sc = ax.scatter(
-        cal["mean_xg"], cal["actual_rate"],
-        s=sizes, color=BARCA_BLUE, alpha=0.85, zorder=3, edgecolors="white", linewidths=0.8,
+    ax.scatter(
+        cal["mean_xg"],
+        cal["actual_rate"],
+        s=sizes,
+        color=BARCA_BLUE,
+        alpha=0.85,
+        zorder=3,
+        edgecolors="white",
+        linewidths=0.8,
     )
 
     # Annotate n per bin
@@ -136,15 +151,23 @@ def plot_cxg_calibration(shots: pd.DataFrame) -> None:
         ax.annotate(
             f"n={int(row['n'])}",
             xy=(row["mean_xg"], row["actual_rate"]),
-            xytext=(5, 5), textcoords="offset points",
-            fontsize=8, color=NEUTRAL_GREY,
+            xytext=(5, 5),
+            textcoords="offset points",
+            fontsize=8,
+            color=NEUTRAL_GREY,
         )
 
     # Error bars (Wilson-like: just show std across bin for context)
     ax.errorbar(
-        cal["mean_xg"], cal["actual_rate"],
+        cal["mean_xg"],
+        cal["actual_rate"],
         yerr=np.sqrt(cal["actual_rate"] * (1 - cal["actual_rate"]) / cal["n"]),
-        fmt="none", ecolor=BARCA_BLUE, elinewidth=1.2, capsize=3, alpha=0.6, zorder=2,
+        fmt="none",
+        ecolor=BARCA_BLUE,
+        elinewidth=1.2,
+        capsize=3,
+        alpha=0.6,
+        zorder=2,
     )
 
     total_xg = shots["cxg"].sum()
@@ -165,8 +188,9 @@ def plot_cxg_calibration(shots: pd.DataFrame) -> None:
 
     # Bubble size legend
     for label, n_ref in [("n=50", 50), ("n=200", 200)]:
-        ax.scatter([], [], s=n_ref / cal["n"].max() * 350 + 50,
-                   color=BARCA_BLUE, alpha=0.7, label=label)
+        ax.scatter(
+            [], [], s=n_ref / cal["n"].max() * 350 + 50, color=BARCA_BLUE, alpha=0.7, label=label
+        )
     ax.legend(fontsize=9, loc="upper left")
 
     plt.tight_layout()
@@ -175,6 +199,7 @@ def plot_cxg_calibration(shots: pd.DataFrame) -> None:
 
 
 # ── Chart 2 — CxG Player Scatter ──────────────────────────────────────────────
+
 
 def plot_cxg_player_scatter(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     from scipy.stats import spearmanr
@@ -193,8 +218,16 @@ def plot_cxg_player_scatter(shots: pd.DataFrame, events: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    ax.scatter(compare["xG"], compare["actual_goals"],
-               color=BARCA_BLUE, alpha=0.75, s=60, zorder=3, edgecolors="white", linewidths=0.6)
+    ax.scatter(
+        compare["xG"],
+        compare["actual_goals"],
+        color=BARCA_BLUE,
+        alpha=0.75,
+        s=60,
+        zorder=3,
+        edgecolors="white",
+        linewidths=0.6,
+    )
 
     # Diagonal
     max_val = max(compare[["xG", "actual_goals"]].max()) * 1.05
@@ -204,8 +237,14 @@ def plot_cxg_player_scatter(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     top_players = compare.nlargest(8, "xG")
     for name, row in top_players.iterrows():
         short = name.split()[-1]  # surname only
-        ax.annotate(short, xy=(row["xG"], row["actual_goals"]),
-                    xytext=(5, 2), textcoords="offset points", fontsize=8, color=NEUTRAL_GREY)
+        ax.annotate(
+            short,
+            xy=(row["xG"], row["actual_goals"]),
+            xytext=(5, 2),
+            textcoords="offset points",
+            fontsize=8,
+            color=NEUTRAL_GREY,
+        )
 
     ax.set_title(
         f"Player xG vs Actual Goals — La Liga 2020/21 (Barcelona)\n"
@@ -222,6 +261,7 @@ def plot_cxg_player_scatter(shots: pd.DataFrame, events: pd.DataFrame) -> None:
 
 
 # ── Chart 3 — CxG Leaderboard ─────────────────────────────────────────────────
+
 
 def plot_cxg_leaderboard(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     player_cxg = shots.groupby("player_name")["cxg"].sum().sort_values(ascending=False).head(15)
@@ -242,23 +282,50 @@ def plot_cxg_leaderboard(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     y = np.arange(len(df))
     bar_h = 0.26
 
-    bars_cxg = ax.barh(y + bar_h,     df["CxG"],          height=bar_h, color=BARCA_BLUE,
-                       alpha=0.85, label="CxG (our model)", zorder=3)
-    bars_sbxg = ax.barh(y,             df["sb_xg"],         height=bar_h, color=NEUTRAL_GREY,
-                        alpha=0.75, label="StatsBomb xG (baseline)", zorder=3)
-    bars_g    = ax.barh(y - bar_h,     df["actual_goals"],  height=bar_h, color=BARCA_RED,
-                        alpha=0.85, label="Actual goals", zorder=3)
+    bars_cxg = ax.barh(
+        y + bar_h,
+        df["CxG"],
+        height=bar_h,
+        color=BARCA_BLUE,
+        alpha=0.85,
+        label="CxG (our model)",
+        zorder=3,
+    )
+    bars_sbxg = ax.barh(
+        y,
+        df["sb_xg"],
+        height=bar_h,
+        color=NEUTRAL_GREY,
+        alpha=0.75,
+        label="StatsBomb xG (baseline)",
+        zorder=3,
+    )
+    bars_g = ax.barh(
+        y - bar_h,
+        df["actual_goals"],
+        height=bar_h,
+        color=BARCA_RED,
+        alpha=0.85,
+        label="Actual goals",
+        zorder=3,
+    )
 
     for bars, vals, fmt, col in [
-        (bars_cxg,  df["CxG"],         "{:.1f}", BARCA_BLUE),
-        (bars_sbxg, df["sb_xg"],       "{:.1f}", NEUTRAL_GREY),
-        (bars_g,    df["actual_goals"], "{:d}",  BARCA_RED),
+        (bars_cxg, df["CxG"], "{:.1f}", BARCA_BLUE),
+        (bars_sbxg, df["sb_xg"], "{:.1f}", NEUTRAL_GREY),
+        (bars_g, df["actual_goals"], "{:d}", BARCA_RED),
     ]:
-        for bar, v in zip(bars, vals):
+        for bar, v in zip(bars, vals, strict=False):
             w = bar.get_width()
-            ax.text(w + 0.15, bar.get_y() + bar.get_height() / 2,
-                    fmt.format(int(v) if fmt == "{:d}" else v),
-                    va="center", ha="left", fontsize=7.5, color=col)
+            ax.text(
+                w + 0.15,
+                bar.get_y() + bar.get_height() / 2,
+                fmt.format(int(v) if fmt == "{:d}" else v),
+                va="center",
+                ha="left",
+                fontsize=7.5,
+                color=col,
+            )
 
     ax.set_yticks(y)
     ax.set_yticklabels(short, fontsize=9)
@@ -292,9 +359,7 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
     # covering both Pass→Shot and Pass→Carry→Shot (and any other intermediate events).
     # We resolve those UUIDs to internal_ids so we can join to scored.parquet.
     shot_kp_ids = events["shot_key_pass_id"].dropna().unique()
-    key_pass_internal_ids = set(
-        events.loc[events["id"].isin(shot_kp_ids), "internal_id"]
-    )
+    key_pass_internal_ids = set(events.loc[events["id"].isin(shot_kp_ids), "internal_id"])
     xa_passes = (
         barca[barca["event_id"].isin(key_pass_internal_ids)]
         .groupby("player_name")["cxa"]
@@ -312,10 +377,7 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
 
     # Actual assists from raw events (StatsBomb pass_goal_assist flag)
     barca_assists = (
-        events[
-            (events["team_internal_id"] == BARCA_TEAM_ID)
-            & (events["pass_goal_assist"] == True)
-        ]
+        events[(events["team_internal_id"] == BARCA_TEAM_ID) & (events["pass_goal_assist"])]
         .groupby("player")
         .size()
         .rename("actual_assists")
@@ -328,13 +390,20 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
 
     # Left panel — mean CxA per action (efficiency)
     ax = axes[0]
-    bars = ax.barh(np.arange(len(agg)), agg["mean_cxa"] * 100, color=BARCA_BLUE,
-                   alpha=0.85, zorder=3)
-    for bar, (_, row) in zip(bars, agg.iterrows()):
+    bars = ax.barh(
+        np.arange(len(agg)), agg["mean_cxa"] * 100, color=BARCA_BLUE, alpha=0.85, zorder=3
+    )
+    for bar, (_, row) in zip(bars, agg.iterrows(), strict=False):
         w = bar.get_width()
-        ax.text(w + 0.005, bar.get_y() + bar.get_height() / 2,
-                f"{row['mean_cxa'] * 100:.2f}%  (n={int(row['n_actions'])})",
-                va="center", ha="left", fontsize=8, color="#444")
+        ax.text(
+            w + 0.005,
+            bar.get_y() + bar.get_height() / 2,
+            f"{row['mean_cxa'] * 100:.2f}%  (n={int(row['n_actions'])})",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="#444",
+        )
     ax.set_yticks(np.arange(len(agg)))
     ax.set_yticklabels(short, fontsize=9)
     ax.invert_yaxis()
@@ -347,19 +416,47 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
     ax2 = axes[1]
     y = np.arange(len(agg))
     bar_h = 0.38
-    bars_xa = ax2.barh(y + bar_h / 2, agg["xA"].values, height=bar_h,
-                       color=ACCENT, alpha=0.85, label="xA (CxA on shot-building passes)", zorder=3)
-    bars_a  = ax2.barh(y - bar_h / 2, agg["actual_assists"].values, height=bar_h,
-                       color=BARCA_RED, alpha=0.85, label="Actual assists", zorder=3)
+    bars_xa = ax2.barh(
+        y + bar_h / 2,
+        agg["xA"].values,
+        height=bar_h,
+        color=ACCENT,
+        alpha=0.85,
+        label="xA (CxA on shot-building passes)",
+        zorder=3,
+    )
+    bars_a = ax2.barh(
+        y - bar_h / 2,
+        agg["actual_assists"].values,
+        height=bar_h,
+        color=BARCA_RED,
+        alpha=0.85,
+        label="Actual assists",
+        zorder=3,
+    )
     for bar in bars_xa:
         w = bar.get_width()
         if w > 0.02:
-            ax2.text(w + 0.015, bar.get_y() + bar.get_height() / 2,
-                     f"{w:.2f}", va="center", ha="left", fontsize=8, color="#555")
+            ax2.text(
+                w + 0.015,
+                bar.get_y() + bar.get_height() / 2,
+                f"{w:.2f}",
+                va="center",
+                ha="left",
+                fontsize=8,
+                color="#555",
+            )
     for bar in bars_a:
         w = bar.get_width()
-        ax2.text(w + 0.015, bar.get_y() + bar.get_height() / 2,
-                 f"{int(w)}", va="center", ha="left", fontsize=8, color=BARCA_RED)
+        ax2.text(
+            w + 0.015,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(w)}",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color=BARCA_RED,
+        )
     ax2.set_yticks(y)
     ax2.set_yticklabels(short, fontsize=9)
     ax2.invert_yaxis()
@@ -374,7 +471,8 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
 
     fig.suptitle(
         "CxA Leaderboard — La Liga 2020/21 (Barcelona only, sorted by efficiency)",
-        fontsize=13, y=1.01,
+        fontsize=13,
+        y=1.01,
     )
     plt.tight_layout()
     save_fig("04_cxa_leaderboard", FIGURE_DIR)
@@ -382,6 +480,7 @@ def plot_cxa_leaderboard(scored: pd.DataFrame, events: pd.DataFrame) -> None:
 
 
 # ── Chart 5 — CxT Leaderboard ─────────────────────────────────────────────────
+
 
 def plot_cxt_leaderboard(scored: pd.DataFrame) -> None:
     cxt_df = scored[scored["cxt"].notna()].groupby("player_name")["cxt"].sum()
@@ -392,10 +491,17 @@ def plot_cxt_leaderboard(scored: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(9, 5.5))
     bars = ax.barh(np.arange(len(top)), top.values, color=colors, alpha=0.85, zorder=3)
-    for bar, v in zip(bars, top.values):
+    for bar, v in zip(bars, top.values, strict=False):
         w = bar.get_width()
-        ax.text(w + 0.0005, bar.get_y() + bar.get_height() / 2,
-                f"{v:.4f}", va="center", ha="left", fontsize=8, color="#555")
+        ax.text(
+            w + 0.0005,
+            bar.get_y() + bar.get_height() / 2,
+            f"{v:.4f}",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="#555",
+        )
     ax.set_yticks(np.arange(len(top)))
     ax.set_yticklabels(short, fontsize=9)
     ax.invert_yaxis()
@@ -410,13 +516,14 @@ def plot_cxt_leaderboard(scored: pd.DataFrame) -> None:
 
 # ── Chart 6 — CxG vs CxT Cross-model Sanity (possession level) ───────────────
 
+
 def plot_cxg_cxt_correlation(scored: pd.DataFrame) -> None:
     """
     Possessions that ended in a shot should have higher cumulative CxT
     from the build-up actions leading to that shot.
     Aggregate per possession: max CxG (shot quality) vs sum CxT (build-up value).
     """
-    from scipy.stats import spearmanr, pearsonr
+    from scipy.stats import pearsonr, spearmanr
 
     poss_col = "possession_internal_id"
     if poss_col not in scored.columns:
@@ -432,11 +539,12 @@ def plot_cxg_cxt_correlation(scored: pd.DataFrame) -> None:
         return
 
     rho, pval = spearmanr(poss["poss_cxg"], poss["poss_cxt"])
-    r, _      = pearsonr(poss["poss_cxg"], poss["poss_cxt"])
+    r, _ = pearsonr(poss["poss_cxg"], poss["poss_cxt"])
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.hexbin(poss["poss_cxg"], poss["poss_cxt"], gridsize=28, cmap="Blues",
-              linewidths=0.3, mincnt=1)
+    ax.hexbin(
+        poss["poss_cxg"], poss["poss_cxt"], gridsize=28, cmap="Blues", linewidths=0.3, mincnt=1
+    )
     cb = plt.colorbar(ax.collections[0], ax=ax)
     cb.set_label("Possession count", fontsize=9)
     ax.set_xlabel("Possession CxG (Σ shot xG in possession)")
@@ -453,6 +561,7 @@ def plot_cxg_cxt_correlation(scored: pd.DataFrame) -> None:
 
 
 # ── Chart 7 — CxA by Sequence Type ───────────────────────────────────────────
+
 
 def plot_cxa_by_sequence(scored: pd.DataFrame) -> None:
     df = scored[scored["cxa"] > 0].copy()
@@ -481,8 +590,14 @@ def plot_cxa_by_sequence(scored: pd.DataFrame) -> None:
     ax.set_title("Mean CxA by Sequence Type")
     for bar in bars:
         w = bar.get_width()
-        ax.text(w + 0.0002, bar.get_y() + bar.get_height() / 2,
-                f"{w:.4f}", va="center", ha="left", fontsize=8)
+        ax.text(
+            w + 0.0002,
+            bar.get_y() + bar.get_height() / 2,
+            f"{w:.4f}",
+            va="center",
+            ha="left",
+            fontsize=8,
+        )
 
     # Right: total CxA volume by sequence type
     ax2 = axes[1]
@@ -495,10 +610,17 @@ def plot_cxa_by_sequence(scored: pd.DataFrame) -> None:
     ax2.invert_yaxis()
     ax2.set_xlabel("Total CxA (sum across all actions)")
     ax2.set_title("Total CxA Volume by Sequence Type")
-    for bar, n in zip(bars2, seq["n"]):
+    for bar, n in zip(bars2, seq["n"], strict=False):
         w = bar.get_width()
-        ax2.text(w + 0.3, bar.get_y() + bar.get_height() / 2,
-                 f"n={n}", va="center", ha="left", fontsize=8, color="#555")
+        ax2.text(
+            w + 0.3,
+            bar.get_y() + bar.get_height() / 2,
+            f"n={n}",
+            va="center",
+            ha="left",
+            fontsize=8,
+            color="#555",
+        )
 
     fig.suptitle("CxA by Sequence Type — La Liga 2020/21 (Barcelona)", fontsize=13, y=1.02)
     plt.tight_layout()
@@ -508,11 +630,15 @@ def plot_cxa_by_sequence(scored: pd.DataFrame) -> None:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def main():
     import logging
-    logging.basicConfig(level=logging.WARNING,
-                        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
-                        datefmt="%H:%M:%S")
+
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     print("Loading scored.parquet and events …")
     scored, shots, events = _load_data()

@@ -31,9 +31,9 @@ Usage
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 def _build_set_transformer(frames_path: str | None, random_state: int):
     """Lazy SetTransformer factory — torch import deferred until called."""
     from src.models.cxg.set_transformer_model import SetTransformerCxGModel
+
     return SetTransformerCxGModel(
         feature_set="contextual",
         frames_path=frames_path,
@@ -60,22 +61,24 @@ def _build_set_transformer(frames_path: str | None, random_state: int):
 
 # ── Result container ──────────────────────────────────────────────────────────
 
+
 @dataclass
 class LadderResult:
     """Evaluation record for one model candidate."""
 
-    name: str                           # e.g. "lgbm_contextual"
-    family: str                         # "logistic" | "xgboost" | "lightgbm"
-    feature_set: str                    # "traditional" | "contextual" | "full_360"
+    name: str  # e.g. "lgbm_contextual"
+    family: str  # "logistic" | "xgboost" | "lightgbm"
+    feature_set: str  # "traditional" | "contextual" | "full_360"
     cv_log_loss: float
     cv_brier: float
     cv_auc: float | None
-    n_cv_folds_used: int                # folds that had ≥1 positive
-    model: object = field(repr=False)   # fitted model instance (on full data)
+    n_cv_folds_used: int  # folds that had ≥1 positive
+    model: object = field(repr=False)  # fitted model instance (on full data)
     rank: int = 0
 
 
 # ── CV helper ─────────────────────────────────────────────────────────────────
+
 
 def _cross_validate(
     model_factory: Callable[[], object],
@@ -99,8 +102,11 @@ def _cross_validate(
             match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)
         )
     else:
-        logger.warning("match_id_col %r not in shots_df; using random %d-fold CV", match_id_col, n_folds)
+        logger.warning(
+            "match_id_col %r not in shots_df; using random %d-fold CV", match_id_col, n_folds
+        )
         from sklearn.model_selection import KFold
+
         folds = list(KFold(n_splits=n_folds, shuffle=True, random_state=random_state).split(df))
 
     log_losses: list[float] = []
@@ -140,6 +146,7 @@ def _cross_validate(
 
 
 # ── Ladder ────────────────────────────────────────────────────────────────────
+
 
 class CxGLadder:
     """
@@ -188,33 +195,45 @@ class CxGLadder:
         candidates: list[tuple[str, str, str, Callable[[], object]]] = [
             # (name, family, feature_set, factory)
             (
-                "baseline_logit", "logistic", "traditional",
+                "baseline_logit",
+                "logistic",
+                "traditional",
                 lambda: BaselineCxGModel(random_state=random_state),
             ),
             (
-                "glm_contextual", "logistic", "contextual",
+                "glm_contextual",
+                "logistic",
+                "contextual",
                 lambda: GlmContextualCxG(feature_set="contextual", random_state=random_state),
             ),
             (
-                "xgb_traditional", "xgboost", "traditional",
+                "xgb_traditional",
+                "xgboost",
+                "traditional",
                 lambda ne=n_estimators: XGBoostCxGModel(
                     feature_set="traditional", n_estimators=ne, random_state=random_state
                 ),
             ),
             (
-                "xgb_contextual", "xgboost", "contextual",
+                "xgb_contextual",
+                "xgboost",
+                "contextual",
                 lambda ne=n_estimators: XGBoostCxGModel(
                     feature_set="contextual", n_estimators=ne, random_state=random_state
                 ),
             ),
             (
-                "lgbm_traditional", "lightgbm", "traditional",
+                "lgbm_traditional",
+                "lightgbm",
+                "traditional",
                 lambda ne=n_estimators: LightGBMCxGModel(
                     feature_set="traditional", n_estimators=ne, random_state=random_state
                 ),
             ),
             (
-                "lgbm_contextual", "lightgbm", "contextual",
+                "lgbm_contextual",
+                "lightgbm",
+                "contextual",
                 lambda ne=n_estimators: LightGBMCxGModel(
                     feature_set="contextual", n_estimators=ne, random_state=random_state
                 ),
@@ -224,13 +243,17 @@ class CxGLadder:
         if include_360:
             candidates += [
                 (
-                    "xgb_full_360", "xgboost", "full_360",
+                    "xgb_full_360",
+                    "xgboost",
+                    "full_360",
                     lambda ne=n_estimators: XGBoostCxGModel(
                         feature_set="full_360", n_estimators=ne, random_state=random_state
                     ),
                 ),
                 (
-                    "lgbm_full_360", "lightgbm", "full_360",
+                    "lgbm_full_360",
+                    "lightgbm",
+                    "full_360",
                     lambda ne=n_estimators: LightGBMCxGModel(
                         feature_set="full_360", n_estimators=ne, random_state=random_state
                     ),
@@ -238,10 +261,14 @@ class CxGLadder:
             ]
 
         if include_neural:
-            candidates.append((
-                "set_transformer_360", "neural", "contextual+360_set",
-                lambda fp=frames_path: _build_set_transformer(fp, random_state),
-            ))
+            candidates.append(
+                (
+                    "set_transformer_360",
+                    "neural",
+                    "contextual+360_set",
+                    lambda fp=frames_path: _build_set_transformer(fp, random_state),
+                )
+            )
 
         results: list[LadderResult] = []
 
@@ -260,7 +287,9 @@ class CxGLadder:
             )
             logger.info(
                 "  %s — cv_log_loss=%.4f  cv_brier=%.4f  auc=%s  folds_used=%d",
-                name, cv_ll, cv_brier,
+                name,
+                cv_ll,
+                cv_brier,
                 f"{cv_auc:.4f}" if cv_auc is not None else "N/A",
                 n_valid,
             )
@@ -269,16 +298,18 @@ class CxGLadder:
             final_model = factory()
             final_model.fit(shots_df, target_col)
 
-            results.append(LadderResult(
-                name=name,
-                family=family,
-                feature_set=fset,
-                cv_log_loss=cv_ll,
-                cv_brier=cv_brier,
-                cv_auc=cv_auc,
-                n_cv_folds_used=n_valid,
-                model=final_model,
-            ))
+            results.append(
+                LadderResult(
+                    name=name,
+                    family=family,
+                    feature_set=fset,
+                    cv_log_loss=cv_ll,
+                    cv_brier=cv_brier,
+                    cv_auc=cv_auc,
+                    n_cv_folds_used=n_valid,
+                    model=final_model,
+                )
+            )
 
         # Rank by CV log-loss (lower is better)
         results.sort(key=lambda r: r.cv_log_loss)
@@ -293,9 +324,12 @@ class CxGLadder:
             if best.family in ("xgboost", "lightgbm"):
                 logger.info(
                     "CxGLadder: running Optuna on best model (%s) with %d trials",
-                    best.name, n_optuna_trials,
+                    best.name,
+                    n_optuna_trials,
                 )
-                best.model.fit(shots_df, target_col, n_trials=n_optuna_trials, match_id_col=match_id_col)
+                best.model.fit(
+                    shots_df, target_col, n_trials=n_optuna_trials, match_id_col=match_id_col
+                )
 
         return results
 
@@ -307,16 +341,18 @@ class CxGLadder:
             raise RuntimeError("No results yet. Call run() first.")
         rows = []
         for r in self._results:
-            rows.append({
-                "rank": r.rank,
-                "name": r.name,
-                "family": r.family,
-                "feature_set": r.feature_set,
-                "cv_log_loss": round(r.cv_log_loss, 5),
-                "cv_brier": round(r.cv_brier, 5),
-                "cv_auc": round(r.cv_auc, 4) if r.cv_auc is not None else None,
-                "n_cv_folds_used": r.n_cv_folds_used,
-            })
+            rows.append(
+                {
+                    "rank": r.rank,
+                    "name": r.name,
+                    "family": r.family,
+                    "feature_set": r.feature_set,
+                    "cv_log_loss": round(r.cv_log_loss, 5),
+                    "cv_brier": round(r.cv_brier, 5),
+                    "cv_auc": round(r.cv_auc, 4) if r.cv_auc is not None else None,
+                    "n_cv_folds_used": r.n_cv_folds_used,
+                }
+            )
         return pd.DataFrame(rows).set_index("rank")
 
     def best(self) -> LadderResult:
@@ -353,15 +389,19 @@ class CxGLadder:
         for r in self._results:
             run_name = f"{run_name_prefix}.{r.name}"
             with mlflow.start_run(run_name=run_name):
-                mlflow.log_params({
-                    "name": r.name,
-                    "family": r.family,
-                    "feature_set": r.feature_set,
-                    "rank": r.rank,
-                })
-                mlflow.log_metrics({
-                    "cv_log_loss": r.cv_log_loss,
-                    "cv_brier": r.cv_brier,
-                    **({} if r.cv_auc is None else {"cv_auc": r.cv_auc}),
-                })
+                mlflow.log_params(
+                    {
+                        "name": r.name,
+                        "family": r.family,
+                        "feature_set": r.feature_set,
+                        "rank": r.rank,
+                    }
+                )
+                mlflow.log_metrics(
+                    {
+                        "cv_log_loss": r.cv_log_loss,
+                        "cv_brier": r.cv_brier,
+                        **({} if r.cv_auc is None else {"cv_auc": r.cv_auc}),
+                    }
+                )
                 logger.info("MLflow run logged: %s", run_name)

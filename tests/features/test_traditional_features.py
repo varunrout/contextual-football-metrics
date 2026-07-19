@@ -60,16 +60,19 @@ def test_pass_cutback_assist_type() -> None:
     events = pd.DataFrame(
         [
             {
+                # build_traditional_features consumes processed events, which use
+                # statsbombpy-flattened names (action_type, pass_cut_back, ...),
+                # not the canonical output names.
                 "internal_id": "e2",
-                "event_type": "pass",
+                "action_type": "pass",
                 "x": 70.0,
                 "y": 30.0,
                 "end_x": 90.0,
                 "end_y": 34.0,
-                "cutback": True,
-                "cross": False,
-                "through_ball": False,
-                "set_piece_type": "none",
+                "pass_cut_back": True,
+                "pass_cross": False,
+                "pass_through_ball": False,
+                "play_pattern": "Regular Play",
             }
         ]
     )

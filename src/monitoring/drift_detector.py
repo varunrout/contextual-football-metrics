@@ -35,8 +35,8 @@ Typical usage
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Sequence
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -45,11 +45,12 @@ logger = logging.getLogger(__name__)
 
 # Standard industry PSI alert thresholds
 PSI_NO_DRIFT = 0.1
-PSI_MODERATE = 0.2      # > this → significant
-_EPSILON = 1e-8         # prevent log(0)
+PSI_MODERATE = 0.2  # > this → significant
+_EPSILON = 1e-8  # prevent log(0)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _make_numeric_bins(values: np.ndarray, n_bins: int = 10) -> np.ndarray:
     """
@@ -142,12 +143,8 @@ def compute_psi_categorical(
     ref_counts = ref_series.value_counts()
     cur_counts = cur_series.value_counts()
 
-    ref_pct = np.array(
-        [(ref_counts.get(c, 0) + _EPSILON) for c in all_cats], dtype=float
-    )
-    cur_pct = np.array(
-        [(cur_counts.get(c, 0) + _EPSILON) for c in all_cats], dtype=float
-    )
+    ref_pct = np.array([(ref_counts.get(c, 0) + _EPSILON) for c in all_cats], dtype=float)
+    cur_pct = np.array([(cur_counts.get(c, 0) + _EPSILON) for c in all_cats], dtype=float)
     ref_pct /= ref_pct.sum()
     cur_pct /= cur_pct.sum()
 
@@ -187,6 +184,7 @@ def compute_kl_divergence(
 
 
 # ── Dataclasses ───────────────────────────────────────────────────────────────
+
 
 @dataclass
 class DriftEntry:
@@ -274,6 +272,7 @@ class DriftReport:
 
 # ── Detector ──────────────────────────────────────────────────────────────────
 
+
 class DriftDetector:
     """
     Fits reference distributions and detects drift in subsequent batches.
@@ -312,7 +311,7 @@ class DriftDetector:
         self._reference_n: int = 0
         self._fitted: bool = False
 
-    def fit(self, reference_df: pd.DataFrame) -> "DriftDetector":
+    def fit(self, reference_df: pd.DataFrame) -> DriftDetector:
         """
         Store reference distributions from ``reference_df``.
 
@@ -375,8 +374,7 @@ class DriftDetector:
         """
         if not self._fitted:
             raise RuntimeError(
-                "DriftDetector.detect() called before fit(). "
-                "Call fit(reference_df) first."
+                "DriftDetector.detect() called before fit(). Call fit(reference_df) first."
             )
 
         entries: list[DriftEntry] = []

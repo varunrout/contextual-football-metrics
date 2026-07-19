@@ -9,10 +9,10 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.features.sequence_labeler import label_possessions_dataframe
-from src.ingestion.possession_builder import build_possessions
-from src.ingestion.provider_mapper import make_internal_id
-from src.ingestion.schema import Provider
+from src.features.sequence_labeler import label_possessions_dataframe  # noqa: E402
+from src.ingestion.possession_builder import build_possessions  # noqa: E402
+from src.ingestion.provider_mapper import make_internal_id  # noqa: E402
+from src.ingestion.schema import Provider  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

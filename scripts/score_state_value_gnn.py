@@ -33,10 +33,10 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
-
-import pandas as pd
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,18 +59,37 @@ def _load_model_class(model_class: str):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model-class", choices=sorted(_MODEL_CLASSES), default="gnn",
-                        help="Which freeze-frame CxT state-value variant to load (default: gnn).")
-    parser.add_argument("--model", type=Path, default=None,
-                        help="Path to the trained model .joblib "
-                             "(default: models/cxt/<gnn|set_transformer>_contextual.joblib).")
-    parser.add_argument("--actions", type=Path,
-                        default=PROJECT_ROOT / "data" / "features" / "actions.parquet")
-    parser.add_argument("--frames", type=Path, default=None,
-                        help="Override frames parquet path (defaults to model's saved path).")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Default: outputs/scores/cxt_<model-class>.parquet")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--model-class",
+        choices=sorted(_MODEL_CLASSES),
+        default="gnn",
+        help="Which freeze-frame CxT state-value variant to load (default: gnn).",
+    )
+    parser.add_argument(
+        "--model",
+        type=Path,
+        default=None,
+        help="Path to the trained model .joblib "
+        "(default: models/cxt/<gnn|set_transformer>_contextual.joblib).",
+    )
+    parser.add_argument(
+        "--actions", type=Path, default=PROJECT_ROOT / "data" / "features" / "actions.parquet"
+    )
+    parser.add_argument(
+        "--frames",
+        type=Path,
+        default=None,
+        help="Override frames parquet path (defaults to model's saved path).",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Default: outputs/scores/cxt_<model-class>.parquet",
+    )
     parser.add_argument("--device", default="cpu", help="cpu | cuda | cuda:N")
     args = parser.parse_args()
 
@@ -110,7 +129,9 @@ def main() -> int:
     out[f"cxt_{args.model_class}"] = predicted
     output_path.parent.mkdir(parents=True, exist_ok=True)
     out.to_parquet(output_path, index=False)
-    logger.info("Wrote %s  (mean predicted possession_cxg = %.5f)", output_path, float(predicted.mean()))
+    logger.info(
+        "Wrote %s  (mean predicted possession_cxg = %.5f)", output_path, float(predicted.mean())
+    )
     return 0
 
 

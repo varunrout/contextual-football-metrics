@@ -7,10 +7,9 @@ inside builder functions and only constructed when callers explicitly ask.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from src.models.neural.base import require_torch
-
 
 # ── Heads ────────────────────────────────────────────────────────────────────
 
@@ -55,9 +54,7 @@ def build_mlp_head(
 def build_tabular_encoder(in_dim: int, out_dim: int, dropout: float = 0.1):
     """Linear → ReLU → Dropout block used by every fusion head."""
     _, nn = require_torch()
-    return nn.Sequential(
-        nn.Linear(in_dim, out_dim), nn.ReLU(), nn.Dropout(dropout)
-    )
+    return nn.Sequential(nn.Linear(in_dim, out_dim), nn.ReLU(), nn.Dropout(dropout))
 
 
 # ── Set encoder (transformer over an unordered set of tokens) ────────────────
@@ -101,16 +98,14 @@ def build_set_transformer_encoder(
             nn.init.xavier_uniform_(self.token_proj.weight)
 
         def forward(self, tokens, mask):
-            tok = self.token_proj(tokens)              # (B, K, d)
+            tok = self.token_proj(tokens)  # (B, K, d)
             B = tok.size(0)
-            cls = self.cls_token.expand(B, -1, -1)     # (B, 1, d)
-            seq = torch.cat([cls, tok], dim=1)         # (B, K+1, d)
-            cls_mask = torch.zeros(
-                B, 1, dtype=torch.bool, device=mask.device
-            )
+            cls = self.cls_token.expand(B, -1, -1)  # (B, 1, d)
+            seq = torch.cat([cls, tok], dim=1)  # (B, K+1, d)
+            cls_mask = torch.zeros(B, 1, dtype=torch.bool, device=mask.device)
             full_mask = torch.cat([cls_mask, mask], dim=1)
             out = self.transformer(seq, src_key_padding_mask=full_mask)
-            return out[:, 0, :]                        # (B, d)
+            return out[:, 0, :]  # (B, d)
 
     return _SetTransformerEncoder()
 
@@ -143,9 +138,7 @@ def build_graph_attention_encoder(
     class _GraphAttentionLayer(nn.Module):
         def __init__(self):
             super().__init__()
-            self.attn = nn.MultiheadAttention(
-                d_model, n_heads, dropout=dropout, batch_first=True
-            )
+            self.attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout, batch_first=True)
             self.norm1 = nn.LayerNorm(d_model)
             self.ffn = nn.Sequential(
                 nn.Linear(d_model, d_model * 2),
@@ -159,13 +152,11 @@ def build_graph_attention_encoder(
             # adj_mask: (B, N, N) True=mask out. MultiheadAttention expects
             # attn_mask of shape (B*nhead, N, N) or (N, N). Replicate per head.
             B, N, _ = x.shape
-            head_mask = (
-                adj_mask.unsqueeze(1)
-                .expand(B, n_heads, N, N)
-                .reshape(B * n_heads, N, N)
-            )
+            head_mask = adj_mask.unsqueeze(1).expand(B, n_heads, N, N).reshape(B * n_heads, N, N)
             attn_out, _ = self.attn(
-                x, x, x,
+                x,
+                x,
+                x,
                 attn_mask=head_mask,
                 key_padding_mask=key_padding_mask,
                 need_weights=False,

@@ -75,7 +75,8 @@ TRADITIONAL = FeatureSetSpec(
 
 CONTEXTUAL = FeatureSetSpec(
     name="contextual",
-    numeric=TRADITIONAL.numeric + (
+    numeric=TRADITIONAL.numeric
+    + (
         # Opponent quality adjustment
         "opponent_xg_conceded_rolling_5",
         "opponent_shots_conceded_rolling_5",
@@ -93,12 +94,14 @@ CONTEXTUAL = FeatureSetSpec(
         "vertical_progression_speed",
         "directness",
     ),
-    boolean=TRADITIONAL.boolean + (
+    boolean=TRADITIONAL.boolean
+    + (
         "knockout_or_group",
         "set_piece_flag",
         "counterpress_regain_flag",
     ),
-    categorical=TRADITIONAL.categorical + (
+    categorical=TRADITIONAL.categorical
+    + (
         "score_state",
         "home_or_away",
         "sequence_type",
@@ -112,7 +115,8 @@ CONTEXTUAL = FeatureSetSpec(
 
 FULL_360 = FeatureSetSpec(
     name="full_360",
-    numeric=CONTEXTUAL.numeric + (
+    numeric=CONTEXTUAL.numeric
+    + (
         # Freeze-frame defensive context
         "nearest_defender_distance",
         "second_nearest_defender_distance",
@@ -124,9 +128,7 @@ FULL_360 = FeatureSetSpec(
         "shot_lane_blockage_proxy",
         "defensive_density_in_box",
     ),
-    boolean=CONTEXTUAL.boolean + (
-        "has_360",
-    ),
+    boolean=CONTEXTUAL.boolean + ("has_360",),
     categorical=CONTEXTUAL.categorical,
     requires_360=True,
 )
@@ -143,7 +145,5 @@ _REGISTRY: dict[str, FeatureSetSpec] = {
 def get_feature_set(name: str) -> FeatureSetSpec:
     """Return a FeatureSetSpec by name. Raises ValueError for unknown names."""
     if name not in _REGISTRY:
-        raise ValueError(
-            f"Unknown feature set {name!r}. Choose from: {sorted(_REGISTRY)}"
-        )
+        raise ValueError(f"Unknown feature set {name!r}. Choose from: {sorted(_REGISTRY)}")
     return _REGISTRY[name]

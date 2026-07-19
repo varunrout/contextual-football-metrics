@@ -23,7 +23,7 @@ import pandas as pd
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     competition_labels,
     feature_groups,
     load_features,
@@ -48,9 +48,9 @@ def opponent_feature_distributions(features_df: pd.DataFrame) -> None:
         opponent_cols = [c for c in features_df.columns if "opponent" in c or c.startswith("opp_")]
 
     num_cols = [
-        c for c in opponent_cols
-        if c in features_df.columns
-        and pd.api.types.is_numeric_dtype(features_df[c])
+        c
+        for c in opponent_cols
+        if c in features_df.columns and pd.api.types.is_numeric_dtype(features_df[c])
     ]
 
     if not num_cols:
@@ -62,17 +62,20 @@ def opponent_feature_distributions(features_df: pd.DataFrame) -> None:
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 4, nrows * 3))
     axes = np.array(axes).flatten()
 
-    for ax, col in zip(axes, num_cols):
+    for ax, col in zip(axes, num_cols, strict=False):
         vals = pd.to_numeric(features_df[col], errors="coerce").dropna()
         ax.hist(
             vals.clip(vals.quantile(0.01), vals.quantile(0.99)),
-            bins=40, color="#e377c2", edgecolor="white", alpha=0.8,
+            bins=40,
+            color="#e377c2",
+            edgecolor="white",
+            alpha=0.8,
         )
         ax.set_title(col, fontsize=8)
         ax.tick_params(labelsize=6)
         ax.set_ylabel("")
 
-    for ax in axes[len(num_cols):]:
+    for ax in axes[len(num_cols) :]:
         ax.set_visible(False)
 
     fig.suptitle("Opponent Feature Distributions", fontsize=12, y=1.01)
@@ -99,21 +102,15 @@ def opponent_elo_by_competition(features_df: pd.DataFrame) -> None:
     plot_df["label"] = plot_df["competition_id"].apply(lambda c: labels.get(str(c), str(c)))
 
     comp_order = (
-        plot_df.groupby("label")[elo_col]
-        .median()
-        .sort_values(ascending=True)
-        .index.tolist()
+        plot_df.groupby("label")[elo_col].median().sort_values(ascending=True).index.tolist()
     )
 
-    data = [
-        plot_df[plot_df["label"] == comp][elo_col].tolist()
-        for comp in comp_order
-    ]
+    data = [plot_df[plot_df["label"] == comp][elo_col].tolist() for comp in comp_order]
 
     fig, ax = plt.subplots(figsize=(10, max(5, len(comp_order) * 0.5)))
     bp = ax.boxplot(data, vert=False, patch_artist=True, widths=0.6)
     colors = plt.cm.tab10(np.linspace(0, 1, len(comp_order)))
-    for patch, color in zip(bp["boxes"], colors):
+    for patch, color in zip(bp["boxes"], colors, strict=False):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
 
@@ -137,7 +134,14 @@ def pressing_vs_goal_rate(features_df: pd.DataFrame, shots_df: pd.DataFrame) -> 
         return
 
     # Join pressing intensity to shots
-    id_col = next((c for c in ["match_id", "competition_id"] if c in features_df.columns and c in shots_df.columns), None)
+    id_col = next(
+        (
+            c
+            for c in ["match_id", "competition_id"]
+            if c in features_df.columns and c in shots_df.columns
+        ),
+        None,
+    )
     if id_col is None:
         logger.warning("No join key for pressing vs goal rate — skipping.")
         return
@@ -149,7 +153,9 @@ def pressing_vs_goal_rate(features_df: pd.DataFrame, shots_df: pd.DataFrame) -> 
         .rename(columns={pressing_col: "pressing_median"})
     )
 
-    shot_rates = shots_df.groupby(id_col)["goal"].mean().reset_index().rename(columns={"goal": "goal_rate"})
+    shot_rates = (
+        shots_df.groupby(id_col)["goal"].mean().reset_index().rename(columns={"goal": "goal_rate"})
+    )
 
     plot_df = press_agg.merge(shot_rates, on=id_col).dropna()
     if len(plot_df) < 5:

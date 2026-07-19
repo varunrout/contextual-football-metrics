@@ -8,19 +8,18 @@ import pandas as pd
 import pytest
 
 from src.features.sequence_features import (
-    zone_from_x,
+    _ATK_THIRD_MIN_X,
+    _DEF_THIRD_MAX_X,
+    _compute_single_possession_features,
+    compute_sequence_features,
     is_central,
     is_in_box,
     is_wide_byline,
-    compute_sequence_features,
-    _compute_single_possession_features,
-    _DEF_THIRD_MAX_X,
-    _ATK_THIRD_MIN_X,
-    _BOX_X_MIN,
+    zone_from_x,
 )
 
-
 # ── Zone helpers ─────────────────────────────────────────────────────────────
+
 
 class TestZoneHelpers:
     def test_defensive_third(self):
@@ -58,6 +57,7 @@ class TestZoneHelpers:
 
 
 # ── Single possession feature computation ─────────────────────────────────────
+
 
 def _make_poss(
     *,
@@ -147,56 +147,66 @@ class TestComputeSinglePossessionFeatures:
 
 # ── compute_sequence_features (DataFrame-level) ───────────────────────────────
 
+
 class TestComputeSequenceFeatures:
     def test_empty_possessions_returns_empty(self):
         result = compute_sequence_features(pd.DataFrame(), pd.DataFrame())
         assert result.empty
 
     def test_columns_added(self):
-        poss_df = pd.DataFrame([
-            {
-                "match_internal_id": "abc",
-                "possession_index": 1,
-                "start_x": 30.0,
-                "start_y": 34.0,
-                "vertical_progression": 15.0,
-                "n_events": 4,
-                "n_passes": 2,
-                "n_carries": 2,
-                "start_timestamp": 0.0,
-                "end_timestamp": 12.0,
-                "set_piece_flag": False,
-                "counterpress_regain_flag": False,
-                "distance_progressed": 20.0,
-                "regain_zone": "mid_third",
-            }
-        ])
+        poss_df = pd.DataFrame(
+            [
+                {
+                    "match_internal_id": "abc",
+                    "possession_index": 1,
+                    "start_x": 30.0,
+                    "start_y": 34.0,
+                    "vertical_progression": 15.0,
+                    "n_events": 4,
+                    "n_passes": 2,
+                    "n_carries": 2,
+                    "start_timestamp": 0.0,
+                    "end_timestamp": 12.0,
+                    "set_piece_flag": False,
+                    "counterpress_regain_flag": False,
+                    "distance_progressed": 20.0,
+                    "regain_zone": "mid_third",
+                }
+            ]
+        )
         events_df = pd.DataFrame()
         result = compute_sequence_features(poss_df, events_df)
         expected_cols = [
-            "time_from_possession_start", "directness", "possession_speed",
-            "number_of_switches", "possession_start_zone",
+            "time_from_possession_start",
+            "directness",
+            "possession_speed",
+            "number_of_switches",
+            "possession_start_zone",
         ]
         for col in expected_cols:
             assert col in result.columns, f"Missing column: {col}"
 
     def test_original_columns_preserved(self):
-        poss_df = pd.DataFrame([{
-            "match_internal_id": "abc",
-            "possession_index": 1,
-            "start_x": 50.0,
-            "start_y": 34.0,
-            "vertical_progression": 10.0,
-            "n_events": 3,
-            "n_passes": 1,
-            "n_carries": 2,
-            "start_timestamp": 0.0,
-            "end_timestamp": 8.0,
-            "set_piece_flag": False,
-            "counterpress_regain_flag": False,
-            "distance_progressed": 15.0,
-            "regain_zone": "mid_third",
-        }])
+        poss_df = pd.DataFrame(
+            [
+                {
+                    "match_internal_id": "abc",
+                    "possession_index": 1,
+                    "start_x": 50.0,
+                    "start_y": 34.0,
+                    "vertical_progression": 10.0,
+                    "n_events": 3,
+                    "n_passes": 1,
+                    "n_carries": 2,
+                    "start_timestamp": 0.0,
+                    "end_timestamp": 8.0,
+                    "set_piece_flag": False,
+                    "counterpress_regain_flag": False,
+                    "distance_progressed": 15.0,
+                    "regain_zone": "mid_third",
+                }
+            ]
+        )
         result = compute_sequence_features(poss_df, pd.DataFrame())
         assert "match_internal_id" in result.columns
         assert "possession_index" in result.columns

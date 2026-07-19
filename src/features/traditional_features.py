@@ -52,7 +52,9 @@ def _shot_angle(x: float, y: float) -> float:
 
 
 def _assist_type(row: pd.Series) -> str:
-    if _event_type_name(row.get("action_type", "")) != "pass":
+    # Applied row-wise to the OUTPUT frame, whose event-type column is
+    # ``event_type`` (derived from the input ``action_type``).
+    if _event_type_name(row.get("event_type", "")) != "pass":
         return "none"
     if bool(row.get("cutback", False)):
         return "cutback"
@@ -94,15 +96,22 @@ def build_traditional_features(events_df: pd.DataFrame) -> pd.DataFrame:
         df.get("y_location") if "y_location" in df.columns else df.get("y"), errors="coerce"
     )
 
-    out["distance_to_goal"] = np.hypot(GOAL_X - out["x_location"], GOAL_Y - out["y_location"]).astype(float)
+    out["distance_to_goal"] = np.hypot(
+        GOAL_X - out["x_location"], GOAL_Y - out["y_location"]
+    ).astype(float)
     out["shot_angle"] = [
-        _shot_angle(float(x), float(y)) for x, y in zip(out["x_location"], out["y_location"])
+        _shot_angle(float(x), float(y))
+        for x, y in zip(out["x_location"], out["y_location"], strict=False)
     ]
 
     out["event_type"] = _col(df, "action_type", "other").apply(_event_type_name)
 
-    out["body_part"] = _col(df, "shot_body_part", "unknown").apply(lambda v: str(_enum_to_value(v) or "unknown"))
-    out["shot_type"] = _col(df, "shot_type", "none").apply(lambda v: str(_enum_to_value(v) or "none"))
+    out["body_part"] = _col(df, "shot_body_part", "unknown").apply(
+        lambda v: str(_enum_to_value(v) or "unknown")
+    )
+    out["shot_type"] = _col(df, "shot_type", "none").apply(
+        lambda v: str(_enum_to_value(v) or "none")
+    )
     out["first_time_shot"] = _col(df, "shot_first_time", False).fillna(False).astype(bool)
     out["volley"] = _col(df, "shot_technique", "none").apply(lambda v: str(v).lower() == "volley")
     out["header"] = _col(df, "shot_body_part", "none").apply(lambda v: str(v).lower() == "head")
@@ -119,7 +128,9 @@ def build_traditional_features(events_df: pd.DataFrame) -> pd.DataFrame:
     out["through_ball"] = _col(df, "pass_through_ball", False).fillna(False).astype(bool)
     out["switch"] = _col(df, "pass_switch", False).fillna(False).astype(bool)
 
-    out["pass_height"] = _col(df, "pass_height", "ground").apply(lambda v: str(_enum_to_value(v) or "ground"))
+    out["pass_height"] = _col(df, "pass_height", "ground").apply(
+        lambda v: str(_enum_to_value(v) or "ground")
+    )
     out["pass_body_part"] = _col(df, "pass_body_part", "foot").apply(
         lambda v: str(_enum_to_value(v) or "foot")
     )
@@ -144,11 +155,10 @@ def build_traditional_features(events_df: pd.DataFrame) -> pd.DataFrame:
     out.loc[~is_carry, ["carry_distance", "carry_progressive_distance"]] = np.nan
 
     out["progressive_distance"] = (end_x - out["x_location"]).clip(lower=0).fillna(0.0)
-    out["central_progression"] = [
-        bool(_is_central(float(v))) for v in end_y.fillna(float("nan"))
-    ]
+    out["central_progression"] = [bool(_is_central(float(v))) for v in end_y.fillna(float("nan"))]
     out["box_entry"] = [
-        bool(_is_box_entry(float(ex), float(ey))) for ex, ey in zip(end_x.fillna(float("nan")), end_y.fillna(float("nan")))
+        bool(_is_box_entry(float(ex), float(ey)))
+        for ex, ey in zip(end_x.fillna(float("nan")), end_y.fillna(float("nan")), strict=False)
     ]
 
     out["assist_type"] = out.apply(_assist_type, axis=1)

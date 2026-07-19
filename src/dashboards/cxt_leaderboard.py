@@ -59,7 +59,7 @@ def _build_leaderboard_base(
     agg: dict[str, pd.Series] = {}
 
     agg["total_actions"] = cxt_df.groupby(id_col)["cxt"].count()
-    agg["total_cxt"]     = cxt_df.groupby(id_col)["cxt"].sum()
+    agg["total_cxt"] = cxt_df.groupby(id_col)["cxt"].sum()
 
     # By action type
     for action in ("carry", "pass", "cross", "cutback"):
@@ -80,19 +80,21 @@ def _build_leaderboard_base(
         trans = cxt_df[cxt_df["transition_or_settled"].isin(["transition", "counter-attack"])]
         settled = cxt_df[cxt_df["transition_or_settled"] == "settled"]
         agg["cxt_transition"] = trans.groupby(id_col)["cxt"].sum()
-        agg["cxt_settled"]    = settled.groupby(id_col)["cxt"].sum()
+        agg["cxt_settled"] = settled.groupby(id_col)["cxt"].sum()
 
     if "sequence_type" in cxt_df.columns:
-        trans2 = cxt_df[cxt_df["sequence_type"].str.contains("transition|counter", case=False, na=False)]
+        trans2 = cxt_df[
+            cxt_df["sequence_type"].str.contains("transition|counter", case=False, na=False)
+        ]
         if "cxt_transition" not in agg:
             agg["cxt_transition"] = trans2.groupby(id_col)["cxt"].sum()
 
     # Central vs wide
     if "is_central" in cxt_df.columns:
         central = cxt_df[cxt_df["is_central"].astype(bool)]
-        wide    = cxt_df[~cxt_df["is_central"].astype(bool)]
+        wide = cxt_df[~cxt_df["is_central"].astype(bool)]
         agg["cxt_central"] = central.groupby(id_col)["cxt"].sum()
-        agg["cxt_wide"]    = wide.groupby(id_col)["cxt"].sum()
+        agg["cxt_wide"] = wide.groupby(id_col)["cxt"].sum()
 
     # vs strong opponents
     if "opponent_team_id" in cxt_df.columns and "elite_teams" in cxt_df.columns:
@@ -115,7 +117,11 @@ def _build_leaderboard_base(
     df = df.reset_index()
 
     # ── Minutes played ────────────────────────────────────────────────────────
-    if not minutes_df.empty and id_col in minutes_df.columns and "minutes_played" in minutes_df.columns:
+    if (
+        not minutes_df.empty
+        and id_col in minutes_df.columns
+        and "minutes_played" in minutes_df.columns
+    ):
         mins = minutes_df.groupby(id_col)["minutes_played"].sum().reset_index()
         df = df.merge(mins, on=id_col, how="left")
     else:
@@ -126,19 +132,19 @@ def _build_leaderboard_base(
 
     # ── Per-90 conversions ────────────────────────────────────────────────────
     for raw_col, per90_col in [
-        ("total_cxt",           "CxT_per_90"),
-        ("cxt_carry",           "CxT_carries_per_90"),
-        ("cxt_pass",            "CxT_passes_per_90"),
-        ("cxt_cross",           "CxT_crosses_per_90"),
-        ("cxt_cutback",         "CxT_cutbacks_per_90"),
-        ("cxt_under_pressure",  "CxT_under_pressure_per_90"),
-        ("cxt_progressive",     "CxT_progressive_per_90"),
-        ("cxt_transition",      "CxT_transition_per_90"),
-        ("cxt_settled",         "CxT_settled_per_90"),
-        ("cxt_central",         "CxT_central_per_90"),
-        ("cxt_wide",            "CxT_wide_per_90"),
-        ("cxt_vs_strong",       "CxT_vs_strong_opponents_per_90"),
-        ("total_oad",           "CxT_minus_xT_per_90"),
+        ("total_cxt", "CxT_per_90"),
+        ("cxt_carry", "CxT_carries_per_90"),
+        ("cxt_pass", "CxT_passes_per_90"),
+        ("cxt_cross", "CxT_crosses_per_90"),
+        ("cxt_cutback", "CxT_cutbacks_per_90"),
+        ("cxt_under_pressure", "CxT_under_pressure_per_90"),
+        ("cxt_progressive", "CxT_progressive_per_90"),
+        ("cxt_transition", "CxT_transition_per_90"),
+        ("cxt_settled", "CxT_settled_per_90"),
+        ("cxt_central", "CxT_central_per_90"),
+        ("cxt_wide", "CxT_wide_per_90"),
+        ("cxt_vs_strong", "CxT_vs_strong_opponents_per_90"),
+        ("total_oad", "CxT_minus_xT_per_90"),
     ]:
         if raw_col in df.columns:
             df[per90_col] = (df[raw_col].fillna(0.0) / df["minutes_played"]) * _PER_90

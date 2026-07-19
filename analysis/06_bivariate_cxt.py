@@ -24,13 +24,12 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     derive_shot_in_possession,
     load_features,
     save_fig,
@@ -45,13 +44,24 @@ logger = logging.getLogger("06_bivariate_cxt")
 
 _CXT_TYPES = {"pass", "carry", "cross", "cutback"}
 _CAT_COLS = [
-    "event_type", "score_state", "sequence_type", "possession_start_zone",
-    "transition_or_settled", "phase_of_play",
+    "event_type",
+    "score_state",
+    "sequence_type",
+    "possession_start_zone",
+    "transition_or_settled",
+    "phase_of_play",
 ]
 _CORR_COLS = [
-    "vertical_progression_speed", "directness", "events_before_action",
-    "x_location", "y_location", "distance_to_goal", "pass_length",
-    "carry_distance", "progressive_distance", "score_differential",
+    "vertical_progression_speed",
+    "directness",
+    "events_before_action",
+    "x_location",
+    "y_location",
+    "distance_to_goal",
+    "pass_length",
+    "carry_distance",
+    "progressive_distance",
+    "score_differential",
 ]
 
 
@@ -69,12 +79,13 @@ def _sip_rate_bar(df: pd.DataFrame, col: str) -> None:
 
     fig, ax = plt.subplots(figsize=(max(6, len(rates) * 0.8), 5))
     bars = ax.bar(rates[col].astype(str), rates["rate"], color="#8c564b", alpha=0.8)
-    for bar, n in zip(bars, rates["n"]):
+    for bar, n in zip(bars, rates["n"], strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.002,
             f"n={n:,}",
-            ha="center", fontsize=7,
+            ha="center",
+            fontsize=7,
         )
     ax.set_xlabel(col)
     ax.set_ylabel("Shot-in-Possession Rate")
@@ -121,9 +132,7 @@ def main() -> None:
     features = load_features()
 
     # Filter to CxT-relevant action types
-    type_col = next(
-        (c for c in ["event_type", "action_type"] if c in features.columns), None
-    )
+    type_col = next((c for c in ["event_type", "action_type"] if c in features.columns), None)
     if type_col:
         df = features[features[type_col].astype(str).isin(_CXT_TYPES)].copy()
         logger.info("Filtered to CxT action types: %d rows", len(df))

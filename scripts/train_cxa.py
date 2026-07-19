@@ -30,20 +30,21 @@ import pickle
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
 
-from src.models.cxa.cxa_pipeline import CxAPipeline
-from src.models.cxa.shot_creation_model import ShotCreationModel
-from src.models.cxa.shot_quality_model import ShotQualityModel
-from src.models.neural import is_neural_model
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.models.cxa.cxa_pipeline import CxAPipeline  # noqa: E402
+from src.models.cxa.shot_creation_model import ShotCreationModel  # noqa: E402
+from src.models.cxa.shot_quality_model import ShotQualityModel  # noqa: E402
+from src.models.neural import is_neural_model  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -61,9 +62,11 @@ MODELS_YAML = PROJECT_ROOT / "configs" / "models.yaml"
 
 # ── MLflow helpers ────────────────────────────────────────────────────────────
 
+
 def _get_mlflow():
     try:
         import mlflow
+
         return mlflow
     except ImportError:
         logger.warning("mlflow not installed — skipping experiment tracking.")
@@ -71,8 +74,11 @@ def _get_mlflow():
 
 
 class _NullContext:
-    def __enter__(self): return self
-    def __exit__(self, *_): pass
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        pass
 
 
 def _start_run(mlflow, experiment: str, run_name: str):
@@ -85,6 +91,7 @@ def _start_run(mlflow, experiment: str, run_name: str):
 
 # ── Production pointer ────────────────────────────────────────────────────────
 
+
 def _update_production_pointer(model_filename: str) -> None:
     with open(MODELS_YAML, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh)
@@ -95,6 +102,7 @@ def _update_production_pointer(model_filename: str) -> None:
 
 
 # ── CxG inline scoring ────────────────────────────────────────────────────────
+
 
 def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -114,14 +122,13 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
             logger.warning("CxG model file not found: %s — skipping CxG scoring.", cxg_path)
             return features_df
         import joblib
+
         cxg_model = joblib.load(cxg_path)
     except Exception as exc:
         logger.warning("Could not load CxG model (%s) — skipping CxG scoring.", exc)
         return features_df
 
-    _type_col = next(
-        (c for c in ("event_type", "action_type") if c in features_df.columns), None
-    )
+    _type_col = next((c for c in ("event_type", "action_type") if c in features_df.columns), None)
     if _type_col is None:
         logger.warning("No event_type/action_type column in features — cannot identify shots.")
         return features_df
@@ -139,7 +146,9 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
         features_df.loc[shot_mask, "cxg"] = scores.astype(float)
         logger.info(
             "CxG scores attached to %d shot rows (mean=%.4f, max=%.4f)",
-            len(shot_df), float(scores.mean()), float(scores.max()),
+            len(shot_df),
+            float(scores.mean()),
+            float(scores.max()),
         )
     except Exception as exc:
         logger.warning("CxG scoring failed (%s) — quality model will use binary fallback.", exc)
@@ -149,14 +158,15 @@ def _attach_cxg_scores(features_df: pd.DataFrame) -> pd.DataFrame:
 
 # ── Diagnostic charts ─────────────────────────────────────────────────────────
 
+
 def _chart_pr_calibration(
     actions: pd.DataFrame,
     heldout: pd.DataFrame,
     figures_dir: Path,
 ) -> None:
     """PR curve and reliability diagram for the shot-creation classifier."""
-    from sklearn.metrics import precision_recall_curve, average_precision_score
     from sklearn.calibration import calibration_curve
+    from sklearn.metrics import average_precision_score, precision_recall_curve
 
     figures_dir.mkdir(parents=True, exist_ok=True)
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
@@ -237,16 +247,15 @@ def _chart_cxa_by_action_type(
         logger.warning("No cxa column — skipping CxA-by-action-type chart.")
         return
 
-    type_col = next(
-        (c for c in ("action_type", "event_type") if c in heldout_scored.columns), None
-    )
+    type_col = next((c for c in ("action_type", "event_type") if c in heldout_scored.columns), None)
     fig, ax = plt.subplots(figsize=(10, 5))
     colors = {"pass": "steelblue", "carry": "darkorange", "cross": "seagreen", "cutback": "crimson"}
     any_plotted = False
     for atype, color in colors.items():
         subset = heldout_scored[
             heldout_scored.get(type_col, pd.Series(dtype=str)) == atype
-            if type_col else pd.Series(False, index=heldout_scored.index)
+            if type_col
+            else pd.Series(False, index=heldout_scored.index)
         ]["cxa"].dropna()
         if len(subset) < 20:
             continue
@@ -281,7 +290,11 @@ def _draw_pitch(ax, *, lw: float = 1.5, color: str = "white", alpha: float = 0.9
     ax.plot([60, 60], [0, 80], ls="--", **{**kw, "lw": lw * 0.7, "alpha": alpha * 0.6})
     # Centre circle (approx radius 10)
     theta = np.linspace(0, 2 * np.pi, 120)
-    ax.plot(60 + 10 * np.cos(theta), 40 + 10 * np.sin(theta), **{**kw, "lw": lw * 0.7, "alpha": alpha * 0.6})
+    ax.plot(
+        60 + 10 * np.cos(theta),
+        40 + 10 * np.sin(theta),
+        **{**kw, "lw": lw * 0.7, "alpha": alpha * 0.6},
+    )
     # Penalty areas
     for x0, w in [(0, 18), (102, 18)]:
         ax.plot([x0, x0 + w, x0 + w, x0, x0], [18, 18, 62, 62, 18], **kw)
@@ -289,12 +302,13 @@ def _draw_pitch(ax, *, lw: float = 1.5, color: str = "white", alpha: float = 0.9
     for x0, w in [(0, 6), (114, 6)]:
         ax.plot([x0, x0 + w, x0 + w, x0, x0], [30, 30, 50, 50, 30], **kw)
     # Goals
-    for x0, w in [(0, 0), (120, 0)]:
+    for x0, _w in [(0, 0), (120, 0)]:
         ax.plot([x0, x0 - 2.4 if x0 == 0 else x0 + 2.4], [36, 36], **{**kw, "lw": lw * 2})
         ax.plot([x0, x0 - 2.4 if x0 == 0 else x0 + 2.4], [44, 44], **{**kw, "lw": lw * 2})
         ax.plot(
             [x0 - 2.4 if x0 == 0 else x0 + 2.4, x0 - 2.4 if x0 == 0 else x0 + 2.4],
-            [36, 44], **{**kw, "lw": lw * 2},
+            [36, 44],
+            **{**kw, "lw": lw * 2},
         )
     # Penalty spots
     for px in [12, 108]:
@@ -309,8 +323,12 @@ def _chart_cxa_pitch_heatmap(
     from mplsoccer import Pitch
 
     figures_dir.mkdir(parents=True, exist_ok=True)
-    x_col = next((c for c in ("x_location", "x", "location_x") if c in heldout_scored.columns), None)
-    y_col = next((c for c in ("y_location", "y", "location_y") if c in heldout_scored.columns), None)
+    x_col = next(
+        (c for c in ("x_location", "x", "location_x") if c in heldout_scored.columns), None
+    )
+    y_col = next(
+        (c for c in ("y_location", "y", "location_y") if c in heldout_scored.columns), None
+    )
     type_col = next((c for c in ("event_type", "action_type") if c in heldout_scored.columns), None)
     if x_col is None or y_col is None or type_col is None or "cxa" not in heldout_scored.columns:
         logger.warning("Missing x/y/type/cxa columns — skipping pitch zone chart.")
@@ -365,7 +383,7 @@ def _chart_cxa_pitch_heatmap(
     vmin = float(min(np.nanmin(vals) for vals in valid_values))
     vmax = float(max(np.nanmax(vals) for vals in valid_values))
     hm = None
-    for ax, action in zip(axes, action_order):
+    for ax, action in zip(axes, action_order, strict=False):
         action_df = panel_frames[action]
         if action_df is None:
             ax.text(
@@ -379,7 +397,9 @@ def _chart_cxa_pitch_heatmap(
                 fontweight="bold",
                 zorder=3,
             )
-            ax.set_title(action_titles[action], color="white", fontsize=12, fontweight="bold", pad=10)
+            ax.set_title(
+                action_titles[action], color="white", fontsize=12, fontweight="bold", pad=10
+            )
             continue
         hm = pitch.hexbin(
             action_df[x_col],
@@ -433,11 +453,21 @@ def _chart_creation_rate_by_zone(
     """Empirical shot-creation rate vs predicted p_shot_created by distance band."""
     figures_dir.mkdir(parents=True, exist_ok=True)
     dist_col = next(
-        (c for c in ("distance_to_goal", "dist_to_goal", "distance") if c in heldout_scored.columns),
+        (
+            c
+            for c in ("distance_to_goal", "dist_to_goal", "distance")
+            if c in heldout_scored.columns
+        ),
         None,
     )
-    if dist_col is None or "shot_created" not in heldout_scored.columns or "p_shot_created" not in heldout_scored.columns:
-        logger.warning("Missing distance/shot_created columns — skipping creation-rate-by-zone chart.")
+    if (
+        dist_col is None
+        or "shot_created" not in heldout_scored.columns
+        or "p_shot_created" not in heldout_scored.columns
+    ):
+        logger.warning(
+            "Missing distance/shot_created columns — skipping creation-rate-by-zone chart."
+        )
         return
 
     df = heldout_scored[[dist_col, "shot_created", "p_shot_created"]].dropna()
@@ -445,29 +475,48 @@ def _chart_creation_rate_by_zone(
         return
 
     df["dist_band"] = pd.cut(df[dist_col], bins=10)
-    grouped = df.groupby("dist_band", observed=True).agg(
-        empirical=("shot_created", "mean"),
-        predicted=("p_shot_created", "mean"),
-        n=("shot_created", "count"),
-    ).dropna()
+    grouped = (
+        df.groupby("dist_band", observed=True)
+        .agg(
+            empirical=("shot_created", "mean"),
+            predicted=("p_shot_created", "mean"),
+            n=("shot_created", "count"),
+        )
+        .dropna()
+    )
 
     fig, ax = plt.subplots(figsize=(10, 5))
     xs = np.arange(len(grouped))
     w = 0.35
-    ax.bar(xs - w/2, grouped["empirical"], w, label="Empirical rate", color="steelblue", alpha=0.8)
-    ax.bar(xs + w/2, grouped["predicted"], w, label="Predicted p_shot_created", color="darkorange", alpha=0.8)
-    ax.set_xticks(xs)
-    ax.set_xticklabels(
-        [str(b) for b in grouped.index], rotation=45, ha="right", fontsize=8
+    ax.bar(
+        xs - w / 2, grouped["empirical"], w, label="Empirical rate", color="steelblue", alpha=0.8
     )
+    ax.bar(
+        xs + w / 2,
+        grouped["predicted"],
+        w,
+        label="Predicted p_shot_created",
+        color="darkorange",
+        alpha=0.8,
+    )
+    ax.set_xticks(xs)
+    ax.set_xticklabels([str(b) for b in grouped.index], rotation=45, ha="right", fontsize=8)
     ax.set_xlabel("Distance to goal band")
     ax.set_ylabel("Shot-creation rate")
-    ax.set_title("Empirical vs Predicted Shot-Creation Rate by Distance (Held-out)", fontweight="bold")
+    ax.set_title(
+        "Empirical vs Predicted Shot-Creation Rate by Distance (Held-out)", fontweight="bold"
+    )
     ax.legend(fontsize=9)
     # Annotate n
     for i, n in enumerate(grouped["n"]):
-        ax.text(xs[i], max(grouped["empirical"].iloc[i], grouped["predicted"].iloc[i]) + 0.005,
-                f"n={n}", ha="center", fontsize=7, color="gray")
+        ax.text(
+            xs[i],
+            max(grouped["empirical"].iloc[i], grouped["predicted"].iloc[i]) + 0.005,
+            f"n={n}",
+            ha="center",
+            fontsize=7,
+            color="gray",
+        )
     fig.tight_layout()
     out = figures_dir / "creation_rate_by_distance.png"
     fig.savefig(out, dpi=150, bbox_inches="tight")
@@ -481,13 +530,14 @@ def _chart_quality_scatter(
 ) -> None:
     """Predicted vs actual CxG for shot-creating actions (quality model)."""
     figures_dir.mkdir(parents=True, exist_ok=True)
-    if "resulting_shot_cxg" not in heldout_scored.columns or "expected_cxg_if_shot" not in heldout_scored.columns:
+    if (
+        "resulting_shot_cxg" not in heldout_scored.columns
+        or "expected_cxg_if_shot" not in heldout_scored.columns
+    ):
         logger.warning("Missing quality columns — skipping quality scatter chart.")
         return
 
-    df = heldout_scored[
-        ["resulting_shot_cxg", "expected_cxg_if_shot"]
-    ].dropna()
+    df = heldout_scored[["resulting_shot_cxg", "expected_cxg_if_shot"]].dropna()
     # Only rows where a shot actually followed (resulting_shot_cxg > 0)
     df = df[df["resulting_shot_cxg"] > 0]
     if len(df) < 20:
@@ -495,14 +545,21 @@ def _chart_quality_scatter(
         return
 
     from scipy.stats import spearmanr
+
     spearman_r, _ = spearmanr(df["resulting_shot_cxg"], df["expected_cxg_if_shot"])
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
     # Scatter
     ax = axes[0]
-    ax.scatter(df["resulting_shot_cxg"], df["expected_cxg_if_shot"],
-               alpha=0.3, s=10, color="steelblue", rasterized=True)
+    ax.scatter(
+        df["resulting_shot_cxg"],
+        df["expected_cxg_if_shot"],
+        alpha=0.3,
+        s=10,
+        color="steelblue",
+        rasterized=True,
+    )
     lim = max(df["resulting_shot_cxg"].max(), df["expected_cxg_if_shot"].max()) * 1.05
     ax.plot([0, lim], [0, lim], "k--", lw=1)
     ax.set_xlabel("Actual resulting CxG")
@@ -512,24 +569,37 @@ def _chart_quality_scatter(
     # Binned calibration
     ax = axes[1]
     df["actual_bin"] = pd.cut(df["resulting_shot_cxg"], bins=8)
-    binned = df.groupby("actual_bin", observed=True).agg(
-        mean_actual=("resulting_shot_cxg", "mean"),
-        mean_pred=("expected_cxg_if_shot", "mean"),
-        n=("resulting_shot_cxg", "count"),
-    ).dropna()
+    binned = (
+        df.groupby("actual_bin", observed=True)
+        .agg(
+            mean_actual=("resulting_shot_cxg", "mean"),
+            mean_pred=("expected_cxg_if_shot", "mean"),
+            n=("resulting_shot_cxg", "count"),
+        )
+        .dropna()
+    )
     ax.plot(binned["mean_actual"], binned["mean_pred"], "o-", color="steelblue", lw=1.5)
     lim2 = max(binned["mean_actual"].max(), binned["mean_pred"].max()) * 1.1
     ax.plot([0, lim2], [0, lim2], "k--", lw=1, label="Perfect calibration")
     for _, row in binned.iterrows():
-        ax.text(row["mean_actual"], row["mean_pred"] + 0.002,
-                f"n={int(row['n'])}", ha="center", fontsize=7, color="gray")
+        ax.text(
+            row["mean_actual"],
+            row["mean_pred"] + 0.002,
+            f"n={int(row['n'])}",
+            ha="center",
+            fontsize=7,
+            color="gray",
+        )
     ax.set_xlabel("Mean actual CxG (bin)")
     ax.set_ylabel("Mean predicted CxG")
     ax.set_title("Quality Model: Binned Calibration")
     ax.legend(fontsize=8)
 
-    fig.suptitle("Shot-Quality Model (CxA Stage 2)\n(Held-out, shot-creating actions only)",
-                 fontsize=12, fontweight="bold")
+    fig.suptitle(
+        "Shot-Quality Model (CxA Stage 2)\n(Held-out, shot-creating actions only)",
+        fontsize=12,
+        fontweight="bold",
+    )
     fig.tight_layout()
     out = figures_dir / "quality_scatter.png"
     fig.savefig(out, dpi=150, bbox_inches="tight")
@@ -538,6 +608,7 @@ def _chart_quality_scatter(
 
 
 # ── Label linkage ─────────────────────────────────────────────────────────────
+
 
 def _attach_labels(
     actions_df: pd.DataFrame,
@@ -591,9 +662,7 @@ def _attach_labels(
 
     # shot_created: possession has ≥1 shot
     poss_with_shots = set(shots[poss_col].dropna().unique())
-    actions["shot_created"] = actions[poss_col].apply(
-        lambda p: 1 if p in poss_with_shots else 0
-    )
+    actions["shot_created"] = actions[poss_col].apply(lambda p: 1 if p in poss_with_shots else 0)
 
     # resulting_shot_cxg: mean CxG of shots in the possession (if cxg col present)
     cxg_col = next((c for c in ("cxg", "event_cxg", "predicted_cxg") if c in shots.columns), None)
@@ -614,20 +683,25 @@ def _attach_labels(
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+
 def _eval_creation_heldout(
     creation_model,
     heldout: pd.DataFrame,
 ) -> dict:
     """Return held-out classification metrics for a creation model."""
     from sklearn.metrics import (
-        roc_auc_score, average_precision_score, log_loss, brier_score_loss,
+        average_precision_score,
+        brier_score_loss,
+        log_loss,
+        roc_auc_score,
     )
+
     p = creation_model.predict_proba(heldout)
     y = heldout["shot_created"].astype(int).to_numpy()
     auc = float(roc_auc_score(y, p)) if len(np.unique(y)) > 1 else None
-    ap  = float(average_precision_score(y, p)) if len(np.unique(y)) > 1 else None
-    ll  = float(log_loss(y, p, labels=[0, 1]))
-    br  = float(brier_score_loss(y, p))
+    ap = float(average_precision_score(y, p)) if len(np.unique(y)) > 1 else None
+    ll = float(log_loss(y, p, labels=[0, 1]))
+    br = float(brier_score_loss(y, p))
     return {"auc": auc, "average_precision": ap, "log_loss": ll, "brier": br}
 
 
@@ -637,8 +711,9 @@ def _eval_quality_heldout(
     quality_col: str = "resulting_shot_cxg",
 ) -> dict:
     """Return held-out regression metrics for a quality model."""
-    from sklearn.metrics import mean_absolute_error, mean_squared_error
     from scipy.stats import spearmanr
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+
     df = heldout[heldout.get(quality_col, pd.Series(0.0, index=heldout.index)) > 0]
     if len(df) < 10:
         return {}
@@ -662,24 +737,26 @@ def _chart_leaderboard(
     if not ladder_results:
         return
 
-    names  = [r["name"] for r in ladder_results]
+    names = [r["name"] for r in ladder_results]
+
     # Prefer held-out metrics; fall back to train-set metrics when the
     # held-out columns are absent (no Euro 2024 split available).
     def _val(r: dict, primary: str, fallback: str) -> float:
         v = r.get(primary)
         return float(v) if v is not None else float(r.get(fallback) or 0.0)
-    aucs = [_val(r, "creation_auc",   "train_creation_auc")   for r in ladder_results]
-    aps  = [_val(r, "creation_ap",    "train_creation_ap")    for r in ladder_results]
-    lls  = [_val(r, "creation_ll",    "train_creation_ll")    for r in ladder_results]
+
+    aucs = [_val(r, "creation_auc", "train_creation_auc") for r in ladder_results]
+    aps = [_val(r, "creation_ap", "train_creation_ap") for r in ladder_results]
+    lls = [_val(r, "creation_ll", "train_creation_ll") for r in ladder_results]
     using_train = all(r.get("creation_auc") is None for r in ladder_results)
 
     palette = plt.cm.Set2(np.linspace(0, 1, len(names)))
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
     for ax, vals, ylabel, title, fmt in [
-        (axes[0], aucs, "ROC AUC",        "Creation AUC (↑)",         ".4f"),
-        (axes[1], aps,  "Avg Precision",  "Creation AP (↑)",          ".4f"),
-        (axes[2], lls,  "Log-loss",       "Creation Log-loss (↓)",    ".4f"),
+        (axes[0], aucs, "ROC AUC", "Creation AUC (↑)", ".4f"),
+        (axes[1], aps, "Avg Precision", "Creation AP (↑)", ".4f"),
+        (axes[2], lls, "Log-loss", "Creation Log-loss (↓)", ".4f"),
     ]:
         bars = ax.bar(names, vals, color=palette, edgecolor="white", linewidth=0.6)
         ax.set_ylabel(ylabel, fontsize=10)
@@ -687,25 +764,28 @@ def _chart_leaderboard(
         ax.set_xticks(range(len(names)))
         ax.set_xticklabels(names, rotation=30, ha="right", fontsize=9)
         # Value labels
-        for bar, v in zip(bars, vals):
+        for bar, v in zip(bars, vals, strict=False):
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height() + max(vals) * 0.01,
-                f"{v:{fmt}}", ha="center", va="bottom", fontsize=8,
+                f"{v:{fmt}}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
             )
         ax.set_ylim(0, max(vals) * 1.12 if max(vals) > 0 else 1)
 
     # Star best models
     best_auc = names[int(np.argmax(aucs))]
-    best_ll  = names[int(np.argmin(lls))]
+    best_ll = names[int(np.argmin(lls))]
     axes[0].set_title(f"Creation AUC (↑)\n★ best: {best_auc}", fontsize=10, fontweight="bold")
     axes[2].set_title(f"Creation Log-loss (↓)\n★ best: {best_ll}", fontsize=10, fontweight="bold")
 
     fig.suptitle(
         "CxA Model Ladder — "
-        + ("Train-set Creation Metrics" if using_train
-           else "Held-out Creation Metrics"),
-        fontsize=13, fontweight="bold",
+        + ("Train-set Creation Metrics" if using_train else "Held-out Creation Metrics"),
+        fontsize=13,
+        fontweight="bold",
     )
     fig.tight_layout()
     out = figures_dir / "cxa_leaderboard.png"
@@ -718,10 +798,11 @@ def _chart_leaderboard(
 
 # Model ladder: (name, creation_family, quality_family)
 _LADDER: list[tuple[str, str, str]] = [
-    ("logistic_contextual",  "logistic", "glm"),
-    ("xgb_contextual",       "xgboost",  "xgboost"),
-    ("lgbm_contextual",      "lgbm",     "lgbm"),
+    ("logistic_contextual", "logistic", "glm"),
+    ("xgb_contextual", "xgboost", "xgboost"),
+    ("lgbm_contextual", "lgbm", "lgbm"),
 ]
+
 
 def train_cxa(
     actions_path: Path,
@@ -770,7 +851,10 @@ def train_cxa(
         logger.info(
             "Split: %d total → %d train, %d held-out (val_test/Euro 2024), "
             "%d reserved for scoring only (test/La Liga, excluded).",
-            n_before, len(train_actions), len(heldout_actions), n_scoring,
+            n_before,
+            len(train_actions),
+            len(heldout_actions),
+            n_scoring,
         )
 
         # Fallback: if every match shares the same split_role (i.e. no real
@@ -779,10 +863,13 @@ def train_cxa(
         # generalization metrics instead of training on everything.
         if train_actions.empty and not heldout_actions.empty:
             import hashlib
+
             all_match_ids = sorted(actions_df["match_internal_id"].dropna().unique().tolist())
+
             def _hash01(mid: str) -> float:
                 h = hashlib.md5(str(mid).encode("utf-8")).hexdigest()
                 return int(h[:8], 16) / 0xFFFFFFFF
+
             heldout_ids = {mid for mid in all_match_ids if _hash01(mid) < 0.20}
             train_ids = [mid for mid in all_match_ids if mid not in heldout_ids]
             train_actions = actions_df[actions_df["match_internal_id"].isin(train_ids)].copy()
@@ -791,8 +878,10 @@ def train_cxa(
                 "No real train/holdout partition in matches.parquet. "
                 "Falling back to deterministic 80/20 match-level split: "
                 "%d train matches (%d actions) / %d held-out matches (%d actions).",
-                len(train_ids), len(train_actions),
-                len(heldout_ids), len(heldout_actions),
+                len(train_ids),
+                len(train_actions),
+                len(heldout_ids),
+                len(heldout_actions),
             )
     else:
         logger.warning(
@@ -823,10 +912,11 @@ def train_cxa(
         ladder.append(("gnn_passing_360", "gnn", "lgbm"))
     for name, c_family, q_family in ladder:
         logger.info("── Training %s (creation=%s, quality=%s) ──", name, c_family, q_family)
-        with (_start_run(mlflow, "cfm/cxa", f"cxa_{name}") or _NullContext()):
+        with _start_run(mlflow, "cfm/cxa", f"cxa_{name}") or _NullContext():
             try:
                 if c_family == "gnn":
                     from src.models.cxa.gnn_passing_network import GNNPassingNetworkCxAModel
+
                     creation_model = GNNPassingNetworkCxAModel(
                         feature_set=feature_set,
                         frames_path=str(frames_path) if frames_path else None,
@@ -846,11 +936,15 @@ def train_cxa(
                     random_state=random_state,
                 )
                 pipeline = CxAPipeline(creation_model=creation_model, quality_model=quality_model)
-                pipeline.fit(train_actions, creation_target="shot_created", quality_target="resulting_shot_cxg")
+                pipeline.fit(
+                    train_actions,
+                    creation_target="shot_created",
+                    quality_target="resulting_shot_cxg",
+                )
 
                 # Save individual stage models
                 creation_path = MODELS_DIR / f"shot_creation_{name}.pkl"
-                quality_path  = MODELS_DIR / f"shot_quality_{name}.pkl"
+                quality_path = MODELS_DIR / f"shot_quality_{name}.pkl"
                 pipeline_path = MODELS_DIR / f"cxa_{name}.pkl"
                 pipeline.creation_model.save(creation_path)
                 pipeline.quality_model.save(quality_path)
@@ -861,7 +955,8 @@ def train_cxa(
                 if is_neural_model(creation_model):
                     logger.info(
                         "Skipping combined pipeline pickle for %s (neural creation "
-                        "model — score via scripts/score_gnn_cxa.py).", name,
+                        "model — score via scripts/score_gnn_cxa.py).",
+                        name,
                     )
                 else:
                     with open(pipeline_path, "wb") as fh:
@@ -880,16 +975,18 @@ def train_cxa(
                 try:
                     train_c = _eval_creation_heldout(pipeline.creation_model, train_actions)
                     train_q = _eval_quality_heldout(pipeline.quality_model, train_actions)
-                    record.update({
-                        "train_creation_auc":   train_c.get("auc"),
-                        "train_creation_ap":    train_c.get("average_precision"),
-                        "train_creation_ll":    train_c.get("log_loss"),
-                        "train_creation_brier": train_c.get("brier"),
-                        "train_quality_mae":      train_q.get("mae"),
-                        "train_quality_rmse":     train_q.get("rmse"),
-                        "train_quality_spearman": train_q.get("spearman"),
-                        "train_quality_n_rows":   train_q.get("n_rows"),
-                    })
+                    record.update(
+                        {
+                            "train_creation_auc": train_c.get("auc"),
+                            "train_creation_ap": train_c.get("average_precision"),
+                            "train_creation_ll": train_c.get("log_loss"),
+                            "train_creation_brier": train_c.get("brier"),
+                            "train_quality_mae": train_q.get("mae"),
+                            "train_quality_rmse": train_q.get("rmse"),
+                            "train_quality_spearman": train_q.get("spearman"),
+                            "train_quality_n_rows": train_q.get("n_rows"),
+                        }
+                    )
                     logger.info(
                         "  %s [train]  AUC=%.4f  AP=%.4f  ll=%.5f | MAE=%.4f  Spearman=%.4f",
                         name,
@@ -906,15 +1003,17 @@ def train_cxa(
                 if not heldout_actions.empty:
                     c_metrics = _eval_creation_heldout(pipeline.creation_model, heldout_actions)
                     q_metrics = _eval_quality_heldout(pipeline.quality_model, heldout_actions)
-                    record.update({
-                        "creation_auc": c_metrics.get("auc"),
-                        "creation_ap":  c_metrics.get("average_precision"),
-                        "creation_ll":  c_metrics.get("log_loss"),
-                        "creation_brier": c_metrics.get("brier"),
-                        "quality_mae":    q_metrics.get("mae"),
-                        "quality_rmse":   q_metrics.get("rmse"),
-                        "quality_spearman": q_metrics.get("spearman"),
-                    })
+                    record.update(
+                        {
+                            "creation_auc": c_metrics.get("auc"),
+                            "creation_ap": c_metrics.get("average_precision"),
+                            "creation_ll": c_metrics.get("log_loss"),
+                            "creation_brier": c_metrics.get("brier"),
+                            "quality_mae": q_metrics.get("mae"),
+                            "quality_rmse": q_metrics.get("rmse"),
+                            "quality_spearman": q_metrics.get("spearman"),
+                        }
+                    )
                     logger.info(
                         "  %s  AUC=%.4f  AP=%.4f  ll=%.5f | MAE=%.4f  Spearman=%.4f",
                         name,
@@ -967,7 +1066,9 @@ def train_cxa(
     if not chart_actions.empty:
         try:
             chart_actions = chart_actions.copy()
-            chart_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(chart_actions)
+            chart_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(
+                chart_actions
+            )
             # Mirror the scored chart frame back into heldout_actions so
             # downstream chart helpers receive p_shot_created for the
             # held-out side. Without this assignment the held-out panels
@@ -977,7 +1078,9 @@ def train_cxa(
                 heldout_actions = chart_actions
             train_actions = train_actions.copy()
             if "p_shot_created" not in train_actions.columns:
-                train_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(train_actions)
+                train_actions["p_shot_created"] = best_pipeline.creation_model.predict_proba(
+                    train_actions
+                )
 
             heldout_scored = best_pipeline.score(chart_actions)
 
@@ -986,19 +1089,27 @@ def train_cxa(
                 try:
                     heldout_scored = heldout_scored.merge(
                         chart_actions[["possession_internal_id", quality_col]].drop_duplicates(),
-                        on="possession_internal_id", how="left",
+                        on="possession_internal_id",
+                        how="left",
                     )
                 except Exception:
                     pass
             # Merge event_type for action-type chart
             if not heldout_scored.empty and "event_type" in chart_actions.columns:
-                _mc = next((c for c in ("event_id", "possession_internal_id")
-                            if c in chart_actions.columns and c in heldout_scored.columns), None)
+                _mc = next(
+                    (
+                        c
+                        for c in ("event_id", "possession_internal_id")
+                        if c in chart_actions.columns and c in heldout_scored.columns
+                    ),
+                    None,
+                )
                 if _mc:
                     try:
                         heldout_scored = heldout_scored.merge(
                             chart_actions[[_mc, "event_type"]].drop_duplicates(_mc),
-                            on=_mc, how="left",
+                            on=_mc,
+                            how="left",
                         )
                     except Exception:
                         pass
@@ -1039,13 +1150,15 @@ def train_cxa(
         if not best_path.exists():
             logger.warning(
                 "Best model %s has no combined pickle (likely a neural model) "
-                "\u2014 skipping production promotion.", best_name,
+                "\u2014 skipping production promotion.",
+                best_name,
             )
         else:
             _update_production_pointer(str(best_path.relative_to(PROJECT_ROOT)))
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train the two-stage CxA pipeline.")
@@ -1068,13 +1181,20 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-estimators", type=int, default=300)
     p.add_argument("--no-promote", action="store_true")
-    p.add_argument("--include-neural", action="store_true",
-                   help="Also train the GNN passing-network creation model. "
-                        "Requires PyTorch and freeze frames.")
-    p.add_argument("--frames", type=Path, default=None,
-                   help="Path to the freeze-frame parquet for the neural model "
-                        "(default: data/processed/frames.parquet, falling back to "
-                        "data/processed/freeze_frames_360.parquet if that doesn't exist).")
+    p.add_argument(
+        "--include-neural",
+        action="store_true",
+        help="Also train the GNN passing-network creation model. "
+        "Requires PyTorch and freeze frames.",
+    )
+    p.add_argument(
+        "--frames",
+        type=Path,
+        default=None,
+        help="Path to the freeze-frame parquet for the neural model "
+        "(default: data/processed/frames.parquet, falling back to "
+        "data/processed/freeze_frames_360.parquet if that doesn't exist).",
+    )
     p.add_argument("--seed", type=int, default=42)
     return p.parse_args(argv)
 

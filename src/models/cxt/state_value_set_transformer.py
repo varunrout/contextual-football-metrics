@@ -24,7 +24,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.models.cxt.feature_sets import CxTFeatureSetSpec, get_feature_set
-from src.models.cxt.state_value_model import _BaseStateValueModel, _make_X
+from src.models.cxt.state_value_model import _BaseStateValueModel, _make_x
 from src.models.neural import (
     TOKEN_DIM,
     TorchModelMixin,
@@ -104,11 +104,13 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
         return self._frames_cache
 
     def _build_tabular_pipeline(self, df: pd.DataFrame) -> Pipeline:
-        pipe = Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_tab = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        pipe = Pipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_tab = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         pipe.fit(X_tab)
         return pipe
 
@@ -149,14 +151,15 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
     def _encode_batch_inputs(self, df: pd.DataFrame):
         torch, _ = require_torch()
         tokens, mask = encode_frame_tokens(
-            df, self._frames(),
+            df,
+            self._frames(),
             max_players=self.max_players,
             event_id_col=self._event_id_col or "event_internal_id",
             frames_event_id_col="event_internal_id",
         )
         if self.pipeline is None:
             raise RuntimeError("Tabular pipeline not fitted — call fit() first.")
-        X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_tab_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         return tokens, mask, X_tab
 
@@ -166,7 +169,7 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "possession_cxg",
-    ) -> "SetTransformerStateValueModel":
+    ) -> SetTransformerStateValueModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -186,13 +189,16 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
         self._tabular_dim = len(self._numeric_all)
 
         n_with = (
-            shots_with_frames_count(df, self._frames(), self._event_id_col,
-                                    frames_event_id_col="event_internal_id")
-            if self._event_id_col else 0
+            shots_with_frames_count(
+                df, self._frames(), self._event_id_col, frames_event_id_col="event_internal_id"
+            )
+            if self._event_id_col
+            else 0
         )
         logger.info(
             "SetTransformerStateValue: %d / %d actions have ≥1 freeze-frame row",
-            n_with, len(df),
+            n_with,
+            len(df),
         )
 
         self.pipeline = self._build_tabular_pipeline(df)
@@ -232,7 +238,9 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
             if (epoch + 1) % 5 == 0 or epoch == 0:
                 logger.info(
                     "SetTransformerStateValue epoch %d/%d loss=%.4f",
-                    epoch + 1, self.max_epochs, epoch_loss / max(1, n_batches),
+                    epoch + 1,
+                    self.max_epochs,
+                    epoch_loss / max(1, n_batches),
                 )
         return self
 
@@ -245,9 +253,11 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
         device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
-            out = self._torch_model(
-                tokens.to(device), mask.to(device), X_tab.to(device)
-            ).cpu().numpy()
+            out = (
+                self._torch_model(tokens.to(device), mask.to(device), X_tab.to(device))
+                .cpu()
+                .numpy()
+            )
         return np.clip(out.astype(float), 0.0, None)
 
     # ── Persistence ──────────────────────────────────────────────────────────
@@ -287,7 +297,7 @@ class SetTransformerStateValueModel(_BaseStateValueModel, TorchModelMixin):
             pickle.dump(state, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "SetTransformerStateValueModel":
+    def load(cls, path: str | Path) -> SetTransformerStateValueModel:
         with open(path, "rb") as f:
             state = pickle.load(f)
         obj = cls(**state["init"])

@@ -17,18 +17,17 @@ import logging
 import sys
 from itertools import combinations
 from pathlib import Path
+from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from scipy.stats import ks_2samp, mannwhitneyu, ttest_ind
-from typing import cast
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     competition_labels,
     load_features,
     numeric_feature_cols,
@@ -46,8 +45,8 @@ logger = logging.getLogger("02_feature_stability")
 _KS_FLAG_THRESHOLD = 0.2
 _TTEST_PVAL_THRESHOLD = 0.01
 _MWU_PVAL_THRESHOLD = 0.05
-_MAX_FEATURES_PLOT = 40   # cap for readability in heatmaps
-_MAX_PAIRS_PLOT = 10            # competition pairs shown in heatmap
+_MAX_FEATURES_PLOT = 40  # cap for readability in heatmaps
+_MAX_PAIRS_PLOT = 10  # competition pairs shown in heatmap
 
 
 def ks_competition_heatmap(df: pd.DataFrame) -> dict:
@@ -70,10 +69,7 @@ def ks_competition_heatmap(df: pd.DataFrame) -> dict:
         return {}
 
     # Pre-split groups once — avoids repeated boolean indexing inside the loop
-    groups: dict = {
-        cid: df.loc[df["competition_id"] == cid, num_cols]
-        for cid in comp_ids
-    }
+    groups: dict = {cid: df.loc[df["competition_id"] == cid, num_cols] for cid in comp_ids}
 
     # Single pass: ks_stats[(col, c1, c2)] = stat
     ks_stats: dict[tuple, float] = {}
@@ -106,10 +102,7 @@ def ks_competition_heatmap(df: pd.DataFrame) -> dict:
         for c1, c2 in plot_pairs
     ]
     matrix = np.array(
-        [
-            [ks_stats.get((col, c1, c2), 0.0) for col in top_features]
-            for c1, c2 in plot_pairs
-        ],
+        [[ks_stats.get((col, c1, c2), 0.0) for col in top_features] for c1, c2 in plot_pairs],
         dtype=float,
     )
 
@@ -178,7 +171,9 @@ def temporal_stability(df: pd.DataFrame) -> dict:
         ax.barh(feats[::-1], pvals[::-1], color="#1f77b4")
         ax.axvline(-np.log10(0.01), color="red", linestyle="--", label="p=0.01")
         ax.set_xlabel("-log10(p-value)")
-        ax.set_title("Temporal Stability: Top 20 features by t-test p-value (early vs late matches)")
+        ax.set_title(
+            "Temporal Stability: Top 20 features by t-test p-value (early vs late matches)"
+        )
         ax.legend()
         plt.tight_layout()
         save_fig("temporal_stability", "stability")
@@ -206,6 +201,7 @@ def cohort_360_comparison(df: pd.DataFrame) -> dict:
 
     # Only test features that don't require 360 (available in both cohorts)
     import yaml
+
     with open(_ROOT / "configs" / "features.yaml", encoding="utf-8") as f:
         registry = yaml.safe_load(f)
 
@@ -261,12 +257,12 @@ def domain_validity_checks(df: pd.DataFrame) -> list[dict]:
     violations = []
 
     checks = [
-        ("x_location",         lambda s: s.between(0, 105),          "x_location ∈ [0, 105]"),
-        ("y_location",         lambda s: s.between(0, 68),           "y_location ∈ [0, 68]"),
-        ("distance_to_goal",   lambda s: s.between(0, 120),          "distance_to_goal ∈ [0, 120]"),
-        ("shot_angle",         lambda s: s.between(0, np.pi),        "shot_angle ∈ [0, π]"),
-        ("pass_length",        lambda s: s >= 0,                     "pass_length ≥ 0"),
-        ("carry_distance",     lambda s: s >= 0,                     "carry_distance ≥ 0"),
+        ("x_location", lambda s: s.between(0, 105), "x_location ∈ [0, 105]"),
+        ("y_location", lambda s: s.between(0, 68), "y_location ∈ [0, 68]"),
+        ("distance_to_goal", lambda s: s.between(0, 120), "distance_to_goal ∈ [0, 120]"),
+        ("shot_angle", lambda s: s.between(0, np.pi), "shot_angle ∈ [0, π]"),
+        ("pass_length", lambda s: s >= 0, "pass_length ≥ 0"),
+        ("carry_distance", lambda s: s >= 0, "carry_distance ≥ 0"),
     ]
 
     for col, check_fn, desc in checks:
@@ -275,12 +271,14 @@ def domain_validity_checks(df: pd.DataFrame) -> list[dict]:
         series = pd.to_numeric(df[col], errors="coerce").dropna()
         bad = (~check_fn(series)).sum()
         if bad > 0:
-            violations.append({
-                "check": desc,
-                "column": col,
-                "violation_count": int(bad),
-                "violation_fraction": round(float(bad) / len(series), 4),
-            })
+            violations.append(
+                {
+                    "check": desc,
+                    "column": col,
+                    "violation_count": int(bad),
+                    "violation_fraction": round(float(bad) / len(series), 4),
+                }
+            )
             logger.warning("  VIOLATION: %s — %d rows", desc, bad)
         else:
             logger.info("  OK: %s", desc)
@@ -291,7 +289,7 @@ def domain_validity_checks(df: pd.DataFrame) -> list[dict]:
     d10 = "defenders_within_10m"
     if {d3, d5, d10}.issubset(df.columns):
         sub = df[[d3, d5, d10]].dropna()
-        for (col_a, col_b, desc) in [
+        for col_a, col_b, desc in [
             (d3, d5, "defenders_within_3m ≤ defenders_within_5m"),
             (d5, d10, "defenders_within_5m ≤ defenders_within_10m"),
         ]:
@@ -299,12 +297,14 @@ def domain_validity_checks(df: pd.DataFrame) -> list[dict]:
             b = pd.to_numeric(sub[col_b], errors="coerce")
             bad = int((a > b).sum())
             if bad > 0:
-                violations.append({
-                    "check": desc,
-                    "column": f"{col_a}, {col_b}",
-                    "violation_count": bad,
-                    "violation_fraction": round(bad / len(sub), 4),
-                })
+                violations.append(
+                    {
+                        "check": desc,
+                        "column": f"{col_a}, {col_b}",
+                        "violation_count": bad,
+                        "violation_fraction": round(bad / len(sub), 4),
+                    }
+                )
                 logger.warning("  VIOLATION: %s — %d rows", desc, bad)
             else:
                 logger.info("  OK: %s", desc)

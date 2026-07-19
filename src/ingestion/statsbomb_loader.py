@@ -14,21 +14,21 @@ from __future__ import annotations
 import gzip
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+
 def _get_sb():
     """Lazy import of statsbombpy.sb — fails only when actually called."""
     try:
         from statsbombpy import sb  # noqa: PLC0415
+
         return sb
     except ImportError as exc:
-        raise ImportError(
-            "statsbombpy is required. Install with: poetry install"
-        ) from exc
+        raise ImportError("statsbombpy is required. Install with: poetry install") from exc
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,7 @@ def _save_cache(path: Path, data: Any) -> None:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def load_competitions(force_reload: bool = False) -> pd.DataFrame:
     """Return all StatsBomb Open Data competitions as a DataFrame."""

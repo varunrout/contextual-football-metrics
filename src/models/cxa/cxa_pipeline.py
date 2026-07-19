@@ -61,8 +61,8 @@ _PASSTHROUGH_COLS = [
     "y_location",
     "minute",
     "home_or_away",
-    "shot_created",           # observed label (where available)
-    "resulting_shot_cxg",     # observed quality  (where available)
+    "shot_created",  # observed label (where available)
+    "resulting_shot_cxg",  # observed quality  (where available)
     "score_state",
     "transition_or_settled",
 ]
@@ -71,6 +71,7 @@ _PASSTHROUGH_COLS = [
 @dataclass
 class CxADecompositionRecord:
     """Structured decomposition for a single creative action."""
+
     event_id: str | None
     player_id: str | None
     team_id: str | None
@@ -80,9 +81,9 @@ class CxADecompositionRecord:
     p_shot_created: float
     expected_cxg_if_shot: float
     cxa: float
-    realised_cxa: float | None          # = resulting_shot_cxg if shot followed, else None
+    realised_cxa: float | None  # = resulting_shot_cxg if shot followed, else None
     sequence_type: str | None
-    opponent_adjustment_delta: float    # difference vs. opponent-agnostic expected CxG
+    opponent_adjustment_delta: float  # difference vs. opponent-agnostic expected CxG
     x_location: float | None
     y_location: float | None
     minute: float | None
@@ -106,7 +107,7 @@ class CxAPipeline:
     # ── Construction helpers ──────────────────────────────────────────────────
 
     @classmethod
-    def from_models(cls, creation_model, quality_model) -> "CxAPipeline":
+    def from_models(cls, creation_model, quality_model) -> CxAPipeline:
         """Construct from two already-fitted model objects."""
         return cls(creation_model, quality_model)
 
@@ -115,7 +116,7 @@ class CxAPipeline:
         actions_df: pd.DataFrame,
         creation_target: str = "shot_created",
         quality_target: str = "resulting_shot_cxg",
-    ) -> "CxAPipeline":
+    ) -> CxAPipeline:
         """
         Fit both stages on the supplied actions DataFrame.
 
@@ -226,23 +227,33 @@ class CxAPipeline:
         scored = self.score(actions_df)
         records = []
         for _, row in scored.iterrows():
-            records.append(CxADecompositionRecord(
-                event_id=row.get("event_id"),
-                player_id=row.get("player_id"),
-                team_id=row.get("team_id"),
-                match_id=row.get("match_id"),
-                possession_id=row.get("possession_id"),
-                action_type=str(row.get("action_type", "")),
-                p_shot_created=float(row["p_shot_created"]),
-                expected_cxg_if_shot=float(row["expected_cxg_if_shot"]),
-                cxa=float(row["cxa"]),
-                realised_cxa=float(row["realised_cxa"]) if not pd.isna(row.get("realised_cxa")) else None,
-                sequence_type=row.get("sequence_type"),
-                opponent_adjustment_delta=float(row.get("opponent_adjustment_delta", 0.0)),
-                x_location=float(row["x_location"]) if "x_location" in row and pd.notna(row["x_location"]) else None,
-                y_location=float(row["y_location"]) if "y_location" in row and pd.notna(row["y_location"]) else None,
-                minute=float(row["minute"]) if "minute" in row and pd.notna(row["minute"]) else None,
-            ))
+            records.append(
+                CxADecompositionRecord(
+                    event_id=row.get("event_id"),
+                    player_id=row.get("player_id"),
+                    team_id=row.get("team_id"),
+                    match_id=row.get("match_id"),
+                    possession_id=row.get("possession_id"),
+                    action_type=str(row.get("action_type", "")),
+                    p_shot_created=float(row["p_shot_created"]),
+                    expected_cxg_if_shot=float(row["expected_cxg_if_shot"]),
+                    cxa=float(row["cxa"]),
+                    realised_cxa=float(row["realised_cxa"])
+                    if not pd.isna(row.get("realised_cxa"))
+                    else None,
+                    sequence_type=row.get("sequence_type"),
+                    opponent_adjustment_delta=float(row.get("opponent_adjustment_delta", 0.0)),
+                    x_location=float(row["x_location"])
+                    if "x_location" in row and pd.notna(row["x_location"])
+                    else None,
+                    y_location=float(row["y_location"])
+                    if "y_location" in row and pd.notna(row["y_location"])
+                    else None,
+                    minute=float(row["minute"])
+                    if "minute" in row and pd.notna(row["minute"])
+                    else None,
+                )
+            )
         return records
 
     # ── MLflow logging ────────────────────────────────────────────────────────
@@ -267,26 +278,34 @@ class CxAPipeline:
         if hasattr(self.creation_model, "evaluate") and creation_target in actions_df.columns:
             with mlflow.start_run(run_name=creation_run_name):
                 m = self.creation_model.evaluate(actions_df, creation_target)
-                mlflow.log_metrics({
-                    "log_loss": m.log_loss,
-                    "brier": m.brier,
-                    **({} if m.auc is None else {"auc": m.auc}),
-                    **({} if m.pr_auc is None else {"pr_auc": m.pr_auc}),
-                })
+                mlflow.log_metrics(
+                    {
+                        "log_loss": m.log_loss,
+                        "brier": m.brier,
+                        **({} if m.auc is None else {"auc": m.auc}),
+                        **({} if m.pr_auc is None else {"pr_auc": m.pr_auc}),
+                    }
+                )
                 mlflow.log_param("model_class", type(self.creation_model).__name__)
 
         # Stage 2
         shot_df = actions_df[
             actions_df.get(quality_target, pd.Series(0.0, index=actions_df.index)) > 0
         ]
-        if hasattr(self.quality_model, "evaluate") and not shot_df.empty and quality_target in shot_df.columns:
+        if (
+            hasattr(self.quality_model, "evaluate")
+            and not shot_df.empty
+            and quality_target in shot_df.columns
+        ):
             with mlflow.start_run(run_name=quality_run_name):
                 m = self.quality_model.evaluate(shot_df, quality_target)
-                mlflow.log_metrics({
-                    "mae": m.mae,
-                    "rmse": m.rmse,
-                    **({} if m.spearman is None else {"spearman": m.spearman}),
-                })
+                mlflow.log_metrics(
+                    {
+                        "mae": m.mae,
+                        "rmse": m.rmse,
+                        **({} if m.spearman is None else {"spearman": m.spearman}),
+                    }
+                )
                 mlflow.log_param("model_class", type(self.quality_model).__name__)
 
     # ── Persistence ───────────────────────────────────────────────────────────
@@ -297,6 +316,6 @@ class CxAPipeline:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "CxAPipeline":
+    def load(cls, path: str | Path) -> CxAPipeline:
         with open(path, "rb") as f:
             return pickle.load(f)

@@ -14,9 +14,7 @@ No 360 data is required here — sequence features are available for all competi
 from __future__ import annotations
 
 import logging
-import math
 
-import numpy as np
 import pandas as pd
 
 from src.ingestion.provider_mapper import normalise_x, normalise_y
@@ -28,10 +26,10 @@ _DEF_THIRD_MAX_X = 35.0
 _ATK_THIRD_MIN_X = 70.0
 _CENTRAL_Y_MIN = 27.0
 _CENTRAL_Y_MAX = 41.0
-_BOX_X_MIN = 88.5        # ~18-yard box start
+_BOX_X_MIN = 88.5  # ~18-yard box start
 _BOX_Y_MIN = 13.84
 _BOX_Y_MAX = 54.16
-_WIDE_Y_BYLINE_RANGE = 10.0   # within 10m of touchline counts as wide/byline
+_WIDE_Y_BYLINE_RANGE = 10.0  # within 10m of touchline counts as wide/byline
 
 
 def zone_from_x(x: float) -> str:
@@ -56,6 +54,7 @@ def is_wide_byline(x: float, y: float) -> bool:
 
 
 # ── Per-possession feature computation ───────────────────────────────────────
+
 
 def compute_sequence_features(
     possessions_df: pd.DataFrame,
@@ -83,19 +82,25 @@ def compute_sequence_features(
     # Normalise coordinates if raw StatsBomb columns present
     if not events_indexed.empty and "location" in events_indexed.columns:
         events_indexed[["x", "y"]] = pd.DataFrame(
-            events_indexed["location"].apply(
+            events_indexed["location"]
+            .apply(
                 lambda loc: (
                     (normalise_x(loc[0]), normalise_y(loc[1]))
                     if isinstance(loc, list) and len(loc) >= 2
                     else (float("nan"), float("nan"))
                 )
-            ).tolist(),
+            )
+            .tolist(),
             index=events_indexed.index,
         )
 
     # Pre-group by (match_internal_id, possession) for O(1) lookup per possession
     poss_event_groups: dict[tuple, pd.DataFrame] = {}
-    if not events_indexed.empty and "match_internal_id" in events_indexed.columns and "possession" in events_indexed.columns:
+    if (
+        not events_indexed.empty
+        and "match_internal_id" in events_indexed.columns
+        and "possession" in events_indexed.columns
+    ):
         for key, grp in events_indexed.sort_values("index").groupby(
             ["match_internal_id", "possession"], sort=False
         ):
@@ -140,7 +145,6 @@ def _compute_single_possession_features(poss: pd.Series, events: pd.DataFrame) -
 
     # Possession start zone
     start_x = float(poss.get("start_x", 0.0))
-    start_y = float(poss.get("start_y", 0.0))
     feats["possession_start_zone"] = zone_from_x(start_x)
     feats["regain_zone"] = poss.get("regain_zone", "mid_third")
 
@@ -162,7 +166,9 @@ def _compute_single_possession_features(poss: pd.Series, events: pd.DataFrame) -
     feats["final_pass_zone"] = _final_pass_zone(events)
 
     # Phase of play
-    feats["phase_of_play"] = _phase_of_play(start_x, feats["directness"], feats["vertical_progression_speed"])
+    feats["phase_of_play"] = _phase_of_play(
+        start_x, feats["directness"], feats["vertical_progression_speed"]
+    )
 
     # Transition vs settled
     feats["transition_or_settled"] = (
@@ -202,7 +208,12 @@ def _count_switches(events: pd.DataFrame) -> int:
         pass_data = row.get("pass", {}) or {}
         end_loc = pass_data.get("end_location") if isinstance(pass_data, dict) else None
         loc = row.get("location")
-        if isinstance(loc, list) and len(loc) >= 2 and isinstance(end_loc, list) and len(end_loc) >= 2:
+        if (
+            isinstance(loc, list)
+            and len(loc) >= 2
+            and isinstance(end_loc, list)
+            and len(end_loc) >= 2
+        ):
             dy = abs(normalise_y(end_loc[1]) - normalise_y(loc[1]))
             if dy > 25.0:
                 count += 1

@@ -17,21 +17,23 @@ ACCENT = "#2A9D8F"
 
 # ── Loaders ──────────────────────────────────────────────────────────────────
 
+
 @st.cache_data(show_spinner="Loading scored events…")
 def load_data() -> pd.DataFrame:
     scored = pd.read_parquet(SCORED_PATH)
     events = pd.read_parquet(EVENTS_PATH)
 
     extra = [
-        c for c in ["internal_id", "player", "team", "minute", "second"]
-        if c in events.columns
+        c for c in ["internal_id", "player", "team", "minute", "second"] if c in events.columns
     ]
     if "event_id" in scored.columns and "internal_id" in extra:
-        ev_small = events[extra].rename(columns={
-            "internal_id": "event_id",
-            "player": "player_name",
-            "team": "team_name",
-        })
+        ev_small = events[extra].rename(
+            columns={
+                "internal_id": "event_id",
+                "player": "player_name",
+                "team": "team_name",
+            }
+        )
         scored = scored.merge(ev_small, on="event_id", how="left")
 
     def _clean(series: pd.Series, fallback: pd.Series) -> pd.Series:
@@ -69,6 +71,7 @@ def player_minutes(scored: pd.DataFrame) -> pd.DataFrame:
 
 # ── Aggregations ─────────────────────────────────────────────────────────────
 
+
 def cxg_player_table(scored: pd.DataFrame, top_n: int) -> pd.DataFrame:
     shots = scored[scored["event_type"] == "shot"].copy()
     if shots.empty:
@@ -95,9 +98,8 @@ def _per_90_table(
     actions = scored[scored[value_col].notna()].copy()
     if actions.empty:
         return pd.DataFrame()
-    g = (
-        actions.groupby(["player_id", "player_name"], as_index=False)
-        .agg(actions=("event_id", "count"), value=(value_col, "sum"))
+    g = actions.groupby(["player_id", "player_name"], as_index=False).agg(
+        actions=("event_id", "count"), value=(value_col, "sum")
     )
     g = g.merge(mins[["player_id", "minutes"]], on="player_id", how="left")
     g = g[g["minutes"] >= min_minutes]
@@ -126,6 +128,7 @@ def team_summary(scored: pd.DataFrame) -> pd.DataFrame:
 
 # ── UI ───────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     st.set_page_config(page_title="Contextual Football Metrics", page_icon="⚽", layout="wide")
 
@@ -145,13 +148,15 @@ def main() -> None:
         scored = scored[scored["team_name"].isin(team_filter)].copy()
         mins = player_minutes(scored)
 
-    tabs = st.tabs([
-        "CxG Leaderboard",
-        "CxA Leaderboard",
-        "CxT Leaderboard",
-        "Player Profile",
-        "Match Report",
-    ])
+    tabs = st.tabs(
+        [
+            "CxG Leaderboard",
+            "CxA Leaderboard",
+            "CxT Leaderboard",
+            "Player Profile",
+            "Match Report",
+        ]
+    )
 
     # ── CxG ──
     with tabs[0]:

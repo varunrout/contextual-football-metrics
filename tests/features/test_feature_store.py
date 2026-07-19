@@ -14,7 +14,7 @@ def _events_df() -> pd.DataFrame:
                 "possession_internal_id": "p1",
                 "team_internal_id": "t1",
                 "player_internal_id": "pl1",
-                "event_type": "pass",
+                "action_type": "pass",
                 "index": 1,
                 "period": 1,
                 "timestamp": 10.0,
@@ -39,7 +39,7 @@ def _events_df() -> pd.DataFrame:
                 "possession_internal_id": "p1",
                 "team_internal_id": "t2",
                 "player_internal_id": "pl2",
-                "event_type": "shot",
+                "action_type": "shot",
                 "index": 2,
                 "period": 1,
                 "timestamp": 20.0,
@@ -87,9 +87,30 @@ def _possessions_df() -> pd.DataFrame:
 def _frames_df() -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": False, "keeper": False, "x": 70.0, "y": 30.0},
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": False, "keeper": True, "x": 102.0, "y": 34.0},
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": True, "keeper": False, "x": 80.0, "y": 32.0},
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": False,
+                "keeper": False,
+                "x": 70.0,
+                "y": 30.0,
+            },
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": False,
+                "keeper": True,
+                "x": 102.0,
+                "y": 34.0,
+            },
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": True,
+                "keeper": False,
+                "x": 80.0,
+                "y": 32.0,
+            },
         ]
     )
 

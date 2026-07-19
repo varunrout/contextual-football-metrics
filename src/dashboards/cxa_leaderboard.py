@@ -51,6 +51,7 @@ def _safe_get(row: pd.Series, col: str, default=None):
 
 # ── Player leaderboard ────────────────────────────────────────────────────────
 
+
 def build_player_leaderboard(
     scored_df: pd.DataFrame,
     minutes_df: pd.DataFrame | None = None,
@@ -99,7 +100,7 @@ def build_player_leaderboard(
 
     rows = []
     for player_id, grp in grouped:
-        m = float(mins.get(player_id, len(grp) * 1.5))   # fallback: very rough
+        m = float(mins.get(player_id, len(grp) * 1.5))  # fallback: very rough
         if m < min_minutes:
             continue
 
@@ -125,14 +126,18 @@ def build_player_leaderboard(
 
         # Transition
         trans_mask = (
-            grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "transition"
-        ) if "transition_or_settled" in grp.columns else pd.Series(False, index=grp.index)
+            (grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "transition")
+            if "transition_or_settled" in grp.columns
+            else pd.Series(False, index=grp.index)
+        )
         cxa_transition = float(grp.loc[trans_mask, "cxa"].sum())
 
         # Settled
         settled_mask = (
-            grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "settled"
-        ) if "transition_or_settled" in grp.columns else pd.Series(False, index=grp.index)
+            (grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "settled")
+            if "transition_or_settled" in grp.columns
+            else pd.Series(False, index=grp.index)
+        )
         cxa_settled = float(grp.loc[settled_mask, "cxa"].sum())
 
         # Against elite
@@ -147,35 +152,45 @@ def build_player_leaderboard(
 
         # Avg resulting CxG (only for actions where p_shot_created > 0)
         positive = grp[grp["p_shot_created"] > 0]
-        avg_resulting_cxg = float(positive["expected_cxg_if_shot"].mean()) if not positive.empty else np.nan
+        avg_resulting_cxg = (
+            float(positive["expected_cxg_if_shot"].mean()) if not positive.empty else np.nan
+        )
 
         # CxA_minus_xA
         if baseline_xa_df is not None:
             xa_lookup = baseline_xa_df.set_index("player_id")
-            xA_total = float(xa_lookup.loc[player_id, "xA_total"]) if player_id in xa_lookup.index else 0.0
+            xA_total = (
+                float(xa_lookup.loc[player_id, "xA_total"]) if player_id in xa_lookup.index else 0.0
+            )
             cxa_minus_xa = _per_90(total_cxa - xA_total, m)
         else:
             cxa_minus_xa = np.nan
 
-        rows.append({
-            "player_id": player_id,
-            "minutes_played": m,
-            "n_creative_actions": n_actions,
-            "CxA_total": round(total_cxa, 4),
-            "CxA_per_90": round(_per_90(total_cxa, m), 4),
-            "CxA_open_play": round(cxa_open_play, 4),
-            "CxA_open_play_per_90": round(_per_90(cxa_open_play, m), 4),
-            "CxA_cutbacks": round(cxa_cutbacks, 4),
-            "CxA_cutbacks_per_90": round(_per_90(cxa_cutbacks, m), 4),
-            "CxA_transition": round(cxa_transition, 4),
-            "CxA_transition_per_90": round(_per_90(cxa_transition, m), 4),
-            "CxA_settled": round(cxa_settled, 4),
-            "CxA_settled_per_90": round(_per_90(cxa_settled, m), 4),
-            "CxA_against_elite": round(cxa_elite, 4) if not np.isnan(cxa_elite) else np.nan,
-            "CxA_minus_xA_per_90": round(cxa_minus_xa, 4) if not np.isnan(cxa_minus_xa) else np.nan,
-            "shot_creation_prob_per_90": round(sc_prob_per_90, 4),
-            "avg_resulting_CxG": round(avg_resulting_cxg, 4) if not np.isnan(avg_resulting_cxg) else np.nan,
-        })
+        rows.append(
+            {
+                "player_id": player_id,
+                "minutes_played": m,
+                "n_creative_actions": n_actions,
+                "CxA_total": round(total_cxa, 4),
+                "CxA_per_90": round(_per_90(total_cxa, m), 4),
+                "CxA_open_play": round(cxa_open_play, 4),
+                "CxA_open_play_per_90": round(_per_90(cxa_open_play, m), 4),
+                "CxA_cutbacks": round(cxa_cutbacks, 4),
+                "CxA_cutbacks_per_90": round(_per_90(cxa_cutbacks, m), 4),
+                "CxA_transition": round(cxa_transition, 4),
+                "CxA_transition_per_90": round(_per_90(cxa_transition, m), 4),
+                "CxA_settled": round(cxa_settled, 4),
+                "CxA_settled_per_90": round(_per_90(cxa_settled, m), 4),
+                "CxA_against_elite": round(cxa_elite, 4) if not np.isnan(cxa_elite) else np.nan,
+                "CxA_minus_xA_per_90": round(cxa_minus_xa, 4)
+                if not np.isnan(cxa_minus_xa)
+                else np.nan,
+                "shot_creation_prob_per_90": round(sc_prob_per_90, 4),
+                "avg_resulting_CxG": round(avg_resulting_cxg, 4)
+                if not np.isnan(avg_resulting_cxg)
+                else np.nan,
+            }
+        )
 
     if not rows:
         return pd.DataFrame()
@@ -186,6 +201,7 @@ def build_player_leaderboard(
 
 
 # ── Team leaderboard ──────────────────────────────────────────────────────────
+
 
 def build_team_leaderboard(
     scored_df: pd.DataFrame,
@@ -239,26 +255,34 @@ def build_team_leaderboard(
 
         # Transition vs settled
         trans_mask = (
-            grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "transition"
-        ) if "transition_or_settled" in grp.columns else pd.Series(False, index=grp.index)
+            (grp.get("transition_or_settled", pd.Series("", index=grp.index)) == "transition")
+            if "transition_or_settled" in grp.columns
+            else pd.Series(False, index=grp.index)
+        )
         cxa_trans = float(grp.loc[trans_mask, "cxa"].sum())
         cxa_settled = float(grp.loc[~trans_mask, "cxa"].sum())
 
-        rows.append({
-            "team_id": team_id,
-            "minutes_played": m,
-            "n_creative_actions": len(grp),
-            "CxA_total": round(total_cxa, 4),
-            "CxA_per_90": round(_per_90(total_cxa, m), 4),
-            "CxA_passes_per_90": round(_per_90(by_type.get("pass", 0.0) + by_type.get("cross", 0.0), m), 4),
-            "CxA_carries_per_90": round(_per_90(by_type.get("carry", 0.0), m), 4),
-            "CxA_cutbacks_per_90": round(_per_90(by_type.get("cutback", 0.0), m), 4),
-            "CxA_transition_per_90": round(_per_90(cxa_trans, m), 4),
-            "CxA_settled_per_90": round(_per_90(cxa_settled, m), 4),
-            "avg_resulting_CxG": round(
-                float(grp[grp["p_shot_created"] > 0]["expected_cxg_if_shot"].mean()), 4
-            ) if (grp["p_shot_created"] > 0).any() else np.nan,
-        })
+        rows.append(
+            {
+                "team_id": team_id,
+                "minutes_played": m,
+                "n_creative_actions": len(grp),
+                "CxA_total": round(total_cxa, 4),
+                "CxA_per_90": round(_per_90(total_cxa, m), 4),
+                "CxA_passes_per_90": round(
+                    _per_90(by_type.get("pass", 0.0) + by_type.get("cross", 0.0), m), 4
+                ),
+                "CxA_carries_per_90": round(_per_90(by_type.get("carry", 0.0), m), 4),
+                "CxA_cutbacks_per_90": round(_per_90(by_type.get("cutback", 0.0), m), 4),
+                "CxA_transition_per_90": round(_per_90(cxa_trans, m), 4),
+                "CxA_settled_per_90": round(_per_90(cxa_settled, m), 4),
+                "avg_resulting_CxG": round(
+                    float(grp[grp["p_shot_created"] > 0]["expected_cxg_if_shot"].mean()), 4
+                )
+                if (grp["p_shot_created"] > 0).any()
+                else np.nan,
+            }
+        )
 
     if not rows:
         return pd.DataFrame()

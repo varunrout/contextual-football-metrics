@@ -19,7 +19,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -41,8 +41,8 @@ from src.evaluation.interpretability import (
     run_ablation_study,
 )
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _rng(seed: int = 0) -> np.random.Generator:
     return np.random.default_rng(seed)
@@ -50,25 +50,29 @@ def _rng(seed: int = 0) -> np.random.Generator:
 
 def _make_clf_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
     rng = _rng(seed)
-    return pd.DataFrame({
-        "distance_to_goal": rng.uniform(5, 35, n),
-        "in_box": rng.integers(0, 2, n).astype(float),
-        "under_pressure": rng.integers(0, 2, n).astype(float),
-        "is_central": rng.integers(0, 2, n).astype(float),
-        "progressive_distance": rng.uniform(0, 20, n),
-        "goal": rng.integers(0, 2, n).astype(float),
-    })
+    return pd.DataFrame(
+        {
+            "distance_to_goal": rng.uniform(5, 35, n),
+            "in_box": rng.integers(0, 2, n).astype(float),
+            "under_pressure": rng.integers(0, 2, n).astype(float),
+            "is_central": rng.integers(0, 2, n).astype(float),
+            "progressive_distance": rng.uniform(0, 20, n),
+            "goal": rng.integers(0, 2, n).astype(float),
+        }
+    )
 
 
 def _make_reg_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
     rng = _rng(seed)
-    return pd.DataFrame({
-        "distance_to_goal": rng.uniform(5, 35, n),
-        "in_box": rng.integers(0, 2, n).astype(float),
-        "under_pressure": rng.integers(0, 2, n).astype(float),
-        "progressive_distance": rng.uniform(0, 20, n),
-        "possession_cxg": rng.uniform(0, 0.3, n),
-    })
+    return pd.DataFrame(
+        {
+            "distance_to_goal": rng.uniform(5, 35, n),
+            "in_box": rng.integers(0, 2, n).astype(float),
+            "under_pressure": rng.integers(0, 2, n).astype(float),
+            "progressive_distance": rng.uniform(0, 20, n),
+            "possession_cxg": rng.uniform(0, 0.3, n),
+        }
+    )
 
 
 def _fit_logreg(df: pd.DataFrame, feature_cols: list[str], target: str = "goal"):
@@ -90,26 +94,31 @@ def _fit_linreg(df: pd.DataFrame, feature_cols: list[str], target: str = "posses
 def _fit_pipeline_logreg(df: pd.DataFrame, feature_cols: list[str], target: str = "goal"):
     X = df[feature_cols]
     y = df[target].values
-    pipe = Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=500, random_state=0))])
+    pipe = Pipeline(
+        [("scaler", StandardScaler()), ("clf", LogisticRegression(max_iter=500, random_state=0))]
+    )
     pipe.fit(X, y)
     return pipe
 
 
 def _make_scored_df(n: int = 300, n_matches: int = 10, seed: int = 0) -> pd.DataFrame:
     rng = _rng(seed)
-    return pd.DataFrame({
-        "match_id": [f"m{i % n_matches}" for i in range(n)],
-        "player_id": [f"p{i % 15}" for i in range(n)],
-        "team_id": [f"t{i % 2}" for i in range(n)],
-        "cxg": rng.uniform(0, 0.3, n),
-        "cxa": rng.uniform(0, 0.2, n),
-        "cxt": rng.uniform(-0.05, 0.15, n),
-    })
+    return pd.DataFrame(
+        {
+            "match_id": [f"m{i % n_matches}" for i in range(n)],
+            "player_id": [f"p{i % 15}" for i in range(n)],
+            "team_id": [f"t{i % 2}" for i in range(n)],
+            "cxg": rng.uniform(0, 0.3, n),
+            "cxa": rng.uniform(0, 0.2, n),
+            "cxt": rng.uniform(-0.05, 0.15, n),
+        }
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SHAPResult
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestSHAPResult:
     def _make(self, n: int = 50, k: int = 4) -> SHAPResult:
@@ -171,6 +180,7 @@ class TestSHAPResult:
 # DirectionCheckResult
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestDirectionCheckResult:
     def test_passed_true_when_no_violations(self):
         result = DirectionCheckResult(violations=[], n_checked=3, n_violations=0, pass_rate=1.0)
@@ -185,6 +195,7 @@ class TestDirectionCheckResult:
 # ═══════════════════════════════════════════════════════════════════════════════
 # AblationEntry and AblationResult
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestAblationResult:
     def _make(self) -> AblationResult:
@@ -205,8 +216,14 @@ class TestAblationResult:
 
     def test_to_dataframe_columns(self):
         df = self._make().to_dataframe()
-        for col in ("group", "features_removed", "baseline_metric", "ablated_metric",
-                    "degradation", "relative_degradation"):
+        for col in (
+            "group",
+            "features_removed",
+            "baseline_metric",
+            "ablated_metric",
+            "degradation",
+            "relative_degradation",
+        ):
             assert col in df.columns
 
     def test_most_important_group(self):
@@ -226,6 +243,7 @@ class TestAblationResult:
 # ═══════════════════════════════════════════════════════════════════════════════
 # _get_named_coefficients
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestGetNamedCoefficients:
     def test_bare_logistic_regression(self):
@@ -253,6 +271,7 @@ class TestGetNamedCoefficients:
     def test_raises_for_unsupported_model(self):
         class _NoCoefs:
             pass
+
         with pytest.raises(ValueError, match="Cannot extract coefficients"):
             _get_named_coefficients(_NoCoefs(), ["a", "b"])
 
@@ -268,6 +287,7 @@ class TestGetNamedCoefficients:
 # ═══════════════════════════════════════════════════════════════════════════════
 # check_coefficient_directions
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestCheckCoefficientDirections:
     def test_no_violations_when_signs_correct(self):
@@ -343,6 +363,7 @@ class TestCheckCoefficientDirections:
     def test_raises_for_unsupported_model(self):
         class _NoCoefs:
             pass
+
         with pytest.raises(ValueError):
             check_coefficient_directions(_NoCoefs(), ["a"])
 
@@ -350,6 +371,7 @@ class TestCheckCoefficientDirections:
 # ═══════════════════════════════════════════════════════════════════════════════
 # run_ablation_study
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestRunAblationStudy:
     @pytest.fixture(scope="class")
@@ -377,51 +399,60 @@ class TestRunAblationStudy:
 
     def test_returns_ablation_result(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
-        result = run_ablation_study(model, df, "goal", "classification", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups, feature_cols=feat_cols
+        )
         assert isinstance(result, AblationResult)
 
     def test_classification_uses_log_loss(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
-        result = run_ablation_study(model, df, "goal", "classification", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups, feature_cols=feat_cols
+        )
         assert result.metric_name == "log_loss"
 
     def test_regression_uses_mae(self, reg_setup):
         model, df, feat_cols, groups = reg_setup
-        result = run_ablation_study(model, df, "possession_cxg", "regression", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "possession_cxg", "regression", groups, feature_cols=feat_cols
+        )
         assert result.metric_name == "mae"
 
     def test_entries_count_matches_groups(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
-        result = run_ablation_study(model, df, "goal", "classification", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups, feature_cols=feat_cols
+        )
         assert len(result.entries) == len(groups)
 
     def test_missing_feature_group_skipped(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
         groups_with_missing = dict(groups)
         groups_with_missing["nonexistent_group"] = ["col_does_not_exist"]
-        result = run_ablation_study(model, df, "goal", "classification",
-                                    groups_with_missing, feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups_with_missing, feature_cols=feat_cols
+        )
         group_names = {e.group_name for e in result.entries}
         assert "nonexistent_group" not in group_names
 
     def test_baseline_metric_stored(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
-        result = run_ablation_study(model, df, "goal", "classification", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups, feature_cols=feat_cols
+        )
         assert result.baseline_metric > 0
 
     def test_custom_metric_fn_used(self, reg_setup):
         model, df, feat_cols, groups = reg_setup
         from sklearn.metrics import mean_squared_error
+
         def mse(yt, yp):
             return float(mean_squared_error(yt, yp))
+
         mse.__name__ = "mse"
-        result = run_ablation_study(model, df, "possession_cxg", "regression", groups,
-                                    metric_fn=mse, feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "possession_cxg", "regression", groups, metric_fn=mse, feature_cols=feat_cols
+        )
         assert result.metric_name == "mse"
 
     def test_invalid_task_type_raises(self, clf_setup):
@@ -431,8 +462,9 @@ class TestRunAblationStudy:
 
     def test_removing_important_feature_degrades_metric(self, clf_setup):
         model, df, feat_cols, groups = clf_setup
-        result = run_ablation_study(model, df, "goal", "classification", groups,
-                                    feature_cols=feat_cols)
+        result = run_ablation_study(
+            model, df, "goal", "classification", groups, feature_cols=feat_cols
+        )
         # At least one group should cause positive degradation (metric gets worse)
         degradations = [e.degradation for e in result.entries]
         assert max(degradations) > 0
@@ -441,6 +473,7 @@ class TestRunAblationStudy:
 # ═══════════════════════════════════════════════════════════════════════════════
 # build_match_report
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestBuildMatchReport:
     @pytest.fixture(scope="class")
@@ -505,6 +538,7 @@ class TestBuildMatchReport:
 # build_player_report
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestBuildPlayerReport:
     @pytest.fixture(scope="class")
     def scored_df(self):
@@ -539,13 +573,15 @@ class TestBuildPlayerReport:
         assert report.total_cxg == pytest.approx(expected)
 
     def test_cxt_handles_nan(self):
-        df = pd.DataFrame({
-            "player_id": ["p1", "p1", "p1"],
-            "match_id": ["m1", "m2", "m3"],
-            "cxg": [0.1, 0.2, 0.0],
-            "cxa": [0.05, 0.08, 0.0],
-            "cxt": [0.1, float("nan"), 0.3],
-        })
+        df = pd.DataFrame(
+            {
+                "player_id": ["p1", "p1", "p1"],
+                "match_id": ["m1", "m2", "m3"],
+                "cxg": [0.1, 0.2, 0.0],
+                "cxa": [0.05, 0.08, 0.0],
+                "cxt": [0.1, float("nan"), 0.3],
+            }
+        )
         report = build_player_report(df, "p1")
         assert report.total_cxt == pytest.approx(0.4)
 
@@ -555,11 +591,13 @@ class TestBuildPlayerReport:
 
     def test_vs_average_populated_with_league_df(self, scored_df):
         rng = _rng(0)
-        league_df = pd.DataFrame({
-            "player_id": [f"p{i}" for i in range(20)],
-            "cxg_per_90": rng.uniform(0.01, 0.3, 20),
-            "cxt_per_90": rng.uniform(0.01, 0.2, 20),
-        })
+        league_df = pd.DataFrame(
+            {
+                "player_id": [f"p{i}" for i in range(20)],
+                "cxg_per_90": rng.uniform(0.01, 0.3, 20),
+                "cxt_per_90": rng.uniform(0.01, 0.2, 20),
+            }
+        )
         report = build_player_report(scored_df, "p0", league_df=league_df)
         assert "cxg_per_90" in report.vs_average
         assert "cxt_per_90" in report.vs_average
@@ -570,11 +608,13 @@ class TestBuildPlayerReport:
 
     def test_top_features_populated_with_shap_df(self, scored_df):
         rng = _rng(0)
-        shap_df = pd.DataFrame({
-            "player_id": scored_df["player_id"].values,
-            "feature_a": rng.standard_normal(len(scored_df)),
-            "feature_b": rng.standard_normal(len(scored_df)),
-        })
+        shap_df = pd.DataFrame(
+            {
+                "player_id": scored_df["player_id"].values,
+                "feature_a": rng.standard_normal(len(scored_df)),
+                "feature_b": rng.standard_normal(len(scored_df)),
+            }
+        )
         report = build_player_report(scored_df, "p0", shap_df=shap_df)
         assert report.top_features is not None
         assert "feature" in report.top_features.columns
@@ -588,6 +628,7 @@ class TestBuildPlayerReport:
 # ═══════════════════════════════════════════════════════════════════════════════
 # build_interpretability_html
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 def _make_shap_result() -> SHAPResult:
     rng = _rng(0)
@@ -682,6 +723,7 @@ class TestBuildInterpretabilityHtml:
 # compute_shap_values — only tests if shap is NOT installed (ImportError guard)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestComputeShapValues:
     def test_raises_import_error_if_shap_missing(self):
         """
@@ -690,6 +732,7 @@ class TestComputeShapValues:
         """
         try:
             import shap  # noqa: F401
+
             pytest.skip("shap is installed — ImportError guard test not applicable")
         except ImportError:
             pass
@@ -705,6 +748,7 @@ class TestComputeShapValues:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Constant dictionaries
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestExpectedSignDicts:
     def test_cxg_distance_is_negative(self):

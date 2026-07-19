@@ -8,23 +8,25 @@ Outputs:
 - reports/model_comparison_cxg.json
 - reports/figures/model_comparison/01_cxg_model_metrics.png
 """
+
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
+import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import joblib
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import save_fig
-from src.evaluation.model_comparison import ModelComparisonSuite, ModelEntry
+from analysis._utils import save_fig  # noqa: E402
+from src.evaluation.model_comparison import ModelComparisonSuite, ModelEntry  # noqa: E402
 
 BARCA_BLUE = "#004D98"
 BARCA_RED = "#A50044"

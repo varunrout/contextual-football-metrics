@@ -1,0 +1,14 @@
+# Normalise all text files to LF in the repository. Working-tree checkout uses
+# the platform default, so this ends the CRLF/LF churn without forcing CRLF on
+# anyone. Binary types are marked so git never tries to normalise them.
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.parquet binary
+*.joblib  binary
+*.pkl     binary
+*.gz      binary
+*.zip     binary

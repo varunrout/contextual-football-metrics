@@ -11,18 +11,20 @@ import numpy as np
 import pandas as pd
 import yaml
 
-logger = logging.getLogger("feature_store")
-
 from src.features.freeze_frame_features import build_freeze_frame_features
 from src.features.match_context_features import build_match_context_features
 from src.features.opponent_features import build_opponent_features
-from src.features.sequence_labeler import label_possessions_dataframe
 from src.features.sequence_features import compute_sequence_features
+from src.features.sequence_labeler import label_possessions_dataframe
 from src.features.traditional_features import build_traditional_features
 
+logger = logging.getLogger("feature_store")
 
-def load_feature_registry(path: str | Path = "configs/features.yaml") -> dict[str, list[dict[str, Any]]]:
-    with open(path, "r", encoding="utf-8") as f:
+
+def load_feature_registry(
+    path: str | Path = "configs/features.yaml",
+) -> dict[str, list[dict[str, Any]]]:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return data
 
@@ -36,9 +38,13 @@ def _feature_specs(registry: dict[str, list[dict[str, Any]]]) -> list[dict[str, 
 
 def _opponent_lookup(events_df: pd.DataFrame, matches_df: pd.DataFrame | None) -> pd.DataFrame:
     rows = []
-    if matches_df is not None and not matches_df.empty and {
-        "internal_id", "home_team_internal_id", "away_team_internal_id"
-    }.issubset(matches_df.columns):
+    if (
+        matches_df is not None
+        and not matches_df.empty
+        and {"internal_id", "home_team_internal_id", "away_team_internal_id"}.issubset(
+            matches_df.columns
+        )
+    ):
         for _, row in matches_df.iterrows():
             mid = row["internal_id"]
             home = row["home_team_internal_id"]
@@ -181,10 +187,15 @@ def build_feature_store(
 
     if "type" not in events_for_sequence.columns and "action_type" in events_for_sequence.columns:
         _type_map = {
-            "pass": "Pass", "carry": "Carry", "shot": "Shot",
-            "pressure": "Pressure", "ball_receipt": "Ball Receipt*",
-            "dribble": "Dribble", "clearance": "Clearance",
-            "interception": "Interception", "foul_committed": "Foul Committed",
+            "pass": "Pass",
+            "carry": "Carry",
+            "shot": "Shot",
+            "pressure": "Pressure",
+            "ball_receipt": "Ball Receipt*",
+            "dribble": "Dribble",
+            "clearance": "Clearance",
+            "interception": "Interception",
+            "foul_committed": "Foul Committed",
         }
         _at_lower = events_for_sequence["action_type"].str.lower().fillna("")
         events_for_sequence["type"] = _at_lower.map(_type_map).fillna(
@@ -235,22 +246,34 @@ def build_feature_store(
     seq_join = ["match_internal_id", "possession_index"] + seq_feature_cols
     seq_join = [c for c in seq_join if c in seq_poss.columns]
     ev_poss_col = "possession" if "possession" in events_df.columns else None
-    if ev_poss_col and "match_internal_id" in events_df.columns and "possession_index" in seq_poss.columns:
-        seq_event = events_df[["internal_id", "match_internal_id", ev_poss_col]].merge(
-            seq_poss[seq_join],
-            left_on=["match_internal_id", ev_poss_col],
-            right_on=["match_internal_id", "possession_index"],
-            how="left",
-        ).drop(columns=["possession_index", "match_internal_id", ev_poss_col], errors="ignore")
+    if (
+        ev_poss_col
+        and "match_internal_id" in events_df.columns
+        and "possession_index" in seq_poss.columns
+    ):
+        seq_event = (
+            events_df[["internal_id", "match_internal_id", ev_poss_col]]
+            .merge(
+                seq_poss[seq_join],
+                left_on=["match_internal_id", ev_poss_col],
+                right_on=["match_internal_id", "possession_index"],
+                how="left",
+            )
+            .drop(columns=["possession_index", "match_internal_id", ev_poss_col], errors="ignore")
+        )
     else:
         # Fallback: try the old hash-based join
-        seq_event = events_df[["internal_id", "possession_internal_id"]].merge(
-            seq_poss[[c for c in seq_available]],
-            left_on="possession_internal_id",
-            right_on="internal_id",
-            how="left",
-            suffixes=("", "_poss"),
-        ).drop(columns=["internal_id_poss"], errors="ignore")
+        seq_event = (
+            events_df[["internal_id", "possession_internal_id"]]
+            .merge(
+                seq_poss[[c for c in seq_available]],
+                left_on="possession_internal_id",
+                right_on="internal_id",
+                how="left",
+                suffixes=("", "_poss"),
+            )
+            .drop(columns=["internal_id_poss"], errors="ignore")
+        )
     logger.info("  Step 5/5 — done (%.1fs, %d rows)", time.time() - t0, len(seq_event))
 
     logger.info("  Merging all feature blocks …")
@@ -266,7 +289,12 @@ def build_feature_store(
         merged = merged.merge(block, left_on="event_id", right_on=join_col, how="left")
         merged = merged.drop(columns=[join_col], errors="ignore")
 
-    logger.info("  Merging done (%.1fs) — %d rows, %d cols", time.time() - t0, len(merged), len(merged.columns))
+    logger.info(
+        "  Merging done (%.1fs) — %d rows, %d cols",
+        time.time() - t0,
+        len(merged),
+        len(merged.columns),
+    )
 
     logger.info("  Applying missing policies and dtype casts …")
     t0 = time.time()
@@ -287,7 +315,15 @@ def build_feature_store(
     logger.info("  Policies applied (%.1fs)", time.time() - t0)
 
     # Keep identifiers from config.
-    id_cols = ["player_id", "team_id", "opponent_id", "competition_id", "match_id", "possession_id", "event_id"]
+    id_cols = [
+        "player_id",
+        "team_id",
+        "opponent_id",
+        "competition_id",
+        "match_id",
+        "possession_id",
+        "event_id",
+    ]
     front = [c for c in id_cols if c in merged.columns]
     rest = [c for c in merged.columns if c not in front]
     return merged[front + rest]

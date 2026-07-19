@@ -24,30 +24,21 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from typing import Any, Optional
-
-import pandas as pd
+from typing import Any
 
 from src.ingestion.schema import (
     BodyPart,
     CarryEvent,
-    Competition,
-    Domain,
     Event,
     EventType,
     FreezeFrame360,
-    Lineup,
     Match,
     PassEvent,
     PassHeight,
     Player,
-    Possession,
     Provider,
-    Region,
-    SequenceType,
     SetPieceType,
     ShotEvent,
-    SplitRole,
     Team,
 )
 
@@ -82,6 +73,7 @@ def normalise_coords(loc: list[float] | None) -> tuple[float, float]:
 
 
 # ── ID generation ─────────────────────────────────────────────────────────────
+
 
 def make_internal_id(provider: Provider, *keys: Any) -> str:
     """Stable 16-hex-char ID: sha256(provider:key1:key2:…)[:16]."""
@@ -165,12 +157,13 @@ def _safe_get(d: dict, *keys: str, default: Any = None) -> Any:
 
 # ── Row-level mappers ─────────────────────────────────────────────────────────
 
+
 def map_event_row(
     row: dict[str, Any],
     match_internal_id: str,
     possession_internal_id: str,
     team_internal_id: str,
-    player_internal_id: Optional[str],
+    player_internal_id: str | None,
     has_360: bool,
 ) -> Event | ShotEvent | PassEvent | CarryEvent:
     """
@@ -231,9 +224,7 @@ def _map_shot(row: dict, base: dict) -> ShotEvent:
     end_z = end_loc[2] if len(end_loc) >= 3 else None
 
     play_pattern = _safe_get(row, "play_pattern", "name", default="Regular Play")
-    set_piece_type = _map_set_piece(
-        _safe_get(shot, "type", "name") or play_pattern
-    )
+    set_piece_type = _map_set_piece(_safe_get(shot, "type", "name") or play_pattern)
 
     return ShotEvent(
         **base,
@@ -260,9 +251,7 @@ def _map_pass(row: dict, base: dict) -> PassEvent:
     outcome_raw = _safe_get(p, "outcome", "name", default="Complete") or "Complete"
     recipient_pid = _safe_get(p, "recipient", "id")
     recipient_internal = (
-        make_internal_id(Provider.STATSBOMB, "player", recipient_pid)
-        if recipient_pid
-        else None
+        make_internal_id(Provider.STATSBOMB, "player", recipient_pid) if recipient_pid else None
     )
     set_piece_raw = _safe_get(p, "type", "name")
     return PassEvent(
@@ -291,12 +280,14 @@ def _map_carry(row: dict, base: dict) -> CarryEvent:
     end_x = normalise_x(end_loc[0]) if len(end_loc) >= 1 else base["x"]
     end_y = normalise_y(end_loc[1]) if len(end_loc) >= 2 else base["y"]
     import math
+
     dist = math.hypot(end_x - base["x"], end_y - base["y"])
-    prog = max(0.0, end_x - base["x"])   # positive = toward opponent goal
+    prog = max(0.0, end_x - base["x"])  # positive = toward opponent goal
     return CarryEvent(**base, end_x=end_x, end_y=end_y, distance=dist, progressive_distance=prog)
 
 
 # ── Match-level mappers ───────────────────────────────────────────────────────
+
 
 def map_match_row(row: dict[str, Any], competition_internal_id: str) -> Match:
     match_id = row["match_id"]
@@ -322,9 +313,7 @@ def map_match_row(row: dict[str, Any], competition_internal_id: str) -> Match:
 def map_team_row(raw_team: dict[str, Any]) -> Team:
     team_id = raw_team.get("home_team_id") or raw_team.get("away_team_id") or raw_team.get("id", 0)
     team_name = (
-        raw_team.get("home_team_name")
-        or raw_team.get("away_team_name")
-        or raw_team.get("name", "")
+        raw_team.get("home_team_name") or raw_team.get("away_team_name") or raw_team.get("name", "")
     )
     country = str(_safe_get(raw_team, "country", "name", default=""))
     return Team(

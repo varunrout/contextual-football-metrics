@@ -1,5 +1,7 @@
 # Contextual Football Metrics (CFM)
 
+[![CI](https://github.com/varunrout/contextual-football-metrics/actions/workflows/ci.yml/badge.svg)](https://github.com/varunrout/contextual-football-metrics/actions/workflows/ci.yml)
+
 A suite of **contextual** football event metrics built on StatsBomb Open Data:
 
 | Metric | Meaning | Unit of analysis |
@@ -9,10 +11,43 @@ A suite of **contextual** football event metrics built on StatsBomb Open Data:
 | **CxT** | Contextual threat — expected value of a game state / possession | action within a possession |
 
 Each metric is trained as a **ladder** of candidate models (baseline → GLM →
-GBM → optional neural) evaluated on a held-out competition split, with the
-best candidate promoted to production. The whole pipeline runs as a single
-Prefect flow logging nested runs to MLflow, and results are explorable through
-a Streamlit dashboard.
+GBM → optional neural) evaluated on a held-out competition split. The
+production model is chosen by a single pre-committed criterion (cross-validation
+log-loss), and the held-out set is used once as confirmation, not to pick the
+winner. The whole pipeline runs as a single Prefect flow logging nested runs to
+MLflow, and results are explorable through a Streamlit dashboard.
+
+## Headline result (read this first)
+
+This project builds three context-aware football metrics (contextual xG, xA and
+threat) and, more to the point, evaluates them honestly. The CxG result on a
+matched Euro 2024 held-out set (1,340 shots, 126 goals, 2,000-sample paired
+bootstrap with 95% confidence intervals):
+
+- Contextual features improve on our own traditional-feature baseline: held-out
+  log-loss 0.241 vs 0.251, a delta of −0.0096 whose CI [−0.017, −0.002] excludes
+  zero. This is the defensible part of the "context helps" claim.
+- They do **not** beat off-the-shelf StatsBomb xG. On the same rows StatsBomb xG
+  is ahead on every metric (log-loss 0.233, AUC 0.830, ECE 0.013 vs the
+  contextual model's 0.241 / 0.813 / 0.017), and both contextual-minus-StatsBomb
+  deltas have confidence intervals spanning zero. The honest verdict is no
+  demonstrable lift over off-the-shelf xG.
+- The production CxG model is therefore `baseline_logit`, the model ranked first
+  on cross-validation log-loss. The contextual GLM is a real but small
+  improvement on our traditional baseline; it is not promoted because it is not
+  selected by the pre-committed criterion and does not beat off-the-shelf xG.
+
+The point of a contextual metric is the incremental lift over an already-strong
+baseline, measured on the same data with an error bar, not a fresh AUC. That
+comparison is produced by
+[`analysis/20_incremental_lift_vs_baselines.py`](analysis/20_incremental_lift_vs_baselines.py)
+and written up in
+[`docs/modeling/cxg/07_incremental_lift_and_reconciliation.md`](docs/modeling/cxg/07_incremental_lift_and_reconciliation.md).
+
+```bash
+python analysis/20_incremental_lift_vs_baselines.py          # real data (dvc pull first)
+python analysis/20_incremental_lift_vs_baselines.py --smoke  # synthetic, no data needed
+```
 
 ## Repository layout
 

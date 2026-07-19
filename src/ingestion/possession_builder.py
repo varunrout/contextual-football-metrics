@@ -15,7 +15,7 @@ from typing import Any
 import pandas as pd
 
 from src.ingestion.provider_mapper import make_internal_id
-from src.ingestion.schema import EventType, Possession, Provider, SequenceType
+from src.ingestion.schema import Possession, Provider, SequenceType
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,11 @@ def build_possessions(
         raw_tid = team_row.get("team_id") if hasattr(team_row, "get") else None
         if raw_tid is None or (hasattr(raw_tid, "__float__") and pd.isna(raw_tid)):
             # Fallback: possession_team_id column
-            raw_tid = team_row.get("possession_team_id") if "possession_team_id" in group.columns else None
+            raw_tid = (
+                team_row.get("possession_team_id")
+                if "possession_team_id" in group.columns
+                else None
+            )
         if raw_tid is None or (hasattr(raw_tid, "__float__") and pd.isna(raw_tid)):
             logger.warning("possession %s: cannot resolve team; skipping", poss_idx)
             continue
@@ -76,7 +80,7 @@ def build_possessions(
         period = int(group.iloc[0].get("period", 1))
         period_offset = (period - 1) * 45 * 60  # rough; exact for AET not needed here
 
-        def _ts(row: Any) -> float:
+        def _ts(row: Any, period_offset: float = period_offset) -> float:
             # row is a pandas Series; .get() works for both Series and dict
             ts = row.get("timestamp", "00:00:00.000")
             try:
@@ -94,6 +98,7 @@ def build_possessions(
             loc = row.get("location")
             if isinstance(loc, list) and len(loc) >= 2:
                 from src.ingestion.provider_mapper import normalise_x, normalise_y
+
                 start_x = normalise_x(float(loc[0]))
                 start_y = normalise_y(float(loc[1]))
                 break
@@ -106,7 +111,8 @@ def build_possessions(
 
         # Aggregate counts — statsbombpy "type" column is a flat string
         type_names = (
-            group["type"].fillna("") if "type" in group.columns
+            group["type"].fillna("")
+            if "type" in group.columns
             else pd.Series("", index=group.index)
         )
         n_passes = int((type_names == "Pass").sum())
@@ -123,6 +129,7 @@ def build_possessions(
             loc = row.get("location")
             if isinstance(loc, list) and len(loc) >= 1:
                 from src.ingestion.provider_mapper import normalise_x
+
                 x_values.append(normalise_x(float(loc[0])))
         max_x = max(x_values) if x_values else start_x
         vertical_progression = max(0.0, max_x - start_x) if not math.isnan(start_x) else 0.0
@@ -136,7 +143,8 @@ def build_possessions(
 
         # Flags — statsbombpy "play_pattern" column is a flat string
         play_patterns = (
-            group["play_pattern"].fillna("") if "play_pattern" in group.columns
+            group["play_pattern"].fillna("")
+            if "play_pattern" in group.columns
             else pd.Series("", index=group.index)
         )
         set_piece_flag = bool(

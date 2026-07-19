@@ -13,7 +13,6 @@ from sklearn.metrics import log_loss, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-
 _NUMERIC = [
     "x_location",
     "y_location",
@@ -64,7 +63,9 @@ class BaselineCxAModel:
             raise ValueError("No usable baseline CxA feature columns found")
         return num, boo, cat
 
-    def _build_preprocessor(self, num: list[str], boo: list[str], cat: list[str]) -> ColumnTransformer:
+    def _build_preprocessor(
+        self, num: list[str], boo: list[str], cat: list[str]
+    ) -> ColumnTransformer:
         num_all = num + boo
         return ColumnTransformer(
             transformers=[
@@ -87,7 +88,7 @@ class BaselineCxAModel:
         pass_df: pd.DataFrame,
         creation_target_col: str = "leads_to_shot",
         quality_target_col: str = "resulting_shot_xg",
-    ) -> "BaselineCxAModel":
+    ) -> BaselineCxAModel:
         if pass_df.empty:
             raise ValueError("pass_df is empty")
 
@@ -100,7 +101,9 @@ class BaselineCxAModel:
 
         if quality_target_col not in df.columns:
             if "next_shot_xg" in df.columns:
-                df[quality_target_col] = pd.to_numeric(df["next_shot_xg"], errors="coerce").fillna(0.0)
+                df[quality_target_col] = pd.to_numeric(df["next_shot_xg"], errors="coerce").fillna(
+                    0.0
+                )
             else:
                 raise ValueError(f"Missing quality target column: {quality_target_col}")
 
@@ -176,7 +179,9 @@ class BaselineCxAModel:
             raise ValueError(f"Missing quality target column: {quality_target_col}")
 
         y_create = pass_df[creation_target_col].astype(int).to_numpy()
-        y_quality = pd.to_numeric(pass_df[quality_target_col], errors="coerce").fillna(0.0).to_numpy()
+        y_quality = (
+            pd.to_numeric(pass_df[quality_target_col], errors="coerce").fillna(0.0).to_numpy()
+        )
 
         p_create, q = self.predict_components(pass_df)
         xa = p_create * q

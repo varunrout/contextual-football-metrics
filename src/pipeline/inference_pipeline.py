@@ -39,7 +39,6 @@ import logging
 import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
@@ -55,6 +54,7 @@ DEFAULT_SHOT_ACTION_TYPE = "shot"
 
 
 # ── Score helpers ─────────────────────────────────────────────────────────────
+
 
 def _score_cxg(
     cxg_model,
@@ -119,6 +119,7 @@ def _join_pipeline_output(
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
+
 
 @dataclass
 class InferencePipelineConfig:
@@ -207,7 +208,9 @@ class InferencePipeline:
             try:
                 cxa_scored = self.cxa_pipeline.score(events_df)
                 result[COL_CXA] = _join_pipeline_output(
-                    result, cxa_scored, COL_CXA,
+                    result,
+                    cxa_scored,
+                    COL_CXA,
                     event_id_col=self.config.event_id_col,
                 )
                 logger.debug("CxA scored: %d rows", result[COL_CXA].notna().sum())
@@ -220,7 +223,9 @@ class InferencePipeline:
             try:
                 cxt_scored = self.cxt_pipeline.score(events_df)
                 result[COL_CXT] = _join_pipeline_output(
-                    result, cxt_scored, COL_CXT,
+                    result,
+                    cxt_scored,
+                    COL_CXT,
                     event_id_col=self.config.event_id_col,
                 )
                 logger.debug("CxT scored: %d rows", result[COL_CXT].notna().sum())
@@ -248,7 +253,7 @@ class InferencePipeline:
         logger.info("InferencePipeline saved to %s", out)
 
     @classmethod
-    def load(cls, path: str | Path) -> "InferencePipeline":
+    def load(cls, path: str | Path) -> InferencePipeline:
         """
         Load a pickled InferencePipeline from ``path``.
 
@@ -271,9 +276,7 @@ class InferencePipeline:
         with open(out, "rb") as fh:
             obj = pickle.load(fh)  # noqa: S301
         if not isinstance(obj, cls):
-            raise TypeError(
-                f"Loaded object is {type(obj).__name__}, expected InferencePipeline."
-            )
+            raise TypeError(f"Loaded object is {type(obj).__name__}, expected InferencePipeline.")
         logger.info("InferencePipeline loaded from %s", out)
         return obj
 
@@ -284,22 +287,23 @@ class InferencePipeline:
         cls,
         config_path: str | Path,
         models_dir: str | Path | None = None,
-    ) -> "InferencePipeline":
+    ) -> InferencePipeline:
         """
         Build an InferencePipeline from ``configs/models.yaml``.
 
         Reads ``production.cxg``, ``production.cxa``, ``production.cxt``
         entries.  If a pointer is ``null`` / absent, that metric is skipped.
-        Each non-null pointer is treated as a filename relative to
-        ``models_dir`` (default: same directory as the config file).
+        Each non-null pointer is treated as a path relative to
+        ``models_dir`` (default: the repository root, since the committed
+        pointers are repo-root-relative like ``models/cxg/baseline_logit.joblib``).
 
         Parameters
         ----------
         config_path : str | Path
             Path to the YAML config file (e.g., ``configs/models.yaml``).
         models_dir : str | Path | None
-            Directory containing pickled model files.  Defaults to the
-            parent directory of ``config_path``.
+            Base directory the pointers are resolved against.  Defaults to the
+            repository root.
 
         Returns
         -------
@@ -319,7 +323,11 @@ class InferencePipeline:
             ) from exc
 
         config_path = Path(config_path)
-        models_dir = Path(models_dir) if models_dir is not None else config_path.parent
+        # Production pointers in configs/models.yaml are repo-root-relative
+        # (e.g. "models/cxg/baseline_logit.joblib"), so resolve against the repo
+        # root by default, not the config's own directory. Callers may override.
+        repo_root = Path(__file__).resolve().parents[2]
+        models_dir = Path(models_dir) if models_dir is not None else repo_root
 
         with open(config_path, encoding="utf-8") as fh:
             cfg = yaml.safe_load(fh)
@@ -333,11 +341,10 @@ class InferencePipeline:
                 return None
             model_file = models_dir / pointer
             if not model_file.exists():
-                raise FileNotFoundError(
-                    f"Production {label} model not found at: {model_file}"
-                )
+                raise FileNotFoundError(f"Production {label} model not found at: {model_file}")
             if model_file.suffix == ".joblib":
                 import joblib as _joblib
+
                 return _joblib.load(model_file)
             with open(model_file, "rb") as fh:
                 return pickle.load(fh)  # noqa: S301
@@ -349,6 +356,7 @@ class InferencePipeline:
         # Auto-wrap bare state-value models in CxTPipeline (which provides .score())
         if cxt_pipeline is not None and not hasattr(cxt_pipeline, "score"):
             from src.models.cxt.cxt_pipeline import CxTPipeline as _CxTPipeline
+
             cxt_pipeline = _CxTPipeline(state_value_model=cxt_pipeline)
             logger.info("Wrapped CxT state-value model in CxTPipeline.")
 

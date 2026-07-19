@@ -22,9 +22,9 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -47,14 +47,15 @@ logger = logging.getLogger(__name__)
 
 # Window variants used for stability analysis
 WINDOW_VARIANTS: tuple[str, ...] = (
-    "shot_created",           # same possession (primary)
+    "shot_created",  # same possession (primary)
     "shot_within_5_actions",  # within 5 actions
-    "shot_within_10s",        # within 10 seconds
-    "shot_within_15s",        # within 15 seconds
+    "shot_within_10s",  # within 10 seconds
+    "shot_within_15s",  # within 15 seconds
 )
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ShotCreationMetrics:
@@ -68,6 +69,7 @@ class ShotCreationMetrics:
 @dataclass
 class WindowStabilityReport:
     """Cross-window stability of classifier metrics."""
+
     window_metrics: dict[str, ShotCreationMetrics] = field(default_factory=dict)
 
     def best_window(self) -> str:
@@ -77,19 +79,22 @@ class WindowStabilityReport:
     def to_dataframe(self) -> pd.DataFrame:
         rows = []
         for w, m in self.window_metrics.items():
-            rows.append({
-                "window": w,
-                "log_loss": m.log_loss,
-                "brier": m.brier,
-                "auc": m.auc,
-                "pr_auc": m.pr_auc,
-            })
+            rows.append(
+                {
+                    "window": w,
+                    "log_loss": m.log_loss,
+                    "brier": m.brier,
+                    "auc": m.auc,
+                    "pr_auc": m.pr_auc,
+                }
+            )
         return pd.DataFrame(rows).set_index("window")
 
 
 # ── Shared pipeline builders ───────────────────────────────────────────────────
 
-def _make_X(
+
+def _make_x(
     df: pd.DataFrame,
     numeric_all: list[str],
     cat_cols: list[str],
@@ -117,22 +122,53 @@ def _build_logistic_pipeline(
     random_state: int,
 ) -> Pipeline:
     transformers: list = [
-        ("num", Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ]), numeric_all),
+        (
+            "num",
+            Pipeline(
+                [
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler()),
+                ]
+            ),
+            numeric_all,
+        ),
     ]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("ohe", __import__("sklearn.preprocessing", fromlist=["OneHotEncoder"]).OneHotEncoder(
-                handle_unknown="ignore", sparse_output=False,
-            )),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        (
+                            "ohe",
+                            __import__(
+                                "sklearn.preprocessing", fromlist=["OneHotEncoder"]
+                            ).OneHotEncoder(
+                                handle_unknown="ignore",
+                                sparse_output=False,
+                            ),
+                        ),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
-    return Pipeline([("pre", pre), ("clf", LogisticRegression(
-        solver="lbfgs", max_iter=2000, C=C, random_state=random_state,
-    ))])
+    return Pipeline(
+        [
+            ("pre", pre),
+            (
+                "clf",
+                LogisticRegression(
+                    solver="lbfgs",
+                    max_iter=2000,
+                    C=C,
+                    random_state=random_state,
+                ),
+            ),
+        ]
+    )
 
 
 def _build_tree_pipeline(
@@ -140,18 +176,31 @@ def _build_tree_pipeline(
     numeric_all: list[str],
     cat_cols: list[str],
 ) -> Pipeline:
-    from sklearn.preprocessing import OrdinalEncoder
     transformers: list = [("num", SimpleImputer(strategy="median"), numeric_all)]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("enc", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, dtype=float)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        (
+                            "enc",
+                            OrdinalEncoder(
+                                handle_unknown="use_encoded_value", unknown_value=-1, dtype=float
+                            ),
+                        ),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
     return Pipeline([("pre", pre), ("clf", estimator)])
 
 
 # ── Base class ────────────────────────────────────────────────────────────────
+
 
 class _BaseShotCreationModel:
     """Shared persistence, column resolution and X-building logic."""
@@ -167,13 +216,13 @@ class _BaseShotCreationModel:
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
-        return _make_X(df, self._numeric_all, self._cat_cols, self._bool_set)
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
+        return _make_x(df, self._numeric_all, self._cat_cols, self._bool_set)
 
     def predict_proba(self, actions_df: pd.DataFrame) -> np.ndarray:
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return self.pipeline.predict_proba(self._X(actions_df))[:, 1]
+        return self.pipeline.predict_proba(self._x(actions_df))[:, 1]
 
     def evaluate(
         self, actions_df: pd.DataFrame, target_col: str = "shot_created"
@@ -190,9 +239,7 @@ class _BaseShotCreationModel:
             window=target_col,
         )
 
-    def stability_analysis(
-        self, actions_df: pd.DataFrame
-    ) -> WindowStabilityReport:
+    def stability_analysis(self, actions_df: pd.DataFrame) -> WindowStabilityReport:
         """Evaluate on each available window variant column."""
         report = WindowStabilityReport()
         for w in WINDOW_VARIANTS:
@@ -213,6 +260,7 @@ class _BaseShotCreationModel:
 
 
 # ── GLM (logistic contextual) ─────────────────────────────────────────────────
+
 
 class GlmShotCreationModel(_BaseShotCreationModel):
     """
@@ -244,7 +292,7 @@ class GlmShotCreationModel(_BaseShotCreationModel):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "shot_created",
-    ) -> "GlmShotCreationModel":
+    ) -> GlmShotCreationModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -256,11 +304,12 @@ class GlmShotCreationModel(_BaseShotCreationModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         self.pipeline = _build_logistic_pipeline(self.C, numeric_all, cat_cols, self.random_state)
-        self.pipeline.fit(self._X(actions_df), actions_df[target_col].astype(int).to_numpy())
+        self.pipeline.fit(self._x(actions_df), actions_df[target_col].astype(int).to_numpy())
         return self
 
 
 # ── XGBoost ───────────────────────────────────────────────────────────────────
+
 
 class XGBoostShotCreationModel(_BaseShotCreationModel):
     """XGBoost shot-creation binary classifier."""
@@ -286,10 +335,14 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
         )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            max_depth=max_depth, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_weight=min_child_weight,
-            reg_alpha=reg_alpha, reg_lambda=reg_lambda,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_weight=min_child_weight,
+            reg_alpha=reg_alpha,
+            reg_lambda=reg_lambda,
         )
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -299,12 +352,16 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+
         from src.runtime.gbm_device import xgboost_kwargs
+
         return xgb.XGBClassifier(
             **params,
             **xgboost_kwargs(getattr(self, "device", None)),
-            objective="binary:logistic", eval_metric="logloss",
-            verbosity=0, random_state=self.random_state,
+            objective="binary:logistic",
+            eval_metric="logloss",
+            verbosity=0,
+            random_state=self.random_state,
         )
 
     def fit(
@@ -313,7 +370,7 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
         target_col: str = "shot_created",
         n_trials: int = 0,
         match_id_col: str = "match_id",
-    ) -> "XGBoostShotCreationModel":
+    ) -> XGBoostShotCreationModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -327,15 +384,18 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         if n_trials > 0 and match_id_col in df.columns:
             self._tune(df, target_col, n_trials, match_id_col)
-        self.pipeline = _build_tree_pipeline(self._make_estimator(self.params), numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(int).to_numpy())
+        self.pipeline = _build_tree_pipeline(
+            self._make_estimator(self.params), numeric_all, cat_cols
+        )
+        self.pipeline.fit(self._x(df), df[target_col].astype(int).to_numpy())
         return self
 
     def _tune(self, df: pd.DataFrame, target_col: str, n_trials: int, match_id_col: str) -> None:
         import optuna
+
         optuna.logging.set_verbosity(optuna.logging.WARNING)
         bool_set = frozenset(c for c in self.feature_set.boolean if c in self._numeric_all)
-        X_all = _make_X(df, self._numeric_all, self._cat_cols, bool_set)
+        X_all = _make_x(df, self._numeric_all, self._cat_cols, bool_set)
         y_all = df[target_col].astype(int).to_numpy()
         folds = list(match_kfold(df, n_splits=3, match_id_col=match_id_col))
 
@@ -352,7 +412,9 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
             )
             scores = []
             for tr_idx, va_idx in folds:
-                pipe = _build_tree_pipeline(self._make_estimator(params), self._numeric_all, self._cat_cols)
+                pipe = _build_tree_pipeline(
+                    self._make_estimator(params), self._numeric_all, self._cat_cols
+                )
                 pipe.fit(X_all.loc[tr_idx], y_all[tr_idx])
                 p = pipe.predict_proba(X_all.loc[va_idx])[:, 1]
                 y_va = y_all[va_idx]
@@ -369,6 +431,7 @@ class XGBoostShotCreationModel(_BaseShotCreationModel):
 
 
 # ── LightGBM ──────────────────────────────────────────────────────────────────
+
 
 class LightGBMShotCreationModel(_BaseShotCreationModel):
     """LightGBM shot-creation binary classifier."""
@@ -394,10 +457,14 @@ class LightGBMShotCreationModel(_BaseShotCreationModel):
             get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
         )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            num_leaves=num_leaves, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_samples=min_child_samples,
-            reg_alpha=reg_alpha, reg_lambda=reg_lambda,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            num_leaves=num_leaves,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_samples=min_child_samples,
+            reg_alpha=reg_alpha,
+            reg_lambda=reg_lambda,
         )
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -407,12 +474,16 @@ class LightGBMShotCreationModel(_BaseShotCreationModel):
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+
         from src.runtime.gbm_device import lightgbm_kwargs
+
         return lgb.LGBMClassifier(
             **params,
             **lightgbm_kwargs(getattr(self, "device", None)),
-            objective="binary", metric="binary_logloss",
-            verbose=-1, random_state=self.random_state,
+            objective="binary",
+            metric="binary_logloss",
+            verbose=-1,
+            random_state=self.random_state,
         )
 
     def fit(
@@ -421,7 +492,7 @@ class LightGBMShotCreationModel(_BaseShotCreationModel):
         target_col: str = "shot_created",
         n_trials: int = 0,
         match_id_col: str = "match_id",
-    ) -> "LightGBMShotCreationModel":
+    ) -> LightGBMShotCreationModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -433,12 +504,15 @@ class LightGBMShotCreationModel(_BaseShotCreationModel):
         self._numeric_all = numeric_all
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
-        self.pipeline = _build_tree_pipeline(self._make_estimator(self.params), numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(int).to_numpy())
+        self.pipeline = _build_tree_pipeline(
+            self._make_estimator(self.params), numeric_all, cat_cols
+        )
+        self.pipeline.fit(self._x(df), df[target_col].astype(int).to_numpy())
         return self
 
 
 # ── Sequence-aware Transformer model ─────────────────────────────────────────
+
 
 class TransformerShotCreationModel(_BaseShotCreationModel):
     """
@@ -464,8 +538,15 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
     # Sequence token fields (per event step)
     SEQ_NUMERIC = ("seq_x", "seq_y", "seq_under_pressure")
     SEQ_EVENT_TYPES = (
-        "pass", "carry", "shot", "pressure", "dribble",
-        "ball_receipt", "clearance", "interception", "other",
+        "pass",
+        "carry",
+        "shot",
+        "pressure",
+        "dribble",
+        "ball_receipt",
+        "clearance",
+        "interception",
+        "other",
     )
     SEQ_BODY_PARTS = ("foot", "head", "other")
 
@@ -495,7 +576,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         self.device = device
         self._resolved_device: str | None = None
         self.random_state = random_state
-        self.pipeline: Pipeline | None = None      # tabular scaler only
+        self.pipeline: Pipeline | None = None  # tabular scaler only
         self._numeric_all: list[str] = []
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
@@ -505,6 +586,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
     def _torch_device(self) -> str:
         if self._resolved_device is None:
             from src.models.neural import resolve_device
+
             self._resolved_device = resolve_device(self.device)
             logger.info("TransformerShotCreation: using torch device %s", self._resolved_device)
         return self._resolved_device
@@ -530,25 +612,34 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
                 self.token_proj = nn.Linear(token_dim, d_model)
                 self.cls_token = nn.Parameter(torch.zeros(1, 1, d_model))
                 enc_layer = nn.TransformerEncoderLayer(
-                    d_model=d_model, nhead=n_heads, dim_feedforward=d_model * 4,
-                    dropout=0.1, batch_first=True, norm_first=True,
+                    d_model=d_model,
+                    nhead=n_heads,
+                    dim_feedforward=d_model * 4,
+                    dropout=0.1,
+                    batch_first=True,
+                    norm_first=True,
                 )
                 self.transformer = nn.TransformerEncoder(enc_layer, num_layers=n_layers)
                 self.tab_proj = nn.Sequential(
-                    nn.Linear(tab_dim, d_model), nn.ReLU(), nn.Dropout(0.1),
+                    nn.Linear(tab_dim, d_model),
+                    nn.ReLU(),
+                    nn.Dropout(0.1),
                 )
                 combined_dim = d_model * 2
                 self.head = nn.Sequential(
-                    nn.Linear(combined_dim, mlp_hidden), nn.ReLU(), nn.Dropout(0.1),
-                    nn.Linear(mlp_hidden, mlp_hidden // 2), nn.ReLU(),
+                    nn.Linear(combined_dim, mlp_hidden),
+                    nn.ReLU(),
+                    nn.Dropout(0.1),
+                    nn.Linear(mlp_hidden, mlp_hidden // 2),
+                    nn.ReLU(),
                     nn.Linear(mlp_hidden // 2, 1),
                 )
                 nn.init.zeros_(self.cls_token)
 
             def forward(self, seq_et, seq_bp, seq_num, seq_mask, tab):
                 # seq_et: (B, T)  seq_bp: (B, T)  seq_num: (B, T, 3)  tab: (B, tab_dim)
-                et_emb = self.event_emb(seq_et)    # (B, T, d/4)
-                bp_emb = self.body_emb(seq_bp)     # (B, T, d/4)
+                et_emb = self.event_emb(seq_et)  # (B, T, d/4)
+                bp_emb = self.body_emb(seq_bp)  # (B, T, d/4)
                 tok = self.token_proj(torch.cat([et_emb, bp_emb, seq_num], dim=-1))  # (B,T,d)
                 B = tok.size(0)
                 cls = self.cls_token.expand(B, -1, -1)
@@ -557,8 +648,8 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
                 cls_mask = torch.zeros(B, 1, dtype=torch.bool, device=seq_mask.device)
                 full_mask = torch.cat([cls_mask, seq_mask], dim=1)  # (B, T+1)
                 out = self.transformer(seq, src_key_padding_mask=full_mask)
-                cls_out = out[:, 0, :]             # (B, d)
-                tab_enc = self.tab_proj(tab)       # (B, d)
+                cls_out = out[:, 0, :]  # (B, d)
+                tab_enc = self.tab_proj(tab)  # (B, d)
                 combined = torch.cat([cls_out, tab_enc], dim=-1)
                 return self.head(combined).squeeze(-1)
 
@@ -573,17 +664,17 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         )
 
     def _build_tabular_scaler(self, df: pd.DataFrame) -> Pipeline:
-        pipe = Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_tab = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        pipe = Pipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_tab = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         pipe.fit(X_tab)
         return pipe
 
-    def _encode_sequences(
-        self, actions_df: pd.DataFrame
-    ) -> tuple:
+    def _encode_sequences(self, actions_df: pd.DataFrame) -> tuple:
         """
         Build padded sequence tensors from per-action sequence columns.
 
@@ -592,6 +683,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         Falls back to zeros if absent.
         """
         import torch
+
         T = self.MAX_SEQ_LEN
         B = len(actions_df)
         et_idx = {v: i for i, v in enumerate(self.SEQ_EVENT_TYPES)}
@@ -599,10 +691,10 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         n_et = len(self.SEQ_EVENT_TYPES)
         n_bp = len(self.SEQ_BODY_PARTS)
 
-        seq_et = torch.full((B, T), n_et, dtype=torch.long)    # unknown = last idx
+        seq_et = torch.full((B, T), n_et, dtype=torch.long)  # unknown = last idx
         seq_bp = torch.full((B, T), n_bp, dtype=torch.long)
         seq_num = torch.zeros(B, T, 3)
-        seq_mask = torch.ones(B, T, dtype=torch.bool)           # True = pad
+        seq_mask = torch.ones(B, T, dtype=torch.bool)  # True = pad
 
         for t in range(T):
             et_col = f"seq_event_type_{t}"
@@ -613,15 +705,48 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
             has_step = et_col in actions_df.columns
 
             if has_step:
-                et_vals = actions_df[et_col].fillna("other").astype(str).map(
-                    lambda v: et_idx.get(v, n_et)
-                ).to_numpy()
-                bp_vals = actions_df[bp_col].fillna("other").astype(str).map(
-                    lambda v: bp_idx.get(v, n_bp)
-                ).to_numpy() if bp_col in actions_df.columns else np.full(B, n_bp)
-                x_vals = pd.to_numeric(actions_df.get(x_col, pd.Series(0.0, index=actions_df.index)), errors="coerce").fillna(0.0).to_numpy() / 105.0
-                y_vals = pd.to_numeric(actions_df.get(y_col, pd.Series(0.0, index=actions_df.index)), errors="coerce").fillna(0.0).to_numpy() / 68.0
-                up_vals = pd.to_numeric(actions_df.get(up_col, pd.Series(0.0, index=actions_df.index)), errors="coerce").fillna(0.0).to_numpy()
+                et_vals = (
+                    actions_df[et_col]
+                    .fillna("other")
+                    .astype(str)
+                    .map(lambda v: et_idx.get(v, n_et))
+                    .to_numpy()
+                )
+                bp_vals = (
+                    actions_df[bp_col]
+                    .fillna("other")
+                    .astype(str)
+                    .map(lambda v: bp_idx.get(v, n_bp))
+                    .to_numpy()
+                    if bp_col in actions_df.columns
+                    else np.full(B, n_bp)
+                )
+                x_vals = (
+                    pd.to_numeric(
+                        actions_df.get(x_col, pd.Series(0.0, index=actions_df.index)),
+                        errors="coerce",
+                    )
+                    .fillna(0.0)
+                    .to_numpy()
+                    / 105.0
+                )
+                y_vals = (
+                    pd.to_numeric(
+                        actions_df.get(y_col, pd.Series(0.0, index=actions_df.index)),
+                        errors="coerce",
+                    )
+                    .fillna(0.0)
+                    .to_numpy()
+                    / 68.0
+                )
+                up_vals = (
+                    pd.to_numeric(
+                        actions_df.get(up_col, pd.Series(0.0, index=actions_df.index)),
+                        errors="coerce",
+                    )
+                    .fillna(0.0)
+                    .to_numpy()
+                )
                 seq_et[:, t] = torch.tensor(et_vals, dtype=torch.long)
                 seq_bp[:, t] = torch.tensor(bp_vals, dtype=torch.long)
                 seq_num[:, t, 0] = torch.tensor(x_vals, dtype=torch.float32)
@@ -637,7 +762,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "shot_created",
-    ) -> "TransformerShotCreationModel":
+    ) -> TransformerShotCreationModel:
         try:
             import torch
             import torch.nn as nn
@@ -656,7 +781,7 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         numeric_all, cat_cols = self._resolve_cols(df)
         # Transformer uses numeric only (cats would need embeddings — handled via ordinal below)
         self._numeric_all = numeric_all
-        self._cat_cols = []   # tabular side uses numeric_all only for simplicity
+        self._cat_cols = []  # tabular side uses numeric_all only for simplicity
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
 
         # Build tabular scaler (numeric_all only)
@@ -664,13 +789,14 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         self._tabular_dim = len(self._numeric_all)
 
         # Build and encode data
-        X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_tab_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         seq_et, seq_bp, seq_num, seq_mask = self._encode_sequences(df)
         y = torch.tensor(df[target_col].astype(float).to_numpy(), dtype=torch.float32)
 
         dataset = TensorDataset(seq_et, seq_bp, seq_num, seq_mask, X_tab, y)
         from src.models.neural import resolve_batch_size
+
         bs = resolve_batch_size("transformer", self.batch_size)
         loader = DataLoader(dataset, batch_size=bs, shuffle=True)
 
@@ -693,7 +819,9 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
                 epoch_loss += loss.item()
             avg = epoch_loss / max(len(loader), 1)
             if (epoch + 1) % 5 == 0:
-                logger.info("TransformerShotCreation epoch %d/%d loss=%.4f", epoch + 1, self.max_epochs, avg)
+                logger.info(
+                    "TransformerShotCreation epoch %d/%d loss=%.4f", epoch + 1, self.max_epochs, avg
+                )
 
         model.eval()
         self._torch_model = model
@@ -707,33 +835,36 @@ class TransformerShotCreationModel(_BaseShotCreationModel):
         if self._torch_model is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
         df = actions_df.reset_index(drop=True)
-        X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_tab_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         seq_et, seq_bp, seq_num, seq_mask = self._encode_sequences(df)
         device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
             logits = self._torch_model(
-                seq_et.to(device), seq_bp.to(device), seq_num.to(device),
-                seq_mask.to(device), X_tab.to(device),
+                seq_et.to(device),
+                seq_bp.to(device),
+                seq_num.to(device),
+                seq_mask.to(device),
+                X_tab.to(device),
             )
         return torch.sigmoid(logits).cpu().numpy()
 
     def save(self, path: str | Path) -> None:
-        import torch
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         # Save the whole object; torch model stored within
         with open(path, "wb") as f:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "TransformerShotCreationModel":
+    def load(cls, path: str | Path) -> TransformerShotCreationModel:
         with open(path, "rb") as f:
             obj = pickle.load(f)
         return obj
 
 
 # ── Shot-Creation Ladder ──────────────────────────────────────────────────────
+
 
 @dataclass
 class ShotCreationLadderResult:
@@ -757,12 +888,18 @@ def _cv_shot_creation(
     n_folds: int,
     random_state: int,
 ) -> tuple[float, float, float | None, float | None, int]:
-    from statistics import mean
     df = actions_df.reset_index(drop=True)
-    folds = list(match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)) \
-        if match_id_col in df.columns else \
-        list(__import__("sklearn.model_selection", fromlist=["KFold"]).KFold(
-            n_splits=n_folds, shuffle=True, random_state=random_state).split(df))
+    folds = (
+        list(
+            match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)
+        )
+        if match_id_col in df.columns
+        else list(
+            __import__("sklearn.model_selection", fromlist=["KFold"])
+            .KFold(n_splits=n_folds, shuffle=True, random_state=random_state)
+            .split(df)
+        )
+    )
     lls, briers, aucs, pr_aucs = [], [], [], []
     for tr_idx, va_idx in folds:
         tr_df, va_df = df.loc[tr_idx], df.loc[va_idx]
@@ -782,7 +919,8 @@ def _cv_shot_creation(
     if not lls:
         return float("inf"), float("inf"), None, None, 0
     return (
-        float(np.mean(lls)), float(np.mean(briers)),
+        float(np.mean(lls)),
+        float(np.mean(briers)),
         float(np.mean(aucs)) if aucs else None,
         float(np.mean(pr_aucs)) if pr_aucs else None,
         len(lls),
@@ -817,31 +955,79 @@ class ShotCreationLadder:
         ne = n_estimators
         rs = random_state
         candidates: list[tuple[str, str, str, Callable]] = [
-            ("glm_traditional", "logistic", "traditional",
-             lambda: GlmShotCreationModel(feature_set="traditional", random_state=rs)),
-            ("glm_contextual", "logistic", "contextual",
-             lambda: GlmShotCreationModel(feature_set="contextual", random_state=rs)),
-            ("xgb_traditional", "xgboost", "traditional",
-             lambda: XGBoostShotCreationModel(feature_set="traditional", n_estimators=ne, random_state=rs)),
-            ("xgb_contextual", "xgboost", "contextual",
-             lambda: XGBoostShotCreationModel(feature_set="contextual", n_estimators=ne, random_state=rs)),
-            ("lgbm_traditional", "lightgbm", "traditional",
-             lambda: LightGBMShotCreationModel(feature_set="traditional", n_estimators=ne, random_state=rs)),
-            ("lgbm_contextual", "lightgbm", "contextual",
-             lambda: LightGBMShotCreationModel(feature_set="contextual", n_estimators=ne, random_state=rs)),
+            (
+                "glm_traditional",
+                "logistic",
+                "traditional",
+                lambda: GlmShotCreationModel(feature_set="traditional", random_state=rs),
+            ),
+            (
+                "glm_contextual",
+                "logistic",
+                "contextual",
+                lambda: GlmShotCreationModel(feature_set="contextual", random_state=rs),
+            ),
+            (
+                "xgb_traditional",
+                "xgboost",
+                "traditional",
+                lambda: XGBoostShotCreationModel(
+                    feature_set="traditional", n_estimators=ne, random_state=rs
+                ),
+            ),
+            (
+                "xgb_contextual",
+                "xgboost",
+                "contextual",
+                lambda: XGBoostShotCreationModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+            ),
+            (
+                "lgbm_traditional",
+                "lightgbm",
+                "traditional",
+                lambda: LightGBMShotCreationModel(
+                    feature_set="traditional", n_estimators=ne, random_state=rs
+                ),
+            ),
+            (
+                "lgbm_contextual",
+                "lightgbm",
+                "contextual",
+                lambda: LightGBMShotCreationModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+            ),
         ]
         if include_360:
             candidates += [
-                ("xgb_full_360", "xgboost", "full_360",
-                 lambda: XGBoostShotCreationModel(feature_set="full_360", n_estimators=ne, random_state=rs)),
-                ("lgbm_full_360", "lightgbm", "full_360",
-                 lambda: LightGBMShotCreationModel(feature_set="full_360", n_estimators=ne, random_state=rs)),
+                (
+                    "xgb_full_360",
+                    "xgboost",
+                    "full_360",
+                    lambda: XGBoostShotCreationModel(
+                        feature_set="full_360", n_estimators=ne, random_state=rs
+                    ),
+                ),
+                (
+                    "lgbm_full_360",
+                    "lightgbm",
+                    "full_360",
+                    lambda: LightGBMShotCreationModel(
+                        feature_set="full_360", n_estimators=ne, random_state=rs
+                    ),
+                ),
             ]
         if include_transformer:
-            candidates.append((
-                "transformer_contextual", "transformer", "contextual",
-                lambda: TransformerShotCreationModel(feature_set="contextual", random_state=rs),
-            ))
+            candidates.append(
+                (
+                    "transformer_contextual",
+                    "transformer",
+                    "contextual",
+                    lambda: TransformerShotCreationModel(feature_set="contextual", random_state=rs),
+                )
+            )
 
         results: list[ShotCreationLadderResult] = []
         for name, family, fset, factory in candidates:
@@ -857,11 +1043,19 @@ class ShotCreationLadder:
             )
             final = factory()
             final.fit(actions_df, target_col)
-            results.append(ShotCreationLadderResult(
-                name=name, family=family, feature_set=fset,
-                cv_log_loss=cv_ll, cv_brier=cv_b, cv_auc=cv_auc, cv_pr_auc=cv_pr,
-                n_cv_folds_used=n_valid, model=final,
-            ))
+            results.append(
+                ShotCreationLadderResult(
+                    name=name,
+                    family=family,
+                    feature_set=fset,
+                    cv_log_loss=cv_ll,
+                    cv_brier=cv_b,
+                    cv_auc=cv_auc,
+                    cv_pr_auc=cv_pr,
+                    n_cv_folds_used=n_valid,
+                    model=final,
+                )
+            )
 
         results.sort(key=lambda r: r.cv_log_loss)
         for i, r in enumerate(results):
@@ -872,14 +1066,19 @@ class ShotCreationLadder:
     def leaderboard(self) -> pd.DataFrame:
         if not self._results:
             raise RuntimeError("No results yet. Call run() first.")
-        rows = [{
-            "rank": r.rank, "name": r.name, "family": r.family,
-            "feature_set": r.feature_set,
-            "cv_log_loss": round(r.cv_log_loss, 5),
-            "cv_brier": round(r.cv_brier, 5),
-            "cv_auc": round(r.cv_auc, 4) if r.cv_auc is not None else None,
-            "cv_pr_auc": round(r.cv_pr_auc, 4) if r.cv_pr_auc is not None else None,
-        } for r in self._results]
+        rows = [
+            {
+                "rank": r.rank,
+                "name": r.name,
+                "family": r.family,
+                "feature_set": r.feature_set,
+                "cv_log_loss": round(r.cv_log_loss, 5),
+                "cv_brier": round(r.cv_brier, 5),
+                "cv_auc": round(r.cv_auc, 4) if r.cv_auc is not None else None,
+                "cv_pr_auc": round(r.cv_pr_auc, 4) if r.cv_pr_auc is not None else None,
+            }
+            for r in self._results
+        ]
         return pd.DataFrame(rows).set_index("rank")
 
     def best(self) -> ShotCreationLadderResult:
@@ -889,6 +1088,7 @@ class ShotCreationLadder:
 
 
 # ── Factory ───────────────────────────────────────────────────────────────────
+
 
 class ShotCreationModel(_BaseShotCreationModel):
     """
@@ -934,7 +1134,9 @@ class ShotCreationModel(_BaseShotCreationModel):
         self._bool_set = self._delegate._bool_set
         self.pipeline = self._delegate.pipeline
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "shot_created", **kwargs) -> "ShotCreationModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "shot_created", **kwargs
+    ) -> ShotCreationModel:
         self._delegate.fit(actions_df, target_col, **kwargs)
         # Sync public attrs after fit
         self._numeric_all = self._delegate._numeric_all
@@ -946,5 +1148,7 @@ class ShotCreationModel(_BaseShotCreationModel):
     def predict_proba(self, actions_df: pd.DataFrame) -> np.ndarray:
         return self._delegate.predict_proba(actions_df)
 
-    def evaluate(self, actions_df: pd.DataFrame, target_col: str = "shot_created") -> ShotCreationMetrics:
+    def evaluate(
+        self, actions_df: pd.DataFrame, target_col: str = "shot_created"
+    ) -> ShotCreationMetrics:
         return self._delegate.evaluate(actions_df, target_col)

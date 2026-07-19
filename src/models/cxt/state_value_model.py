@@ -26,9 +26,9 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -50,6 +50,7 @@ SHOT_DISCOUNT = 0.9
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class StateValueMetrics:
@@ -73,6 +74,7 @@ class StateValueLadderResult:
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
+
 
 def compute_possession_cxg(
     actions_df: pd.DataFrame,
@@ -111,7 +113,7 @@ def compute_possession_cxg(
     return actions_df[group_cols].apply(_lookup, axis=1)
 
 
-def _make_X(
+def _make_x(
     df: pd.DataFrame,
     numeric_all: list[str],
     cat_cols: list[str],
@@ -126,44 +128,102 @@ def _make_X(
     return X
 
 
-def _build_gamma_pipeline(numeric_all: list[str], cat_cols: list[str], alpha: float = 1.0) -> Pipeline:
+def _build_gamma_pipeline(
+    numeric_all: list[str], cat_cols: list[str], alpha: float = 1.0
+) -> Pipeline:
     from sklearn.preprocessing import OneHotEncoder
-    transformers: list = [("num", Pipeline([
-        ("imp", SimpleImputer(strategy="median")),
-        ("sc", StandardScaler()),
-    ]), numeric_all)]
+
+    transformers: list = [
+        (
+            "num",
+            Pipeline(
+                [
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler()),
+                ]
+            ),
+            numeric_all,
+        )
+    ]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
-    return Pipeline([("pre", pre), ("reg", TweedieRegressor(power=2, alpha=alpha, max_iter=2000, link="log"))])
+    return Pipeline(
+        [("pre", pre), ("reg", TweedieRegressor(power=2, alpha=alpha, max_iter=2000, link="log"))]
+    )
 
 
-def _build_tweedie_pipeline(numeric_all: list[str], cat_cols: list[str], power: float = 1.5, alpha: float = 1.0) -> Pipeline:
+def _build_tweedie_pipeline(
+    numeric_all: list[str], cat_cols: list[str], power: float = 1.5, alpha: float = 1.0
+) -> Pipeline:
     """Tweedie GLM pipeline. power=1.5 handles zero-inflated non-negative targets natively."""
     from sklearn.preprocessing import OneHotEncoder
-    transformers: list = [("num", Pipeline([
-        ("imp", SimpleImputer(strategy="median")),
-        ("sc", StandardScaler()),
-    ]), numeric_all)]
+
+    transformers: list = [
+        (
+            "num",
+            Pipeline(
+                [
+                    ("imp", SimpleImputer(strategy="median")),
+                    ("sc", StandardScaler()),
+                ]
+            ),
+            numeric_all,
+        )
+    ]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
-    return Pipeline([("pre", pre), ("reg", TweedieRegressor(power=power, alpha=alpha, max_iter=2000, link="log"))])
+    return Pipeline(
+        [
+            ("pre", pre),
+            ("reg", TweedieRegressor(power=power, alpha=alpha, max_iter=2000, link="log")),
+        ]
+    )
 
 
 def _build_tree_reg_pipeline(estimator, numeric_all: list[str], cat_cols: list[str]) -> Pipeline:
     transformers: list = [("num", SimpleImputer(strategy="median"), numeric_all)]
     if cat_cols:
-        transformers.append(("cat", Pipeline([
-            ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
-            ("enc", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, dtype=float)),
-        ]), cat_cols))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imp", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        (
+                            "enc",
+                            OrdinalEncoder(
+                                handle_unknown="use_encoded_value", unknown_value=-1, dtype=float
+                            ),
+                        ),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
     return Pipeline([("pre", pre), ("reg", estimator)])
 
@@ -183,13 +243,14 @@ def _evaluate_regression(y_true: np.ndarray, y_pred: np.ndarray) -> StateValueMe
             for i in range(len(edges) - 1):
                 mask = (y_true >= edges[i]) & (y_true < edges[i + 1])
                 if mask.sum() > 0:
-                    buckets[f"q{i+1}"] = float(np.mean(y_pred[mask]) - np.mean(y_true[mask]))
+                    buckets[f"q{i + 1}"] = float(np.mean(y_pred[mask]) - np.mean(y_true[mask]))
     except Exception:
         pass
     return StateValueMetrics(mae=mae, rmse=rmse, spearman=spearman, calibration_by_zone=buckets)
 
 
 # ── Base class ────────────────────────────────────────────────────────────────
+
 
 class _BaseStateValueModel:
     feature_set: CxTFeatureSetSpec
@@ -203,15 +264,17 @@ class _BaseStateValueModel:
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
-        return _make_X(df, self._numeric_all, self._cat_cols, self._bool_set)
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
+        return _make_x(df, self._numeric_all, self._cat_cols, self._bool_set)
 
     def predict(self, actions_df: pd.DataFrame) -> np.ndarray:
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return np.clip(self.pipeline.predict(self._X(actions_df)), 0.0, None)
+        return np.clip(self.pipeline.predict(self._x(actions_df)), 0.0, None)
 
-    def evaluate(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> StateValueMetrics:
+    def evaluate(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> StateValueMetrics:
         y = actions_df[target_col].astype(float).to_numpy()
         p = self.predict(actions_df)
         return _evaluate_regression(y, p)
@@ -229,6 +292,7 @@ class _BaseStateValueModel:
 
 # ── Gamma GLM (positive targets only) ────────────────────────────────────────
 
+
 class GammaStateValueModel(_BaseStateValueModel):
     """Gamma GLM state-value model. Requires strictly positive target values."""
 
@@ -238,7 +302,9 @@ class GammaStateValueModel(_BaseStateValueModel):
         alpha: float = 1.0,
         random_state: int = 42,
     ) -> None:
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.alpha = alpha
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -246,7 +312,9 @@ class GammaStateValueModel(_BaseStateValueModel):
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "GammaStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> GammaStateValueModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -264,11 +332,12 @@ class GammaStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         self.pipeline = _build_gamma_pipeline(numeric_all, cat_cols, self.alpha)
-        self.pipeline.fit(self._X(actions_df), y.to_numpy())
+        self.pipeline.fit(self._x(actions_df), y.to_numpy())
         return self
 
 
 # ── Tweedie GLM (zero-inflated non-negative) ──────────────────────────────────
+
 
 class TweedieStateValueModel(_BaseStateValueModel):
     """
@@ -286,7 +355,9 @@ class TweedieStateValueModel(_BaseStateValueModel):
         alpha: float = 1.0,
         random_state: int = 42,
     ) -> None:
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.power = power
         self.alpha = alpha
         self.random_state = random_state
@@ -295,7 +366,9 @@ class TweedieStateValueModel(_BaseStateValueModel):
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "TweedieStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> TweedieStateValueModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -310,11 +383,12 @@ class TweedieStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         self.pipeline = _build_tweedie_pipeline(numeric_all, cat_cols, self.power, self.alpha)
-        self.pipeline.fit(self._X(actions_df), y.to_numpy())
+        self.pipeline.fit(self._x(actions_df), y.to_numpy())
         return self
 
 
 # ── GAM (splines over spatial features, GammaGAM family) ─────────────────────
+
 
 class GAMStateValueModel(_BaseStateValueModel):
     """
@@ -327,12 +401,20 @@ class GAMStateValueModel(_BaseStateValueModel):
     Requires: pip install pygam
     """
 
-    _SPLINE_FEATURES: frozenset[str] = frozenset({
-        "x_location", "y_location", "distance_to_goal",
-        "end_x", "end_y", "end_distance_to_goal",
-        "sequence_length", "minute", "keeper_distance_to_goal",
-        "shot_angle",
-    })
+    _SPLINE_FEATURES: frozenset[str] = frozenset(
+        {
+            "x_location",
+            "y_location",
+            "distance_to_goal",
+            "end_x",
+            "end_y",
+            "end_distance_to_goal",
+            "sequence_length",
+            "minute",
+            "keeper_distance_to_goal",
+            "shot_angle",
+        }
+    )
 
     def __init__(
         self,
@@ -345,7 +427,9 @@ class GAMStateValueModel(_BaseStateValueModel):
             import pygam  # noqa: F401
         except ImportError as exc:
             raise ImportError("pygam not installed. Run: pip install pygam") from exc
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.n_splines = n_splines
         self.lam = lam
         self.random_state = random_state
@@ -359,15 +443,16 @@ class GAMStateValueModel(_BaseStateValueModel):
         self._feature_names: list[str] = []
 
     def _build_terms(self, feature_names: list[str]):
-        from pygam import s, l  # noqa: E741
+        from pygam import l, s  # noqa: E741
+
         terms = None
         for i, name in enumerate(feature_names):
             t = s(i, n_splines=self.n_splines) if name in self._SPLINE_FEATURES else l(i)
             terms = t if terms is None else terms + t
         return terms
 
-    def _preprocess_X(self, df: pd.DataFrame, fit: bool = False) -> np.ndarray:
-        X_df = _make_X(df, self._numeric_all, [], self._bool_set).reindex(
+    def _preprocess_x(self, df: pd.DataFrame, fit: bool = False) -> np.ndarray:
+        X_df = _make_x(df, self._numeric_all, [], self._bool_set).reindex(
             columns=self._feature_names, fill_value=np.nan
         )
         if fit:
@@ -375,12 +460,13 @@ class GAMStateValueModel(_BaseStateValueModel):
             self._scaler = StandardScaler()
             X_np = self._imputer.fit_transform(X_df)
             return self._scaler.fit_transform(X_np).astype(float)
-        return self._scaler.transform(
-            self._imputer.transform(X_df)
-        ).astype(float)
+        return self._scaler.transform(self._imputer.transform(X_df)).astype(float)
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "GAMStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> GAMStateValueModel:
         from pygam import GammaGAM
+
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -398,7 +484,7 @@ class GAMStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         self._feature_names = numeric_all  # GAM uses numeric features only
-        X = self._preprocess_X(actions_df, fit=True)
+        X = self._preprocess_x(actions_df, fit=True)
         terms = self._build_terms(self._feature_names)
         self._gam = GammaGAM(terms, lam=self.lam).fit(X, y.to_numpy())
         return self
@@ -406,11 +492,12 @@ class GAMStateValueModel(_BaseStateValueModel):
     def predict(self, actions_df: pd.DataFrame) -> np.ndarray:
         if self._gam is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        X = self._preprocess_X(actions_df, fit=False)
+        X = self._preprocess_x(actions_df, fit=False)
         return np.clip(self._gam.predict(X), 0.0, None)
 
 
 # ── XGBoost ───────────────────────────────────────────────────────────────────
+
 
 class XGBoostStateValueModel(_BaseStateValueModel):
     """XGBoost state-value regressor."""
@@ -431,11 +518,16 @@ class XGBoostStateValueModel(_BaseStateValueModel):
             import xgboost  # noqa: F401
         except ImportError as exc:
             raise ImportError("xgboost not installed. Run: poetry install --with models") from exc
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            max_depth=max_depth, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_weight=min_child_weight,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_weight=min_child_weight,
             reg_lambda=reg_lambda,
         )
         self.random_state = random_state
@@ -444,13 +536,17 @@ class XGBoostStateValueModel(_BaseStateValueModel):
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "XGBoostStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> XGBoostStateValueModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
             raise ValueError(f"Missing target column: {target_col!r}")
         import xgboost as xgb
+
         from src.runtime.gbm_device import xgboost_kwargs
+
         df = actions_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         if not numeric_all:
@@ -459,16 +555,19 @@ class XGBoostStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         est = xgb.XGBRegressor(
-            **self.params, **xgboost_kwargs(getattr(self, "device", None)),
+            **self.params,
+            **xgboost_kwargs(getattr(self, "device", None)),
             objective="reg:squarederror",
-            verbosity=0, random_state=self.random_state,
+            verbosity=0,
+            random_state=self.random_state,
         )
         self.pipeline = _build_tree_reg_pipeline(est, numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(float).to_numpy())
+        self.pipeline.fit(self._x(df), df[target_col].astype(float).to_numpy())
         return self
 
 
 # ── LightGBM ──────────────────────────────────────────────────────────────────
+
 
 class LightGBMStateValueModel(_BaseStateValueModel):
     """LightGBM state-value regressor."""
@@ -488,11 +587,16 @@ class LightGBMStateValueModel(_BaseStateValueModel):
             import lightgbm  # noqa: F401
         except ImportError as exc:
             raise ImportError("lightgbm not installed. Run: poetry install --with models") from exc
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.params = dict(
-            n_estimators=n_estimators, learning_rate=learning_rate,
-            num_leaves=num_leaves, subsample=subsample,
-            colsample_bytree=colsample_bytree, min_child_samples=min_child_samples,
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            num_leaves=num_leaves,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            min_child_samples=min_child_samples,
         )
         self.random_state = random_state
         self.pipeline: Pipeline | None = None
@@ -500,13 +604,17 @@ class LightGBMStateValueModel(_BaseStateValueModel):
         self._cat_cols: list[str] = []
         self._bool_set: frozenset[str] = frozenset()
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "LightGBMStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> LightGBMStateValueModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
             raise ValueError(f"Missing target column: {target_col!r}")
         import lightgbm as lgb
+
         from src.runtime.gbm_device import lightgbm_kwargs
+
         df = actions_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         if not numeric_all:
@@ -515,16 +623,20 @@ class LightGBMStateValueModel(_BaseStateValueModel):
         self._cat_cols = cat_cols
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
         est = lgb.LGBMRegressor(
-            **self.params, **lightgbm_kwargs(getattr(self, "device", None)),
-            objective="regression", metric="rmse",
-            verbose=-1, random_state=self.random_state,
+            **self.params,
+            **lightgbm_kwargs(getattr(self, "device", None)),
+            objective="regression",
+            metric="rmse",
+            verbose=-1,
+            random_state=self.random_state,
         )
         self.pipeline = _build_tree_reg_pipeline(est, numeric_all, cat_cols)
-        self.pipeline.fit(self._X(df), df[target_col].astype(float).to_numpy())
+        self.pipeline.fit(self._x(df), df[target_col].astype(float).to_numpy())
         return self
 
 
 # ── FFNN ──────────────────────────────────────────────────────────────────────
+
 
 class FFNNStateValueModel(_BaseStateValueModel):
     """
@@ -545,7 +657,9 @@ class FFNNStateValueModel(_BaseStateValueModel):
         device: str | None = None,
         random_state: int = 42,
     ) -> None:
-        self.feature_set = get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        self.feature_set = (
+            get_feature_set(feature_set) if isinstance(feature_set, str) else feature_set
+        )
         self.hidden_dims = hidden_dims
         self.lr = lr
         self.max_epochs = max_epochs
@@ -563,6 +677,7 @@ class FFNNStateValueModel(_BaseStateValueModel):
     def _torch_device(self) -> str:
         if self._resolved_device is None:
             from src.models.neural import resolve_device
+
             self._resolved_device = resolve_device(self.device)
             logger.info("FFNNStateValue: using torch device %s", self._resolved_device)
         return self._resolved_device
@@ -584,12 +699,15 @@ class FFNNStateValueModel(_BaseStateValueModel):
             def __init__(self, layers):
                 super().__init__()
                 self.net = nn.Sequential(*layers)
+
             def forward(self, x):
                 return self.net(x).squeeze(-1)
 
         return _MLP(layers)
 
-    def fit(self, actions_df: pd.DataFrame, target_col: str = "possession_cxg") -> "FFNNStateValueModel":
+    def fit(
+        self, actions_df: pd.DataFrame, target_col: str = "possession_cxg"
+    ) -> FFNNStateValueModel:
         try:
             import torch
             import torch.nn as nn
@@ -612,16 +730,20 @@ class FFNNStateValueModel(_BaseStateValueModel):
         self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
 
         from sklearn.pipeline import Pipeline as SKPipeline
-        self.pipeline = SKPipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+
+        self.pipeline = SKPipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.fit_transform(X_raw).astype(np.float32)
         y_np = df[target_col].astype(float).to_numpy(dtype=np.float32)
 
         dataset = TensorDataset(torch.tensor(X_np), torch.tensor(y_np))
         from src.models.neural import resolve_batch_size
+
         bs = resolve_batch_size("ffnn", self.batch_size)
         loader = DataLoader(dataset, batch_size=bs, shuffle=True)
         device = self._torch_device()
@@ -643,8 +765,12 @@ class FFNNStateValueModel(_BaseStateValueModel):
                 optimizer.step()
                 epoch_loss += loss.item()
             if (epoch + 1) % 10 == 0:
-                logger.info("FFNNStateValue epoch %d/%d loss=%.4f",
-                            epoch + 1, self.max_epochs, epoch_loss / max(len(loader), 1))
+                logger.info(
+                    "FFNNStateValue epoch %d/%d loss=%.4f",
+                    epoch + 1,
+                    self.max_epochs,
+                    epoch_loss / max(len(loader), 1),
+                )
 
         model.eval()
         self._torch_model = model
@@ -658,7 +784,7 @@ class FFNNStateValueModel(_BaseStateValueModel):
         if self._torch_model is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
         df = actions_df.reset_index(drop=True)
-        X_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_np = self.pipeline.transform(X_raw).astype(np.float32)
         device = self._torch_device()
         self._torch_model.eval()
@@ -668,6 +794,7 @@ class FFNNStateValueModel(_BaseStateValueModel):
 
 
 # ── State-Value Ladder ────────────────────────────────────────────────────────
+
 
 def _cv_state_value(
     factory: Callable[[], _BaseStateValueModel],
@@ -679,9 +806,12 @@ def _cv_state_value(
 ) -> tuple[float, float, float | None, int]:
     df = actions_df.reset_index(drop=True)
     if match_id_col in df.columns:
-        folds = list(match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state))
+        folds = list(
+            match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=random_state)
+        )
     else:
         from sklearn.model_selection import KFold
+
         folds = list(KFold(n_splits=n_folds, shuffle=True, random_state=random_state).split(df))
     maes, rmses, spearmans = [], [], []
     for tr_idx, va_idx in folds:
@@ -703,7 +833,8 @@ def _cv_state_value(
     if not maes:
         return float("inf"), float("inf"), None, 0
     return (
-        float(np.mean(maes)), float(np.mean(rmses)),
+        float(np.mean(maes)),
+        float(np.mean(rmses)),
         float(np.mean(spearmans)) if spearmans else None,
         len(maes),
     )
@@ -736,53 +867,95 @@ class StateValueLadder:
         ne, rs = n_estimators, random_state
 
         candidates: list[tuple[str, str, str, Callable, pd.DataFrame]] = [
-            ("gamma_glm", "glm", "contextual",
-             lambda: GammaStateValueModel(feature_set="contextual", random_state=rs), pos_df),
-            ("tweedie_glm", "glm", "contextual",
-             lambda: TweedieStateValueModel(feature_set="contextual", random_state=rs), actions_df),
-            ("gam_contextual", "gam", "contextual",
-             lambda: GAMStateValueModel(feature_set="contextual", random_state=rs), pos_df),
-            ("xgb_contextual", "xgboost", "contextual",
-             lambda: XGBoostStateValueModel(feature_set="contextual", n_estimators=ne, random_state=rs), actions_df),
-            ("lgbm_contextual", "lightgbm", "contextual",
-             lambda: LightGBMStateValueModel(feature_set="contextual", n_estimators=ne, random_state=rs), actions_df),
+            (
+                "gamma_glm",
+                "glm",
+                "contextual",
+                lambda: GammaStateValueModel(feature_set="contextual", random_state=rs),
+                pos_df,
+            ),
+            (
+                "tweedie_glm",
+                "glm",
+                "contextual",
+                lambda: TweedieStateValueModel(feature_set="contextual", random_state=rs),
+                actions_df,
+            ),
+            (
+                "gam_contextual",
+                "gam",
+                "contextual",
+                lambda: GAMStateValueModel(feature_set="contextual", random_state=rs),
+                pos_df,
+            ),
+            (
+                "xgb_contextual",
+                "xgboost",
+                "contextual",
+                lambda: XGBoostStateValueModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+                actions_df,
+            ),
+            (
+                "lgbm_contextual",
+                "lightgbm",
+                "contextual",
+                lambda: LightGBMStateValueModel(
+                    feature_set="contextual", n_estimators=ne, random_state=rs
+                ),
+                actions_df,
+            ),
         ]
 
         if include_neural:
-            candidates.append((
-                "ffnn_contextual", "ffnn", "contextual",
-                lambda: FFNNStateValueModel(
-                    feature_set="contextual",
-                    max_epochs=nn_max_epochs,
-                    random_state=rs,
-                ),
-                actions_df,
-            ))
+            candidates.append(
+                (
+                    "ffnn_contextual",
+                    "ffnn",
+                    "contextual",
+                    lambda: FFNNStateValueModel(
+                        feature_set="contextual",
+                        max_epochs=nn_max_epochs,
+                        random_state=rs,
+                    ),
+                    actions_df,
+                )
+            )
             if frames_path is not None:
+                from src.models.cxt.state_value_gnn import GNNStateValueModel
                 from src.models.cxt.state_value_set_transformer import (
                     SetTransformerStateValueModel,
                 )
-                from src.models.cxt.state_value_gnn import GNNStateValueModel
-                candidates.append((
-                    "set_transformer_contextual", "set_transformer", "contextual",
-                    lambda: SetTransformerStateValueModel(
-                        feature_set="contextual",
-                        frames_path=frames_path,
-                        max_epochs=nn_max_epochs,
-                        random_state=rs,
-                    ),
-                    actions_df,
-                ))
-                candidates.append((
-                    "gnn_contextual", "gnn", "contextual",
-                    lambda: GNNStateValueModel(
-                        feature_set="contextual",
-                        frames_path=frames_path,
-                        max_epochs=nn_max_epochs,
-                        random_state=rs,
-                    ),
-                    actions_df,
-                ))
+
+                candidates.append(
+                    (
+                        "set_transformer_contextual",
+                        "set_transformer",
+                        "contextual",
+                        lambda: SetTransformerStateValueModel(
+                            feature_set="contextual",
+                            frames_path=frames_path,
+                            max_epochs=nn_max_epochs,
+                            random_state=rs,
+                        ),
+                        actions_df,
+                    )
+                )
+                candidates.append(
+                    (
+                        "gnn_contextual",
+                        "gnn",
+                        "contextual",
+                        lambda: GNNStateValueModel(
+                            feature_set="contextual",
+                            frames_path=frames_path,
+                            max_epochs=nn_max_epochs,
+                            random_state=rs,
+                        ),
+                        actions_df,
+                    )
+                )
             else:
                 logger.info(
                     "StateValueLadder: include_neural=True but frames_path is None; "
@@ -802,11 +975,18 @@ class StateValueLadder:
             )
             final = factory()
             final.fit(df_for_fit, target_col)
-            results.append(StateValueLadderResult(
-                name=name, family=family, feature_set=fset,
-                cv_mae=cv_mae, cv_rmse=cv_rmse, cv_spearman=cv_sp,
-                n_cv_folds_used=n_valid, model=final,
-            ))
+            results.append(
+                StateValueLadderResult(
+                    name=name,
+                    family=family,
+                    feature_set=fset,
+                    cv_mae=cv_mae,
+                    cv_rmse=cv_rmse,
+                    cv_spearman=cv_sp,
+                    n_cv_folds_used=n_valid,
+                    model=final,
+                )
+            )
 
         if not results:
             raise RuntimeError("No state-value candidates could be fitted.")
@@ -819,13 +999,18 @@ class StateValueLadder:
     def leaderboard(self) -> pd.DataFrame:
         if not self._results:
             raise RuntimeError("No results yet. Call run() first.")
-        rows = [{
-            "rank": r.rank, "name": r.name, "family": r.family,
-            "feature_set": r.feature_set,
-            "cv_mae": round(r.cv_mae, 5),
-            "cv_rmse": round(r.cv_rmse, 5),
-            "cv_spearman": round(r.cv_spearman, 4) if r.cv_spearman is not None else None,
-        } for r in self._results]
+        rows = [
+            {
+                "rank": r.rank,
+                "name": r.name,
+                "family": r.family,
+                "feature_set": r.feature_set,
+                "cv_mae": round(r.cv_mae, 5),
+                "cv_rmse": round(r.cv_rmse, 5),
+                "cv_spearman": round(r.cv_spearman, 4) if r.cv_spearman is not None else None,
+            }
+            for r in self._results
+        ]
         return pd.DataFrame(rows).set_index("rank")
 
     def best(self) -> StateValueLadderResult:

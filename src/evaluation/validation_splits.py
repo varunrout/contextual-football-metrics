@@ -14,7 +14,7 @@ Available strategies:
 from __future__ import annotations
 
 import logging
-from typing import Iterator
+from collections.abc import Iterator
 
 import numpy as np
 import pandas as pd
@@ -54,9 +54,12 @@ def match_kfold(
         val_idx = df.index[df[match_id_col].isin(val_matches)].to_numpy()
         logger.debug(
             "Fold %d/%d — train: %d events (%d matches) | val: %d events (%d matches)",
-            i + 1, n_splits,
-            len(train_idx), len(train_matches),
-            len(val_idx), len(val_matches),
+            i + 1,
+            n_splits,
+            len(train_idx),
+            len(train_matches),
+            len(val_idx),
+            len(val_matches),
         )
         yield train_idx, val_idx
 
@@ -83,7 +86,9 @@ def competition_holdout(
     holdout_idx = df.index[in_holdout].to_numpy()
     logger.info(
         "Competition holdout: %d train events | %d holdout events (competitions: %s)",
-        len(train_idx), len(holdout_idx), holdout_competition_ids,
+        len(train_idx),
+        len(holdout_idx),
+        holdout_competition_ids,
     )
     return train_idx, holdout_idx
 
@@ -108,7 +113,9 @@ def team_holdout(
     holdout_idx = df.index[in_holdout].to_numpy()
     logger.info(
         "Team holdout: %d train events | %d holdout events (teams: %s)",
-        len(train_idx), len(holdout_idx), holdout_team_ids,
+        len(train_idx),
+        len(holdout_idx),
+        holdout_team_ids,
     )
     return train_idx, holdout_idx
 
@@ -123,9 +130,7 @@ def temporal_split(
     Chronological split: most-recent `test_fraction` of matches form the test set.
     Operates at match level to avoid leakage.
     """
-    match_dates = (
-        df.groupby(match_id_col)[date_col].first().sort_values()
-    )
+    match_dates = df.groupby(match_id_col)[date_col].first().sort_values()
     n_test = max(1, int(len(match_dates) * test_fraction))
     test_matches = set(match_dates.index[-n_test:])
     train_matches = set(match_dates.index[:-n_test])
@@ -134,7 +139,9 @@ def temporal_split(
     test_idx = df.index[df[match_id_col].isin(test_matches)].to_numpy()
     logger.info(
         "Temporal split: %d train events (%d matches) | %d test events (%d matches)",
-        len(train_idx), len(train_matches),
-        len(test_idx), len(test_matches),
+        len(train_idx),
+        len(train_matches),
+        len(test_idx),
+        len(test_matches),
     )
     return train_idx, test_idx

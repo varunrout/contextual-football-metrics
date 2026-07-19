@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from src.models.cxg.feature_sets import CONTEXTUAL, FeatureSetSpec, get_feature_set
+from src.models.cxg.feature_sets import FeatureSetSpec, get_feature_set
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +35,17 @@ _DEFAULT_C_SEARCH: tuple[float, ...] = (0.01, 0.05, 0.1, 0.5, 1.0, 5.0)
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class GlmContextualMetrics:
     log_loss: float
     brier: float
     auc: float | None
-    best_C: float | None = None
+    best_c: float | None = None
 
 
 # ── Model ─────────────────────────────────────────────────────────────────────
+
 
 class GlmContextualCxG:
     """
@@ -83,16 +85,12 @@ class GlmContextualCxG:
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _resolve_cols(
-        self, df: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
+    def _resolve_cols(self, df: pd.DataFrame) -> tuple[list[str], list[str]]:
         """
         Return (numeric_all, cat_cols) filtered to columns present in df.
         numeric_all = numeric + boolean (both handled by the numeric transformer).
         """
-        numeric_all = [
-            c for c in self.feature_set.numeric_all if c in df.columns
-        ]
+        numeric_all = [c for c in self.feature_set.numeric_all if c in df.columns]
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
@@ -105,22 +103,28 @@ class GlmContextualCxG:
         transformers: list = [
             (
                 "num",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="median")),
-                    ("scaler", StandardScaler()),
-                ]),
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="median")),
+                        ("scaler", StandardScaler()),
+                    ]
+                ),
                 numeric_all,
             ),
         ]
         if cat_cols:
-            transformers.append((
-                "cat",
-                Pipeline([
-                    ("imputer", SimpleImputer(strategy="constant", fill_value="unknown")),
-                    ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
-                ]),
-                cat_cols,
-            ))
+            transformers.append(
+                (
+                    "cat",
+                    Pipeline(
+                        [
+                            ("imputer", SimpleImputer(strategy="constant", fill_value="unknown")),
+                            ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                        ]
+                    ),
+                    cat_cols,
+                )
+            )
         pre = ColumnTransformer(transformers, remainder="drop")
         clf = LogisticRegression(
             solver="lbfgs",
@@ -130,7 +134,7 @@ class GlmContextualCxG:
         )
         return Pipeline([("pre", pre), ("clf", clf)])
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Build input matrix with ALL trained columns.
         Columns missing from df are filled with NaN (numeric) or 'unknown' (cat).
@@ -150,13 +154,13 @@ class GlmContextualCxG:
         return X
 
     @staticmethod
-    def _make_X_from(
+    def _make_x_from(
         df: pd.DataFrame,
         numeric_all: list[str],
         cat_cols: list[str],
         bool_set: frozenset[str],
     ) -> pd.DataFrame:
-        """Static version of _X used during tune_C (before instance vars are set)."""
+        """Static version of _x used during tune_c (before instance vars are set)."""
         X = pd.DataFrame(index=df.index)
         for col in numeric_all:
             raw = df.get(col, pd.Series(np.nan, index=df.index))
@@ -173,7 +177,7 @@ class GlmContextualCxG:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    def tune_C(
+    def tune_c(
         self,
         shots_df: pd.DataFrame,
         target_col: str = "goal",
@@ -186,7 +190,7 @@ class GlmContextualCxG:
         """
         numeric_all, cat_cols = self._resolve_cols(shots_df)
         bool_set = frozenset(self.feature_set.boolean)
-        X = self._make_X_from(shots_df, numeric_all, cat_cols, bool_set)
+        X = self._make_x_from(shots_df, numeric_all, cat_cols, bool_set)
         y = shots_df[target_col].astype(int).to_numpy()
 
         best_C, best_score = self.C, float("inf")
@@ -199,9 +203,7 @@ class GlmContextualCxG:
                 best_score = mean_ll
                 best_C = c
 
-        logger.info(
-            "GlmContextualCxG: best_C=%.4f (cv_log_loss=%.4f)", best_C, best_score
-        )
+        logger.info("GlmContextualCxG: best_C=%.4f (cv_log_loss=%.4f)", best_C, best_score)
         self.best_C_ = best_C
         return best_C
 
@@ -212,7 +214,7 @@ class GlmContextualCxG:
         tune: bool = False,
         c_search: Sequence[float] = _DEFAULT_C_SEARCH,
         cv: int = 5,
-    ) -> "GlmContextualCxG":
+    ) -> GlmContextualCxG:
         """
         Fit the model.
 
@@ -235,14 +237,12 @@ class GlmContextualCxG:
 
         self._numeric_all = numeric_all
         self._cat_cols = cat_cols
-        self._bool_set = frozenset(
-            c for c in self.feature_set.boolean if c in numeric_all
-        )
+        self._bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
 
-        C_to_use = self.tune_C(shots_df, target_col, c_search, cv) if tune else self.C
+        C_to_use = self.tune_c(shots_df, target_col, c_search, cv) if tune else self.C
         self.pipeline = self._build_pipeline(C_to_use, numeric_all, cat_cols)
 
-        X = self._X(shots_df)
+        X = self._x(shots_df)
         y = shots_df[target_col].astype(int).to_numpy()
         self.pipeline.fit(X, y)
         return self
@@ -251,11 +251,9 @@ class GlmContextualCxG:
         """Return P(goal=1) for each row."""
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return self.pipeline.predict_proba(self._X(shots_df))[:, 1]
+        return self.pipeline.predict_proba(self._x(shots_df))[:, 1]
 
-    def evaluate(
-        self, shots_df: pd.DataFrame, target_col: str = "goal"
-    ) -> GlmContextualMetrics:
+    def evaluate(self, shots_df: pd.DataFrame, target_col: str = "goal") -> GlmContextualMetrics:
         """Compute log-loss, Brier score, AUC on shots_df."""
         y = shots_df[target_col].astype(int).to_numpy()
         p = self.predict_proba(shots_df)
@@ -264,7 +262,7 @@ class GlmContextualCxG:
             log_loss=float(log_loss(y, p, labels=[0, 1])),
             brier=float(brier_score_loss(y, p)),
             auc=auc,
-            best_C=self.best_C_,
+            best_c=self.best_C_,
         )
 
     # ── Persistence ───────────────────────────────────────────────────────────
@@ -275,7 +273,7 @@ class GlmContextualCxG:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "GlmContextualCxG":
+    def load(cls, path: str | Path) -> GlmContextualCxG:
         with open(path, "rb") as f:
             obj = pickle.load(f)
         if not isinstance(obj, cls):

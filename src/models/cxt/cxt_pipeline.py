@@ -20,14 +20,13 @@ from __future__ import annotations
 
 import logging
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 
-from src.models.cxt.feature_sets import AFTER_TO_BEFORE, BEFORE_TO_AFTER, CxTFeatureSetSpec
+from src.models.cxt.feature_sets import BEFORE_TO_AFTER, CxTFeatureSetSpec
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +35,7 @@ CXT_ACTION_TYPES = frozenset({"pass", "carry", "cross", "cutback"})
 
 
 # ── Decomposition record ──────────────────────────────────────────────────────
+
 
 @dataclass
 class CxTDecompositionRecord:
@@ -58,6 +58,7 @@ class CxTDecompositionRecord:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _build_after_state_df(actions_df: pd.DataFrame, feature_set: CxTFeatureSetSpec) -> pd.DataFrame:
     """
@@ -95,6 +96,7 @@ def _is_successful_action(row: pd.Series) -> bool:
 
 # ── CxT Pipeline ─────────────────────────────────────────────────────────────
 
+
 class CxTPipeline:
     """
     Two-stage CxT computation:
@@ -111,7 +113,7 @@ class CxTPipeline:
         self.zone_value_model = zone_value_model
 
     @classmethod
-    def from_models(cls, state_value_model, zone_value_model=None) -> "CxTPipeline":
+    def from_models(cls, state_value_model, zone_value_model=None) -> CxTPipeline:
         return cls(state_value_model=state_value_model, zone_value_model=zone_value_model)
 
     def fit(
@@ -119,7 +121,7 @@ class CxTPipeline:
         actions_df: pd.DataFrame,
         target_col: str = "possession_cxg",
         match_id_col: str = "match_id",
-    ) -> "CxTPipeline":
+    ) -> CxTPipeline:
         """Fit the underlying state_value_model on actions_df."""
         if actions_df.empty:
             raise ValueError("actions_df is empty")
@@ -145,8 +147,10 @@ class CxTPipeline:
             If True, only rows whose action_type is in CXT_ACTION_TYPES
             are returned (others receive NaN CxT).
         """
-        if self.state_value_model.pipeline is None and \
-                getattr(self.state_value_model, "_torch_model", None) is None:
+        if (
+            self.state_value_model.pipeline is None
+            and getattr(self.state_value_model, "_torch_model", None) is None
+        ):
             raise RuntimeError("state_value_model not fitted. Call fit() first.")
 
         df = actions_df.copy()
@@ -197,32 +201,33 @@ class CxTPipeline:
                     y_b = float(row.get("y_location", 0))
                     x_a = float(row.get("end_x", x_b))
                     y_a = float(row.get("end_y", y_b))
-                    zone_delta = (
-                        self.zone_value_model.get_zone_value(x_a, y_a)
-                        - self.zone_value_model.get_zone_value(x_b, y_b)
-                    )
+                    zone_delta = self.zone_value_model.get_zone_value(
+                        x_a, y_a
+                    ) - self.zone_value_model.get_zone_value(x_b, y_b)
                     oad = float(row["cxt"]) - zone_delta
                 except Exception:
                     oad = 0.0
 
-            records.append(CxTDecompositionRecord(
-                event_id=row.get("event_id", row.name),
-                player_id=row.get("player_id", 0),
-                team_id=row.get("team_id", 0),
-                match_id=row.get("match_id", 0),
-                possession_id=row.get("possession_id", 0),
-                action_type=str(row.get("action_type", "")),
-                x_before=float(row.get("x_location", 0.0)),
-                y_before=float(row.get("y_location", 0.0)),
-                x_after=float(row.get("end_x", row.get("x_location", 0.0))),
-                y_after=float(row.get("end_y", row.get("y_location", 0.0))),
-                v_before=float(row["v_before"]),
-                v_after=float(row["v_after"]),
-                cxt=float(row["cxt"]),
-                sequence_type=str(row.get("sequence_type", "unknown")),
-                opponent_adjustment_delta=oad,
-                is_successful=bool(row.get("is_successful", True)),
-            ))
+            records.append(
+                CxTDecompositionRecord(
+                    event_id=row.get("event_id", row.name),
+                    player_id=row.get("player_id", 0),
+                    team_id=row.get("team_id", 0),
+                    match_id=row.get("match_id", 0),
+                    possession_id=row.get("possession_id", 0),
+                    action_type=str(row.get("action_type", "")),
+                    x_before=float(row.get("x_location", 0.0)),
+                    y_before=float(row.get("y_location", 0.0)),
+                    x_after=float(row.get("end_x", row.get("x_location", 0.0))),
+                    y_after=float(row.get("end_y", row.get("y_location", 0.0))),
+                    v_before=float(row["v_before"]),
+                    v_after=float(row["v_after"]),
+                    cxt=float(row["cxt"]),
+                    sequence_type=str(row.get("sequence_type", "unknown")),
+                    opponent_adjustment_delta=oad,
+                    is_successful=bool(row.get("is_successful", True)),
+                )
+            )
 
         return records
 
@@ -239,10 +244,16 @@ class CxTPipeline:
             logger.warning("MLflow not installed; skipping log_to_mlflow")
             return
         mlflow.set_experiment(experiment_name)
-        rn = run_name or f"cxt.{getattr(self.state_value_model, '__class__', type(self.state_value_model)).__name__}.v1"
+        rn = (
+            run_name
+            or f"cxt.{getattr(self.state_value_model, '__class__', type(self.state_value_model)).__name__}.v1"
+        )
         with mlflow.start_run(run_name=rn):
             mlflow.log_param("state_value_model", type(self.state_value_model).__name__)
-            mlflow.log_param("zone_value_model", type(self.zone_value_model).__name__ if self.zone_value_model else "none")
+            mlflow.log_param(
+                "zone_value_model",
+                type(self.zone_value_model).__name__ if self.zone_value_model else "none",
+            )
             mlflow.log_param("cxt_action_types", sorted(CXT_ACTION_TYPES))
             if metrics:
                 for k, v in metrics.items():
@@ -254,6 +265,6 @@ class CxTPipeline:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "CxTPipeline":
+    def load(cls, path: str | Path) -> CxTPipeline:
         with open(path, "rb") as f:
             return pickle.load(f)

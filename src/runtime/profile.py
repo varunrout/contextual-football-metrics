@@ -32,7 +32,7 @@ PROFILES_DIR = Path(__file__).resolve().parents[2] / "configs" / "profiles"
 VALID_PROFILES = ("cpu", "gpu", "cloud")
 
 # Module-level cache; populated by load_profile / get_profile.
-_active: "ProfileConfig | None" = None
+_active: ProfileConfig | None = None
 
 
 @dataclass(frozen=True)
@@ -196,16 +196,12 @@ def autodetect() -> str:
 def _resolve_name(name: str | None) -> str:
     if name and name != "auto":
         if name not in VALID_PROFILES:
-            raise ValueError(
-                f"Unknown profile '{name}'. Valid: {VALID_PROFILES} or 'auto'."
-            )
+            raise ValueError(f"Unknown profile '{name}'. Valid: {VALID_PROFILES} or 'auto'.")
         return name
     env_name = os.environ.get("CFM_PROFILE")
     if env_name:
         if env_name not in VALID_PROFILES:
-            raise ValueError(
-                f"CFM_PROFILE='{env_name}' is not one of {VALID_PROFILES}."
-            )
+            raise ValueError(f"CFM_PROFILE='{env_name}' is not one of {VALID_PROFILES}.")
         return env_name
     return autodetect()
 
@@ -254,8 +250,13 @@ def load_profile(name: str | None = None, *, validate: bool = True) -> ProfileCo
     if validate:
         _validate(cfg)
     _active = cfg
-    logger.info("Loaded profile '%s' (accelerator=%s, gbm=%s, mlflow=%s)",
-                cfg.name, cfg.accelerator_type, cfg.gbm_device, cfg.mlflow_tracking_uri)
+    logger.info(
+        "Loaded profile '%s' (accelerator=%s, gbm=%s, mlflow=%s)",
+        cfg.name,
+        cfg.accelerator_type,
+        cfg.gbm_device,
+        cfg.mlflow_tracking_uri,
+    )
     return cfg
 
 

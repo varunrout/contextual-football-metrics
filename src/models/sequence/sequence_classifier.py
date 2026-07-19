@@ -27,12 +27,14 @@ import pandas as pd
 
 try:
     import lightgbm as lgb
+
     _HAS_LGB = True
 except ImportError:
     _HAS_LGB = False
 
 try:
     import mlflow
+
     _HAS_MLFLOW = True
 except ImportError:
     _HAS_MLFLOW = False
@@ -69,8 +71,8 @@ _CAT_COLS = ["possession_start_zone", "regain_zone", "phase_of_play", "transitio
 
 _ALL_FEATURE_COLS = _SEQUENCE_FEATURE_COLS + _CAT_COLS
 
-_MIN_LABEL_WEIGHT = 0.5    # from models.yaml: weak_label_weight
-_MIN_CONFIDENCE = 0.70     # only train on possessions where rule confidence ≥ 0.70
+_MIN_LABEL_WEIGHT = 0.5  # from models.yaml: weak_label_weight
+_MIN_CONFIDENCE = 0.70  # only train on possessions where rule confidence ≥ 0.70
 _PREDICT_THRESHOLD = 0.40  # assign label only if max class prob ≥ threshold
 
 
@@ -116,7 +118,7 @@ class SequenceClassifier:
 
     # ── Training ──────────────────────────────────────────────────────────────
 
-    def fit(self, possessions_df: pd.DataFrame) -> "SequenceClassifier":
+    def fit(self, possessions_df: pd.DataFrame) -> SequenceClassifier:
         """
         Fit on possessions that have rule labels with sufficient confidence.
 
@@ -132,8 +134,9 @@ class SequenceClassifier:
                 f"{self.min_confidence} and known sequence type"
             )
 
-        X, y, w = self._build_Xyw(train_df)
+        X, y, w = self._build_xyw(train_df)
         from src.runtime.gbm_device import lightgbm_kwargs
+
         params = {**self.lgb_params, **lightgbm_kwargs()}
         self._model = lgb.LGBMClassifier(**params)
         self._model.fit(X, y, sample_weight=w)
@@ -175,7 +178,7 @@ class SequenceClassifier:
         max_idxs = proba.argmax(axis=1)
         labels = [
             _LABEL_CLASSES[idx] if prob >= self.predict_threshold else SequenceType.UNKNOWN.value
-            for idx, prob in zip(max_idxs, max_probs)
+            for idx, prob in zip(max_idxs, max_probs, strict=False)
         ]
         possessions_df = possessions_df.copy()
         possessions_df["sequence_type"] = labels
@@ -190,13 +193,15 @@ class SequenceClassifier:
         if self._model is None:
             raise RuntimeError("Nothing to save — model not fitted")
         import joblib
+
         joblib.dump(self._model, path)
         logger.info("SequenceClassifier saved to %s", path)
 
     @classmethod
-    def load(cls, path: Path | str, **kwargs: Any) -> "SequenceClassifier":
+    def load(cls, path: Path | str, **kwargs: Any) -> SequenceClassifier:
         """Load a previously saved classifier."""
         import joblib
+
         instance = cls(**kwargs)
         instance._model = joblib.load(path)
         return instance
@@ -226,13 +231,9 @@ class SequenceClassifier:
         X[num_cols] = X[num_cols].fillna(0.0)
         return X
 
-    def _build_Xyw(
-        self, df: pd.DataFrame
-    ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
+    def _build_xyw(self, df: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:
         X = self._prepare_features(df)
-        y = np.array(
-            [_CLASS_TO_IDX.get(v, 0) for v in df["sequence_type_rule"]], dtype=np.int32
-        )
+        y = np.array([_CLASS_TO_IDX.get(v, 0) for v in df["sequence_type_rule"]], dtype=np.int32)
         w = np.clip(
             df["sequence_type_confidence"].fillna(_MIN_LABEL_WEIGHT).values,
             _MIN_LABEL_WEIGHT,
@@ -251,6 +252,6 @@ class SequenceClassifier:
             mlflow.log_params(self.lgb_params)
             fi = self._model.feature_importances_
             feature_names = getattr(self._model, "feature_name_", [f"f{i}" for i in range(len(fi))])
-            for name, imp in zip(feature_names, fi):
+            for name, imp in zip(feature_names, fi, strict=False):
                 mlflow.log_metric(f"feature_importance_{name}", float(imp))
             logger.info("Logged SequenceClassifier run to MLflow experiment '%s'", experiment_name)

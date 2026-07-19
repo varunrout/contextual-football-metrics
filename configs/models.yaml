@@ -21,10 +21,14 @@ promotion:
   max_ece_vs_tree: 1.0
   min_leaderboard_rank_correlation: 0.8
   must_not_rely_on_360_only: true
+# Production pointers. POSIX separators so paths resolve on Linux and Windows.
+# cxg is baseline_logit: it is rank 1 on the pre-committed CV log-loss criterion.
+# The held-out set is used once as confirmation only, not to select the winner
+# (see docs/modeling/cxg/06 section 5 and docs/modeling/cxg/07).
 production:
-  cxg: models\cxg\baseline_logit.joblib
-  cxa: models\cxa\cxa_logistic_contextual.pkl
-  cxt: models\cxt\lgbm_contextual.joblib
+  cxg: models/cxg/baseline_logit.joblib
+  cxa: models/cxa/cxa_logistic_contextual.pkl
+  cxt: models/cxt/lgbm_contextual.joblib
 comparison:
   n_bootstrap: 20
   min_actions_for_rank_corr: 10

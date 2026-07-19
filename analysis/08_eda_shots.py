@@ -26,7 +26,7 @@ import pandas as pd
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     competition_labels,
     load_events,
     load_shots,
@@ -57,8 +57,11 @@ def shot_density_map(shots: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(12, 8))
     h = ax.hexbin(
-        valid["x_location"], valid["y_location"],
-        gridsize=30, cmap="YlOrRd", mincnt=1,
+        valid["x_location"],
+        valid["y_location"],
+        gridsize=30,
+        cmap="YlOrRd",
+        mincnt=1,
     )
     plt.colorbar(h, ax=ax, label="Shot count")
 
@@ -106,8 +109,12 @@ def goal_rate_heatmap(shots: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(12, 8))
     im = ax.imshow(
-        mat, origin="lower", aspect="auto", cmap="RdYlGn",
-        vmin=0, vmax=0.5,
+        mat,
+        origin="lower",
+        aspect="auto",
+        cmap="RdYlGn",
+        vmin=0,
+        vmax=0.5,
         extent=[0, _PITCH_X, 0, _PITCH_Y],
     )
     plt.colorbar(im, ax=ax, label="Goal Rate")
@@ -127,7 +134,10 @@ def xg_calibration_curve(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     if xg_col in shots.columns:
         plot_df = shots[["goal", xg_col]].copy()
     elif not events.empty:
-        id_col = next((c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns), None)
+        id_col = next(
+            (c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns),
+            None,
+        )
         if id_col and xg_col in events.columns:
             xg_lookup = events[[id_col, xg_col]].drop_duplicates(id_col)
             plot_df = shots[["goal", id_col]].merge(xg_lookup, on=id_col, how="left")
@@ -145,22 +155,37 @@ def xg_calibration_curve(shots: pd.DataFrame, events: pd.DataFrame) -> None:
 
     valid = valid.copy()
     valid["xg_bin"] = pd.cut(valid[xg_col], bins=20, labels=False)
-    calib = valid.groupby("xg_bin").agg(
-        mean_xg=(xg_col, "mean"),
-        actual_rate=("goal", "mean"),
-        n=("goal", "count"),
-    ).reset_index().dropna()
+    calib = (
+        valid.groupby("xg_bin")
+        .agg(
+            mean_xg=(xg_col, "mean"),
+            actual_rate=("goal", "mean"),
+            n=("goal", "count"),
+        )
+        .reset_index()
+        .dropna()
+    )
 
     # Wilson confidence interval for each bucket
     z = 1.96
-    calib["ci_lo"] = ((calib["actual_rate"] + z**2 / (2 * calib["n"]) -
-                        z * np.sqrt(calib["actual_rate"] * (1 - calib["actual_rate"]) / calib["n"] +
-                                    z**2 / (4 * calib["n"]**2))) /
-                       (1 + z**2 / calib["n"]))
-    calib["ci_hi"] = ((calib["actual_rate"] + z**2 / (2 * calib["n"]) +
-                        z * np.sqrt(calib["actual_rate"] * (1 - calib["actual_rate"]) / calib["n"] +
-                                    z**2 / (4 * calib["n"]**2))) /
-                       (1 + z**2 / calib["n"]))
+    calib["ci_lo"] = (
+        calib["actual_rate"]
+        + z**2 / (2 * calib["n"])
+        - z
+        * np.sqrt(
+            calib["actual_rate"] * (1 - calib["actual_rate"]) / calib["n"]
+            + z**2 / (4 * calib["n"] ** 2)
+        )
+    ) / (1 + z**2 / calib["n"])
+    calib["ci_hi"] = (
+        calib["actual_rate"]
+        + z**2 / (2 * calib["n"])
+        + z
+        * np.sqrt(
+            calib["actual_rate"] * (1 - calib["actual_rate"]) / calib["n"]
+            + z**2 / (4 * calib["n"] ** 2)
+        )
+    ) / (1 + z**2 / calib["n"])
 
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.plot(calib["mean_xg"], calib["actual_rate"], "o-", color="#1f77b4", label="Actual goal rate")
@@ -191,7 +216,9 @@ def goal_rate_by_minute(shots: pd.DataFrame) -> None:
     ax.set_ylabel("Goal Rate")
     ax.set_title("Goal Rate by Match Minute")
     for _, row in rates.iterrows():
-        ax.text(row["minute_bin"] + 2, row["rate"] + 0.001, str(int(row["n"])), fontsize=6, ha="center")
+        ax.text(
+            row["minute_bin"] + 2, row["rate"] + 0.001, str(int(row["n"])), fontsize=6, ha="center"
+        )
     plt.tight_layout()
     save_fig("goal_rate_by_minute", "eda")
 
@@ -236,14 +263,28 @@ def shot_360_distributions(shots: pd.DataFrame) -> None:
     if ncols == 1:
         axes = [axes]
 
-    for ax, col in zip(axes, avail):
+    for ax, col in zip(axes, avail, strict=False):
         s1 = pd.to_numeric(shots_360[col], errors="coerce").dropna()
         s2 = pd.to_numeric(shots_non[col], errors="coerce").dropna()
         if len(s1) > 0:
             bins = np.linspace(s1.quantile(0.01), s1.quantile(0.99), 40)
-            ax.hist(s1, bins=bins, density=True, alpha=0.6, color="#2ca02c", label=f"360 (n={len(s1):,})")
+            ax.hist(
+                s1,
+                bins=bins,
+                density=True,
+                alpha=0.6,
+                color="#2ca02c",
+                label=f"360 (n={len(s1):,})",
+            )
         if len(s2) > 0:
-            ax.hist(s2, bins=40, density=True, alpha=0.6, color="#aec7e8", label=f"Non-360 (n={len(s2):,})")
+            ax.hist(
+                s2,
+                bins=40,
+                density=True,
+                alpha=0.6,
+                color="#aec7e8",
+                label=f"Non-360 (n={len(s2):,})",
+            )
         ax.set_title(col, fontsize=9)
         ax.legend(fontsize=7)
         ax.tick_params(labelsize=7)
