@@ -99,3 +99,21 @@ baseline; whether they beat an off-the-shelf xG I report honestly with a
 bootstrap confidence interval rather than cherry-picking the evaluation that
 flatters the model." That answer demonstrates exactly the judgement the metric
 itself is supposed to show.
+
+## 6. External validity (CONT-F07)
+
+Beyond the held-out fit, `analysis/24_external_validity.py` checks whether CxG
+ranks the right players: it aggregates each player's season CxG and correlates it
+with their actual goals, pooled over all ingested matches (300 players with >=5
+shots).
+
+| Correlation of season CxG vs actual goals | Value |
+|---|---|
+| Spearman (rank) | 0.69 |
+| Pearson | 0.93 |
+
+This is **strong external validity**: CxG ranks goalscorers reliably, so it is
+usable to shortlist finishers on expected rather than realised output (the point
+of an xG-style metric). It is the clearest evidence that the CxG number, whatever
+its small gap to StatsBomb xG, measures something real. CxA, by contrast, ranks
+assist-makers only weakly (Spearman 0.39, see `docs/modeling/cxa/07`).

@@ -1,0 +1,18 @@
+{
+  "evaluation": "player-level, pooled over all ingested matches; metrics scored by the production model, goals/assists from raw events",
+  "cxg_vs_goals": {
+    "spearman": 0.6887189452993285,
+    "pearson": 0.9251110817591128,
+    "n_players": 300,
+    "min_shots": 5,
+    "decision": "CxG ranks players by goals reliably (Spearman 0.69): usable to shortlist goals on expected rather than realised output."
+  },
+  "cxa_vs_assists": {
+    "spearman": 0.3883032807445743,
+    "pearson": 0.6546276398114687,
+    "n_players": 1113,
+    "min_actions": 50,
+    "decision": "CxA does not rank assists well (Spearman 0.39): treat as weak external validity; do not scout on it alone."
+  },
+  "smoke": false
+}
