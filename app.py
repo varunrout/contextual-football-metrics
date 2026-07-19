@@ -155,6 +155,7 @@ def main() -> None:
             "CxT Leaderboard",
             "Player Profile",
             "Match Report",
+            "Model Evaluation",
         ]
     )
 
@@ -199,6 +200,28 @@ def main() -> None:
 
         st.markdown("##### Team summary")
         st.dataframe(team_summary(scored), use_container_width=True)
+
+    # ── Model evaluation (read from results.db) ──
+    with tabs[5]:
+        st.subheader("Model evaluation")
+        st.caption(
+            "Held-out model leaderboards and matched incremental-lift results, "
+            "read from results.db (built by scripts/build_results_db.py)."
+        )
+        try:
+            from src import results_store
+
+            for metric, label in (("cxg", "CxG"), ("cxa", "CxA"), ("cxt", "CxT")):
+                st.markdown(f"##### {label} held-out leaderboard")
+                st.dataframe(results_store.leaderboard(metric), use_container_width=True)
+            st.markdown("##### Incremental lift (candidate vs baseline, 95% CI)")
+            st.dataframe(results_store.incremental_lift(), use_container_width=True)
+            cal = results_store.calibration()
+            if not cal.empty:
+                st.markdown("##### Calibration")
+                st.dataframe(cal, use_container_width=True)
+        except FileNotFoundError:
+            st.info("results.db not found. Build it with: `python scripts/build_results_db.py`")
 
     # ── Player profile ──
     with tabs[3]:
