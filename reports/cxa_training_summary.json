@@ -68,6 +68,27 @@
       "quality_mae": 0.07105287574695958,
       "quality_rmse": 0.09806479090841425,
       "quality_spearman": 0.22050427337062234
+    },
+    {
+      "name": "gnn_passing_360",
+      "creation_family": "gnn",
+      "quality_family": "lgbm",
+      "pipeline_path": "models\\cxa\\cxa_gnn_passing_360.pkl",
+      "train_creation_auc": 0.954486685170308,
+      "train_creation_ap": 0.8538212917537925,
+      "train_creation_ll": 0.18629757374538697,
+      "train_creation_brier": 0.055470788599851,
+      "train_quality_mae": 0.012868397146755832,
+      "train_quality_rmse": 0.019528487005902484,
+      "train_quality_spearman": 0.9607488700656558,
+      "train_quality_n_rows": 35195,
+      "creation_auc": 0.6495149678851182,
+      "creation_ap": 0.3003025590171402,
+      "creation_ll": 0.7179904325090354,
+      "creation_brier": 0.17323729939389818,
+      "quality_mae": 0.07105287574695958,
+      "quality_rmse": 0.09806479090841425,
+      "quality_spearman": 0.22050427337062234
     }
   ]
 }

@@ -161,10 +161,31 @@ See [docs/pipeline.md](docs/pipeline.md) for stage groups, quality gates, and
 MLflow run structure, and [docs/cloud_bootstrap.md](docs/cloud_bootstrap.md)
 for running on Colab with DagsHub + DVC.
 
-## Neural / graph model variants
+## Neural / graph model variants (exploratory negatives)
 
-Beyond the tree/GLM ladder, each metric has an optional neural candidate that
-consumes 360 freeze-frame data:
+Each metric has an optional neural candidate that consumes 360 freeze-frame
+data. They are built and runnable, but on this dataset (a few thousand shots,
+~220k actions from three tournaments) they **underperform the simple
+logistic/tree models and none is promoted to production.** Measured on the
+Euro 2024 held-out split:
+
+| Metric | Neural model | Held-out | Simple production model | Verdict |
+|---|---|---|---|---|
+| CxG | SetTransformer over freeze-frames | log-loss 0.273, AUC 0.778 (rank 5 of 7) | `baseline_logit` 0.250 / 0.799 | loses |
+| CxA | GNN passing network (creation) | creation AUC 0.649, log-loss 0.718 (last) | `logistic` 0.766 / 0.427 | loses badly |
+| CxT | FFNN / SetTransformer / GNN state-value | exploratory, not benchmarked | `lgbm_contextual` (production) | see note |
+
+The honest reading: contextual **features** help (see the headline result), but
+contextual **neural architectures** do not earn their complexity at this data
+scale. The production model for every metric is a logistic or tree model; the
+neural variants are kept as exploratory negative results, not selling points.
+
+**CxT note:** the CxT neural state-value variants train over ~220k actions and
+take hours on CPU (the CxA GNN alone took ~1.5h), so they are left buildable but
+not benchmarked. The evaluated CxG and CxA neural results above are
+representative of the pattern.
+
+The scripts to (re)train and score the neural candidates:
 
 | Script | Model | Requires |
 |---|---|---|
