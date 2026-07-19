@@ -42,12 +42,35 @@ Both deltas' CIs exclude zero, and the AUC of 0.729 is a clear, real signal.
   traditional-feature model. The correct next step to substantiate the
   "contextual" claim is to train a traditional-feature creation model and repeat
   this comparison.
-- **Miscalibration.** The creation model's ECE is 0.081, an order of magnitude
-  worse than the CxG models. The probabilities discriminate well but are not
-  well-calibrated, so the composite `p_shot x E[CxG]` inherits that error.
+- **The creation probability is poorly calibrated.** The creation model's ECE is
+  0.081, an order of magnitude worse than the CxG models: `p_shot_created`
+  discriminates well but its absolute value is not a trustworthy probability.
 - **Quality stage is near-noise.** In training, the shot-quality regressor lands
   at held-out Spearman ~0.19-0.22. The creation stage is the load-bearing part of
-  CxA; the quality stage adds little. The composite's usable resolution is
-  therefore roughly "which actions create shots", not "how good the shot will be".
+  CxA; the quality stage adds little.
 
-The composite reliability check for CxA is covered separately (CONT-F08).
+## 4. Composite reliability (CONT-F08)
+
+`analysis/23_cxa_composite_calibration.py` checks whether the composite value
+`cxa = p_shot x E[CxG]` matches the realised same-possession shot value
+(`resulting_shot_cxg`) across the 98,029 held-out creative actions, split into
+deciles of predicted cxa:
+
+| | Value |
+|---|---|
+| Mean predicted cxa | 0.0165 |
+| Mean realised shot value | 0.0182 |
+| Expected calibration error (deciles) | **0.0023** |
+| Spearman (predicted vs realised) | 0.364 |
+
+The reassuring, and slightly surprising, finding: despite the poorly calibrated
+creation *probability*, the composite *value* is well calibrated. Across every
+decile the mean predicted cxa tracks the mean realised shot value closely
+(predicted 0.0019 -> 0.054 against realised 0.0013 -> 0.051), so as an
+expected-value for bucketing or ranking creators, cxa is trustworthy.
+
+Its real limit is **resolution, not calibration**: a Spearman of 0.364 means it
+sorts high- from low-value actions only moderately. The honest one-line summary
+is that CxA is a calibrated but blunt expected-creation-value: reliable in
+aggregate, coarse per single action, and bottlenecked by the near-noise quality
+stage.
