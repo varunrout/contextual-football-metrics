@@ -66,6 +66,22 @@
     },
     {
       "rank": 5,
+      "name": "set_transformer_360",
+      "family": "neural",
+      "feature_set": "contextual+360_set",
+      "cv_log_loss": 0.34618,
+      "cv_brier": 0.08942,
+      "cv_auc": 0.7844,
+      "n_cv_folds_used": 5,
+      "heldout": {
+        "heldout_log_loss": 0.27331,
+        "heldout_brier": 0.0745,
+        "heldout_auc": 0.7784
+      },
+      "model_path": "models\\cxg\\set_transformer_360.joblib"
+    },
+    {
+      "rank": 6,
       "name": "lgbm_traditional",
       "family": "lightgbm",
       "feature_set": "traditional",
@@ -81,7 +97,7 @@
       "model_path": "models\\cxg\\lgbm_traditional.joblib"
     },
     {
-      "rank": 6,
+      "rank": 7,
       "name": "lgbm_contextual",
       "family": "lightgbm",
       "feature_set": "contextual",
