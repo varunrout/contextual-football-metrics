@@ -46,3 +46,28 @@ of the score is "predict near zero", which the zone baseline also does. The
 contextual model's advantage is real and statistically clear, and it is largest
 where it matters, on the ranking of high-value states (the Spearman gap). The
 comparison is against the project's own honest baseline, not a strawman.
+
+## 4. Does it change a decision? (CONT-08)
+
+`analysis/25_downstream_reranking.py` builds a player threat leaderboard two
+ways over the same actions: contextual CxT (the production model) and a static
+Karun-Singh xT surface (the value of the zone the action started in). It ranks
+676 players by each and looks at the disagreement.
+
+The two rankings agree broadly (rank Spearman 0.88) and the contextual top of the
+board is football-sensible (Messi, Alba, Busquets, Pedri, de Jong lead it). The
+value is in the movers:
+
+- **Risers under contextual CxT** are deep-lying playmakers and progressive
+  ball-players: Joshua Kimmich (+13 in the top 15), Antonio Rudiger (+8), Thiago,
+  Jack Grealish, Julian Alvarez. The model credits the build-up context of their
+  actions, which the zone surface, blind to context, does not.
+- **Fallers** are dominated by goalkeepers and pure defenders (Szczesny, both
+  keepers named Martinez, Dubravka, Glik, Lisandro Martinez): high touch volume in
+  nominally valuable zones, but low actual threat. The static surface inflates
+  them by volume; the contextual model discounts them.
+
+So the metric changes a real decision: if you shortlist threat-creators on the
+static xT surface you over-rate high-volume defenders and keepers, whereas
+contextual CxT surfaces the deep playmakers instead. That reranking, validated by
+the held-out win in section 2, is the point of a contextual metric.
