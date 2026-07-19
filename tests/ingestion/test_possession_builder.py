@@ -15,18 +15,6 @@ def _make_events(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _team(team_id: int, name: str) -> dict:
-    return {"id": team_id, "name": name}
-
-
-def _type(name: str) -> dict:
-    return {"id": 1, "name": name}
-
-
-def _play_pattern(name: str = "Regular Play") -> dict:
-    return {"id": 1, "name": name}
-
-
 def _event(
     idx: int,
     poss_id: int,
@@ -37,16 +25,20 @@ def _event(
     period: int = 1,
     play_pattern: str = "Regular Play",
 ) -> dict:
+    # statsbombpy flattens nested attributes, so build_possessions receives flat
+    # columns: `type` and `play_pattern` are strings and `team_id` is an integer.
+    # This fixture mirrors that shape (the production caller passes sb.events()).
     return {
         "id": f"evt-{idx}",
         "index": idx,
         "period": period,
         "timestamp": timestamp,
         "possession": poss_id,
-        "type": _type(event_type),
-        "team": _team(team_id, f"Team{team_id}"),
+        "type": event_type,
+        "team": f"Team{team_id}",
+        "team_id": team_id,
         "location": loc or [60.0, 40.0],
-        "play_pattern": _play_pattern(play_pattern),
+        "play_pattern": play_pattern,
         "under_pressure": False,
         "off_camera": False,
         "out": False,

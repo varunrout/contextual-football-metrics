@@ -134,7 +134,7 @@ def build_freeze_frame_features(events_df: pd.DataFrame, frames_df: pd.DataFrame
             continue
 
         ff = frames_grouped.get_group(event_id)
-        opponents = ff[not ff["teammate"]]
+        opponents = ff[~ff["teammate"]]
         teammates = ff[ff["teammate"]]
 
         opp_distances = [
@@ -205,7 +205,7 @@ def build_freeze_frame_features(events_df: pd.DataFrame, frames_df: pd.DataFrame
                 next_event_id = nxt.get("internal_id")
                 if frames_grouped is not None and next_event_id in frames_grouped.groups:
                     ff_next = frames_grouped.get_group(next_event_id)
-                    opp_next = ff_next[not ff_next["teammate"]]
+                    opp_next = ff_next[~ff_next["teammate"]]
                     next_x = pd.to_numeric(
                         nxt.get("x_location", nxt.get("x", float("nan"))), errors="coerce"
                     )

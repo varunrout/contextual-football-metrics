@@ -52,7 +52,9 @@ def _shot_angle(x: float, y: float) -> float:
 
 
 def _assist_type(row: pd.Series) -> str:
-    if _event_type_name(row.get("action_type", "")) != "pass":
+    # Applied row-wise to the OUTPUT frame, whose event-type column is
+    # ``event_type`` (derived from the input ``action_type``).
+    if _event_type_name(row.get("event_type", "")) != "pass":
         return "none"
     if bool(row.get("cutback", False)):
         return "cutback"

@@ -293,16 +293,17 @@ class InferencePipeline:
 
         Reads ``production.cxg``, ``production.cxa``, ``production.cxt``
         entries.  If a pointer is ``null`` / absent, that metric is skipped.
-        Each non-null pointer is treated as a filename relative to
-        ``models_dir`` (default: same directory as the config file).
+        Each non-null pointer is treated as a path relative to
+        ``models_dir`` (default: the repository root, since the committed
+        pointers are repo-root-relative like ``models/cxg/baseline_logit.joblib``).
 
         Parameters
         ----------
         config_path : str | Path
             Path to the YAML config file (e.g., ``configs/models.yaml``).
         models_dir : str | Path | None
-            Directory containing pickled model files.  Defaults to the
-            parent directory of ``config_path``.
+            Base directory the pointers are resolved against.  Defaults to the
+            repository root.
 
         Returns
         -------
@@ -322,7 +323,11 @@ class InferencePipeline:
             ) from exc
 
         config_path = Path(config_path)
-        models_dir = Path(models_dir) if models_dir is not None else config_path.parent
+        # Production pointers in configs/models.yaml are repo-root-relative
+        # (e.g. "models/cxg/baseline_logit.joblib"), so resolve against the repo
+        # root by default, not the config's own directory. Callers may override.
+        repo_root = Path(__file__).resolve().parents[2]
+        models_dir = Path(models_dir) if models_dir is not None else repo_root
 
         with open(config_path, encoding="utf-8") as fh:
             cfg = yaml.safe_load(fh)
