@@ -109,6 +109,9 @@ python analysis/20_incremental_lift_vs_baselines.py --smoke  # synthetic, no dat
 
 ## Installation
 
+New here? [`docs/quickstart.md`](docs/quickstart.md) takes you from clone to
+results in one page, including a zero-data `make demo`.
+
 Requires Python ≥3.11, <3.14 and [Poetry](https://python-poetry.org/).
 
 ```bash
@@ -231,6 +234,27 @@ poetry run pytest
 
 Tests mirror `src/`'s layout under `tests/` (e.g. `tests/models/`,
 `tests/features/`, `tests/pipeline/`, `tests/runtime/`).
+
+## Status and future work
+
+The analytical core is complete and honestly evaluated (see the headline result).
+Known future work, deliberately not claimed as done:
+
+- **FULL_360 feature tier.** Freeze-frame (360) features are built, but a full
+  360-only feature tier is not trained or reported as a current capability; the
+  neural/360 models that exist are exploratory negatives (see above), and a
+  dedicated FULL_360 tier is planned, not evaluated.
+- **A traditional-feature CxA baseline**, so CxA can be tested contextual-vs-
+  traditional rather than only against a base rate.
+- **Expanding beyond the current competitions** to tighten the confidence
+  intervals on the headline comparisons.
+
+## Further reading
+
+- [docs/quickstart.md](docs/quickstart.md) — clone to results in one page
+- [docs/data.md](docs/data.md) — data layer, schemas and the results store
+- [docs/pipeline.md](docs/pipeline.md) — Prefect/MLflow pipeline internals
+- [docs/modeling/{cxg,cxa,cxt}/07*](docs/modeling) — the honest per-metric evaluations
 
 ## Further reading
 
