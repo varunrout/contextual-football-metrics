@@ -69,7 +69,7 @@ TRADITIONAL = CxAFeatureSetSpec(
         "under_pressure",
     ),
     categorical=(
-        "action_type",        # pass / carry / cross / cutback
+        "action_type",  # pass / carry / cross / cutback
         "pass_height",
         "pass_body_part",
         "set_piece_type",
@@ -81,7 +81,8 @@ TRADITIONAL = CxAFeatureSetSpec(
 
 CONTEXTUAL = CxAFeatureSetSpec(
     name="contextual",
-    numeric=TRADITIONAL.numeric + (
+    numeric=TRADITIONAL.numeric
+    + (
         # Opponent quality
         "opponent_xg_conceded_rolling_5",
         "opponent_shots_conceded_rolling_5",
@@ -102,14 +103,16 @@ CONTEXTUAL = CxAFeatureSetSpec(
         "receiver_x",
         "receiver_y",
     ),
-    boolean=TRADITIONAL.boolean + (
+    boolean=TRADITIONAL.boolean
+    + (
         "knockout_or_group",
         "set_piece_flag",
         "counterpress_regain_flag",
         "receiver_in_box",
         "receiver_is_central",
     ),
-    categorical=TRADITIONAL.categorical + (
+    categorical=TRADITIONAL.categorical
+    + (
         "score_state",
         "home_or_away",
         "sequence_type",
@@ -124,7 +127,8 @@ CONTEXTUAL = CxAFeatureSetSpec(
 
 FULL_360 = CxAFeatureSetSpec(
     name="full_360",
-    numeric=CONTEXTUAL.numeric + (
+    numeric=CONTEXTUAL.numeric
+    + (
         # Passer defensive context (360)
         "nearest_defender_distance",
         "defenders_within_5m",
@@ -135,9 +139,7 @@ FULL_360 = CxAFeatureSetSpec(
         "open_passing_lanes",
         "passing_lane_blockage_proxy",
     ),
-    boolean=CONTEXTUAL.boolean + (
-        "has_360",
-    ),
+    boolean=CONTEXTUAL.boolean + ("has_360",),
     categorical=CONTEXTUAL.categorical,
     requires_360=True,
 )
@@ -154,7 +156,5 @@ _REGISTRY: dict[str, CxAFeatureSetSpec] = {
 def get_feature_set(name: str) -> CxAFeatureSetSpec:
     """Return a CxAFeatureSetSpec by name. Raises ValueError for unknown names."""
     if name not in _REGISTRY:
-        raise ValueError(
-            f"Unknown CxA feature set {name!r}. Choose from: {sorted(_REGISTRY)}"
-        )
+        raise ValueError(f"Unknown CxA feature set {name!r}. Choose from: {sorted(_REGISTRY)}")
     return _REGISTRY[name]

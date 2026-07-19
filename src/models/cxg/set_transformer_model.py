@@ -22,7 +22,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from src.models.cxg.feature_sets import FeatureSetSpec, get_feature_set
-from src.models.cxg.xgboost_model import _make_X
+from src.models.cxg.xgboost_model import _make_x
 from src.models.neural import (
     TOKEN_DIM,
     TorchModelMixin,
@@ -122,11 +122,13 @@ class SetTransformerCxGModel(TorchModelMixin):
         return self._frames_cache
 
     def _build_tabular_pipeline(self, df: pd.DataFrame) -> Pipeline:
-        pipe = Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_tab = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        pipe = Pipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_tab = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         pipe.fit(X_tab)
         return pipe
 
@@ -170,14 +172,15 @@ class SetTransformerCxGModel(TorchModelMixin):
         if self._event_id_col is None:
             raise RuntimeError("event_id column not set — call fit() first.")
         tokens, mask = encode_frame_tokens(
-            df, self._frames(),
+            df,
+            self._frames(),
             max_players=self.max_players,
             event_id_col=self._event_id_col,
             frames_event_id_col="event_internal_id",
         )
         if self.pipeline is None:
             raise RuntimeError("Tabular pipeline not fitted — call fit() first.")
-        X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_tab_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         return tokens, mask, X_tab
 
@@ -188,8 +191,8 @@ class SetTransformerCxGModel(TorchModelMixin):
         shots_df: pd.DataFrame,
         target_col: str = "goal",
         match_id_col: str | None = None,  # accepted for ladder compatibility
-        n_trials: int = 0,                # ignored (no Optuna for NN)
-    ) -> "SetTransformerCxGModel":
+        n_trials: int = 0,  # ignored (no Optuna for NN)
+    ) -> SetTransformerCxGModel:
         if shots_df.empty:
             raise ValueError("shots_df is empty")
         if target_col not in shots_df.columns:
@@ -217,13 +220,16 @@ class SetTransformerCxGModel(TorchModelMixin):
 
         # Diagnostics
         n_with = (
-            shots_with_frames_count(df, self._frames(), self._event_id_col,
-                                    frames_event_id_col="event_internal_id")
-            if self._event_id_col else 0
+            shots_with_frames_count(
+                df, self._frames(), self._event_id_col, frames_event_id_col="event_internal_id"
+            )
+            if self._event_id_col
+            else 0
         )
         logger.info(
             "SetTransformerCxG: %d / %d shots have ≥1 freeze-frame row",
-            n_with, len(df),
+            n_with,
+            len(df),
         )
 
         self.pipeline = self._build_tabular_pipeline(df)
@@ -263,7 +269,9 @@ class SetTransformerCxGModel(TorchModelMixin):
             avg = epoch_loss / max(1, n_batches)
             logger.info(
                 "SetTransformerCxG epoch %d/%d loss=%.4f",
-                epoch + 1, self.max_epochs, avg,
+                epoch + 1,
+                self.max_epochs,
+                avg,
             )
         return self
 
@@ -276,9 +284,7 @@ class SetTransformerCxGModel(TorchModelMixin):
         device = self._torch_device()
         self._torch_model.eval()
         with torch.no_grad():
-            logits = self._torch_model(
-                tokens.to(device), mask.to(device), X_tab.to(device)
-            )
+            logits = self._torch_model(tokens.to(device), mask.to(device), X_tab.to(device))
             probs = torch.sigmoid(logits).cpu().numpy()
         return probs.astype(float)
 
@@ -319,7 +325,7 @@ class SetTransformerCxGModel(TorchModelMixin):
             pickle.dump(state, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "SetTransformerCxGModel":
+    def load(cls, path: str | Path) -> SetTransformerCxGModel:
         torch, _ = require_torch()
         with open(path, "rb") as f:
             state = pickle.load(f)

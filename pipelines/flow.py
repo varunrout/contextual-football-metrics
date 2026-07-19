@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 from prefect import flow
 
@@ -82,7 +82,9 @@ def _select_stages(
     if only_group:
         bad = set(only_group) - set(GROUPS)
         if bad:
-            raise ValueError(f"Unknown group(s) in --only-group: {sorted(bad)}. Valid: {list(GROUPS)}")
+            raise ValueError(
+                f"Unknown group(s) in --only-group: {sorted(bad)}. Valid: {list(GROUPS)}"
+            )
         selected = [s for g in only_group for s in GROUPS[g]]
     elif only:
         bad = set(only) - set(ALL_STAGES)
@@ -95,7 +97,9 @@ def _select_stages(
     if skip_group:
         bad = set(skip_group) - set(GROUPS)
         if bad:
-            raise ValueError(f"Unknown group(s) in --skip-group: {sorted(bad)}. Valid: {list(GROUPS)}")
+            raise ValueError(
+                f"Unknown group(s) in --skip-group: {sorted(bad)}. Valid: {list(GROUPS)}"
+            )
         skip_set = {s for g in skip_group for s in GROUPS[g]}
         selected = [s for s in selected if s not in skip_set]
     if skip:
@@ -214,14 +218,23 @@ def cfm_pipeline(
 
 def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run the contextual-football-metrics pipeline.")
-    p.add_argument("--profile", default="auto", choices=["auto", "cpu", "gpu", "cloud"],
-                   help="Runtime profile (default: auto).")
+    p.add_argument(
+        "--profile",
+        default="auto",
+        choices=["auto", "cpu", "gpu", "cloud"],
+        help="Runtime profile (default: auto).",
+    )
     p.add_argument("--only", nargs="+", choices=ALL_STAGES, help="Run only the listed stages.")
     p.add_argument("--skip", nargs="+", choices=ALL_STAGES, help="Skip the listed stages.")
-    p.add_argument("--only-group", nargs="+", choices=list(GROUPS),
-                   help="Run only the listed stage groups (pre, gate, train).")
-    p.add_argument("--skip-group", nargs="+", choices=list(GROUPS),
-                   help="Skip the listed stage groups.")
+    p.add_argument(
+        "--only-group",
+        nargs="+",
+        choices=list(GROUPS),
+        help="Run only the listed stage groups (pre, gate, train).",
+    )
+    p.add_argument(
+        "--skip-group", nargs="+", choices=list(GROUPS), help="Skip the listed stage groups."
+    )
     p.add_argument("--no-promote", action="store_true", help="Skip writing production pointers.")
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-optuna-trials", type=int, default=0)
@@ -238,8 +251,9 @@ def _parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     p.add_argument("--score-output", default=None, help="Output parquet for scoring stage.")
     p.add_argument("--drift-reference", default=None, help="Reference parquet for drift monitor.")
     p.add_argument("--drift-current", default=None, help="Current parquet for drift monitor.")
-    p.add_argument("--no-cache", action="store_true",
-                   help="Disable Prefect task caching for this run.")
+    p.add_argument(
+        "--no-cache", action="store_true", help="Disable Prefect task caching for this run."
+    )
     return p.parse_args(argv)
 
 
@@ -264,7 +278,9 @@ def main(argv: Iterable[str] | None = None) -> None:
     task_runner = cfg.build_task_runner()
     logger.info(
         "Using task runner %s (max_workers=%s) for profile '%s'",
-        cfg.prefect_task_runner, cfg.prefect_max_workers, cfg.name,
+        cfg.prefect_task_runner,
+        cfg.prefect_max_workers,
+        cfg.name,
     )
 
     cfm_pipeline.with_options(task_runner=task_runner)(

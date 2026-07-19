@@ -28,8 +28,12 @@ class ZoneXTBaseline:
         self.transition_: np.ndarray | None = None
 
     def _zone_index(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
-        bx = np.clip((x / 105.0 * self.config.pitch_zones_x).astype(int), 0, self.config.pitch_zones_x - 1)
-        by = np.clip((y / 68.0 * self.config.pitch_zones_y).astype(int), 0, self.config.pitch_zones_y - 1)
+        bx = np.clip(
+            (x / 105.0 * self.config.pitch_zones_x).astype(int), 0, self.config.pitch_zones_x - 1
+        )
+        by = np.clip(
+            (y / 68.0 * self.config.pitch_zones_y).astype(int), 0, self.config.pitch_zones_y - 1
+        )
         return (by * self.config.pitch_zones_x) + bx
 
     @property
@@ -41,7 +45,7 @@ class ZoneXTBaseline:
         events_df: pd.DataFrame,
         goal_col: str = "goal",
         event_type_col: str = "event_type",
-    ) -> "ZoneXTBaseline":
+    ) -> ZoneXTBaseline:
         required = {"x_location", "y_location", event_type_col}
         if not required.issubset(events_df.columns):
             missing = required - set(events_df.columns)
@@ -62,7 +66,11 @@ class ZoneXTBaseline:
         transitions = np.full((n, n), alpha, dtype=float)
 
         etype = df[event_type_col].astype(str).to_numpy()
-        goals = df[goal_col].astype(bool).to_numpy() if goal_col in df.columns else np.zeros(len(df), dtype=bool)
+        goals = (
+            df[goal_col].astype(bool).to_numpy()
+            if goal_col in df.columns
+            else np.zeros(len(df), dtype=bool)
+        )
 
         has_end = {"end_x", "end_y"}.issubset(df.columns)
         if has_end:

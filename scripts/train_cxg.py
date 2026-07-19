@@ -34,21 +34,23 @@ import logging
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import joblib
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
 from sklearn.calibration import calibration_curve
-from sklearn.metrics import auc as sk_auc, brier_score_loss, log_loss, roc_auc_score, roc_curve
+from sklearn.metrics import auc as sk_auc
+from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score, roc_curve
 
-from src.models.cxg.ladder import CxGLadder, LadderResult
-from src.models.neural import is_neural_model
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.models.cxg.ladder import CxGLadder, LadderResult  # noqa: E402
+from src.models.neural import is_neural_model  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,9 +70,11 @@ FIGURES_DIR = REPORTS_DIR / "figures" / "cxg"
 
 # ── MLflow helper (optional dep) ──────────────────────────────────────────────
 
+
 def _get_mlflow():
     try:
         import mlflow
+
         return mlflow
     except ImportError:
         logger.warning("mlflow not installed — skipping experiment tracking.")
@@ -87,6 +91,7 @@ def _start_run(mlflow, experiment: str, run_name: str):
 
 # ── Promote to production pointer ─────────────────────────────────────────────
 
+
 def _update_production_pointer(model_filename: str) -> None:
     with open(MODELS_YAML, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh)
@@ -97,6 +102,7 @@ def _update_production_pointer(model_filename: str) -> None:
 
 
 # ── Save all candidate models as joblib ───────────────────────────────────────
+
 
 def _save_all_models(results: list[LadderResult], models_dir: Path) -> dict[str, str]:
     """Save every candidate model as <name>.joblib. Returns {name: path_str}.
@@ -120,6 +126,7 @@ def _save_all_models(results: list[LadderResult], models_dir: Path) -> dict[str,
 
 # ── Build held-out evaluation set ─────────────────────────────────────────────
 
+
 def _build_heldout(shots_path: Path) -> pd.DataFrame | None:
     """Return Euro 2024 (val_test) shots for held-out evaluation, or None."""
     matches_path = PROCESSED_DIR / "matches.parquet"
@@ -135,13 +142,16 @@ def _build_heldout(shots_path: Path) -> pd.DataFrame | None:
     )
     heldout = merged[merged["split_role"] == "val_test"].copy()
     if heldout.empty or "goal" not in heldout.columns:
-        logger.warning("No held-out (val_test) shots or missing 'goal' column — skipping held-out eval.")
+        logger.warning(
+            "No held-out (val_test) shots or missing 'goal' column — skipping held-out eval."
+        )
         return None
     logger.info("Held-out set: %d shots (val_test = Euro 2024)", len(heldout))
     return heldout
 
 
 # ── Per-model held-out evaluation ─────────────────────────────────────────────
+
 
 def _eval_heldout(results: list[LadderResult], heldout: pd.DataFrame) -> dict[str, dict]:
     """Run each fitted model against held-out set. Returns {name: metrics_dict}."""
@@ -162,6 +172,7 @@ def _eval_heldout(results: list[LadderResult], heldout: pd.DataFrame) -> dict[st
 
 
 # ── Save JSON report ──────────────────────────────────────────────────────────
+
 
 def _save_report(
     results: list[LadderResult],
@@ -195,8 +206,14 @@ def _save_report(
 # ── Charts ────────────────────────────────────────────────────────────────────
 
 _PALETTE = [
-    "#2196F3", "#4CAF50", "#FF5722", "#9C27B0",
-    "#FF9800", "#00BCD4", "#E91E63", "#607D8B",
+    "#2196F3",
+    "#4CAF50",
+    "#FF5722",
+    "#9C27B0",
+    "#FF9800",
+    "#00BCD4",
+    "#E91E63",
+    "#607D8B",
 ]
 
 
@@ -244,8 +261,13 @@ def _chart_roc(results: list[LadderResult], heldout: pd.DataFrame, figures_dir: 
             p = r.model.predict_proba(heldout)
             fpr, tpr, _ = roc_curve(y_true, p)
             roc_auc = sk_auc(fpr, tpr)
-            ax.plot(fpr, tpr, color=_PALETTE[i % len(_PALETTE)], lw=1.5,
-                    label=f"{r.name}  AUC={roc_auc:.3f}")
+            ax.plot(
+                fpr,
+                tpr,
+                color=_PALETTE[i % len(_PALETTE)],
+                lw=1.5,
+                label=f"{r.name}  AUC={roc_auc:.3f}",
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning("ROC chart skipped for %s: %s", r.name, exc)
 
@@ -260,7 +282,9 @@ def _chart_roc(results: list[LadderResult], heldout: pd.DataFrame, figures_dir: 
     logger.info("Chart saved → %s", out)
 
 
-def _chart_calibration(results: list[LadderResult], heldout: pd.DataFrame, figures_dir: Path) -> None:
+def _chart_calibration(
+    results: list[LadderResult], heldout: pd.DataFrame, figures_dir: Path
+) -> None:
     y_true = heldout["goal"].astype(int).to_numpy()
     fig, ax = plt.subplots(figsize=(7, 6))
     ax.plot([0, 1], [0, 1], "k--", lw=0.8, label="Perfect calibration")
@@ -269,8 +293,15 @@ def _chart_calibration(results: list[LadderResult], heldout: pd.DataFrame, figur
         try:
             p = r.model.predict_proba(heldout)
             frac_pos, mean_pred = calibration_curve(y_true, p, n_bins=10, strategy="quantile")
-            ax.plot(mean_pred, frac_pos, "o-", color=_PALETTE[i % len(_PALETTE)],
-                    lw=1.5, ms=4, label=r.name)
+            ax.plot(
+                mean_pred,
+                frac_pos,
+                "o-",
+                color=_PALETTE[i % len(_PALETTE)],
+                lw=1.5,
+                ms=4,
+                label=r.name,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Calibration chart skipped for %s: %s", r.name, exc)
 
@@ -308,8 +339,15 @@ def _chart_binned_empirical(
     empirical = np.array([y_true[bin_labels == b].mean() for b in range(1, n_actual + 1)])
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    ax.scatter(bin_centres, empirical, s=70, zorder=5, color="black",
-               label="Empirical goal rate", marker="D")
+    ax.scatter(
+        bin_centres,
+        empirical,
+        s=70,
+        zorder=5,
+        color="black",
+        label="Empirical goal rate",
+        marker="D",
+    )
 
     highlight = {"glm_contextual", "xgb_contextual", "baseline_logit"}
     for i, r in enumerate(results):
@@ -318,15 +356,23 @@ def _chart_binned_empirical(
         try:
             p = r.model.predict_proba(heldout)
             pred = np.array([p[bin_labels == b].mean() for b in range(1, n_actual + 1)])
-            ax.plot(bin_centres, pred, "o-", color=_PALETTE[i % len(_PALETTE)],
-                    lw=1.8, ms=5, label=r.name)
+            ax.plot(
+                bin_centres,
+                pred,
+                "o-",
+                color=_PALETTE[i % len(_PALETTE)],
+                lw=1.8,
+                ms=5,
+                label=r.name,
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning("Binned empirical skipped for %s: %s", r.name, exc)
 
     ax.set_xlabel("Distance to goal (m)")
     ax.set_ylabel("Goal probability")
-    ax.set_title("CxG — Empirical vs Predicted Goal Rate by Distance\n"
-                 "(held-out Euro 2024, quantile bins)")
+    ax.set_title(
+        "CxG — Empirical vs Predicted Goal Rate by Distance\n(held-out Euro 2024, quantile bins)"
+    )
     ax.legend(fontsize=8)
     fig.tight_layout()
     out = figures_dir / "binned_empirical_distance.png"
@@ -370,7 +416,7 @@ def _chart_pitch_heatmap(
     # Recompute geometry from grid positions on the internal pitch.
     goal_x, near_y, far_y = 105.0, 30.34, 37.66
     dx = goal_x - grid_df["x_location"]
-    grid_df["distance_to_goal"] = np.sqrt(dx ** 2 + (grid_df["y_location"] - 34.0) ** 2)
+    grid_df["distance_to_goal"] = np.sqrt(dx**2 + (grid_df["y_location"] - 34.0) ** 2)
     a1 = np.arctan2(near_y - grid_df["y_location"], dx)
     a2 = np.arctan2(far_y - grid_df["y_location"], dx)
     grid_df["shot_angle"] = np.abs(a2 - a1)
@@ -410,7 +456,7 @@ def _chart_pitch_heatmap(
     vmax = float(max(np.nanmax(vals) for vals in finite_probs))
 
     hm = None
-    for ax, (name, probs) in zip(axes, surfaces):
+    for ax, (name, probs) in zip(axes, surfaces, strict=False):
         if probs.size == 0:
             ax.set_title(f"{name} — error")
             continue
@@ -452,9 +498,7 @@ def _chart_pitch_heatmap(
     logger.info("Chart saved → %s", out)
 
 
-def _chart_residuals(
-    results: list[LadderResult], heldout: pd.DataFrame, figures_dir: Path
-) -> None:
+def _chart_residuals(results: list[LadderResult], heldout: pd.DataFrame, figures_dir: Path) -> None:
     """Residual (y − p̂) vs distance and angle for the best model, with binned smoother."""
     if "distance_to_goal" not in heldout.columns:
         logger.warning("Skipping residuals chart — distance_to_goal not in held-out data.")
@@ -477,7 +521,7 @@ def _chart_residuals(
     if len(feats) == 1:
         axes = [axes]
 
-    for ax, feat in zip(axes, feats):
+    for ax, feat in zip(axes, feats, strict=False):
         x_vals = heldout[feat].to_numpy()
         ax.scatter(x_vals, residuals, alpha=0.12, s=7, color="#607D8B", rasterized=True)
         ax.axhline(0, color="black", lw=1)
@@ -527,9 +571,7 @@ def _chart_coef_forest(results: list[LadderResult], figures_dir: Path) -> None:
         return
 
     # Strip ColumnTransformer prefixes produced by get_feature_names_out
-    clean_names = [
-        n.replace("num__", "").replace("cat__", "") for n in raw_names
-    ]
+    clean_names = [n.replace("num__", "").replace("cat__", "") for n in raw_names]
 
     n_top = min(30, len(coefs))
     order = np.argsort(np.abs(coefs))[-n_top:]
@@ -575,14 +617,15 @@ def _chart_calibration_by_shot_type(
         logger.warning("Calibration-by-type skipped: %s", exc)
         return
 
-    seg_vals = heldout[seg_col].astype(str).replace("nan", "unknown").replace("", "unknown").to_numpy()
+    seg_vals = (
+        heldout[seg_col].astype(str).replace("nan", "unknown").replace("", "unknown").to_numpy()
+    )
     segments = sorted(np.unique(seg_vals))
     n_seg = len(segments)
     n_cols = min(3, n_seg)
     n_rows = (n_seg + n_cols - 1) // n_cols
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows),
-                             squeeze=False)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows), squeeze=False)
     axes_flat = axes.ravel()
 
     for i, seg in enumerate(segments):
@@ -610,8 +653,7 @@ def _chart_calibration_by_shot_type(
         ax.set_visible(False)
 
     fig.suptitle(
-        f"glm_contextual — Calibration by {seg_col.replace('_', ' ')}\n"
-        "(held-out Euro 2024)",
+        f"glm_contextual — Calibration by {seg_col.replace('_', ' ')}\n(held-out Euro 2024)",
         fontsize=11,
     )
     fig.tight_layout()
@@ -622,6 +664,7 @@ def _chart_calibration_by_shot_type(
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def train_cxg(
     shots_path: Path,
@@ -659,7 +702,8 @@ def train_cxg(
         logger.info(
             "Excluded val_test (Euro 2024) + test (La Liga) shots from training: "
             "%d → %d rows for training",
-            n_before, len(shots_df),
+            n_before,
+            len(shots_df),
         )
     else:
         logger.warning(
@@ -675,11 +719,15 @@ def train_cxg(
 
     mlflow = _get_mlflow()
 
-    with (_start_run(mlflow, "cfm/cxg", "ladder_run") or _NullContext()):
+    with _start_run(mlflow, "cfm/cxg", "ladder_run") or _NullContext():
         ladder = CxGLadder()
         logger.info(
             "Running CxGLadder: n_folds=%d n_optuna=%d include_360=%s include_neural=%s n_estimators=%d",
-            n_folds, n_optuna_trials, include_360, include_neural, n_estimators,
+            n_folds,
+            n_optuna_trials,
+            include_360,
+            include_neural,
+            n_estimators,
         )
         results = ladder.run(
             shots_df,
@@ -701,7 +749,9 @@ def train_cxg(
         best = ladder.best()
         logger.info(
             "Best model: %s  cv_log_loss=%.4f  cv_brier=%.4f",
-            best.name, best.cv_log_loss, best.cv_brier,
+            best.name,
+            best.cv_log_loss,
+            best.cv_brier,
         )
 
         # ── Save all candidate models as joblib ───────────────────────────────
@@ -751,11 +801,16 @@ def train_cxg(
 
 class _NullContext:
     """No-op context manager used when MLflow is unavailable."""
-    def __enter__(self): return self
-    def __exit__(self, *_): pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        pass
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Train CxG models and select the best via CV.")
@@ -780,14 +835,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--include-neural",
         action="store_true",
         help="Include the SetTransformer-over-freeze-frames neural CxG model. "
-             "Requires PyTorch and freeze_frames_360.parquet.",
+        "Requires PyTorch and freeze_frames_360.parquet.",
     )
     p.add_argument(
         "--frames",
         default=None,
         help="Path to the freeze-frame parquet for the neural model "
-             "(default: data/processed/frames.parquet, falling back to "
-             "data/processed/freeze_frames_360.parquet if that doesn't exist).",
+        "(default: data/processed/frames.parquet, falling back to "
+        "data/processed/freeze_frames_360.parquet if that doesn't exist).",
     )
     p.add_argument(
         "--n-estimators",

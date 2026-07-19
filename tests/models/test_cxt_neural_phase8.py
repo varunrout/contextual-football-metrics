@@ -21,6 +21,7 @@ torch = pytest.importorskip("torch")  # whole module needs torch
 
 # ── Synthetic data helpers ────────────────────────────────────────────────────
 
+
 def _synthetic_actions(n: int = 60, n_matches: int = 6, seed: int = 0) -> pd.DataFrame:
     """CxT-eligible actions with a positive, continuous possession_cxg target."""
     rng = np.random.default_rng(seed)
@@ -29,62 +30,72 @@ def _synthetic_actions(n: int = 60, n_matches: int = 6, seed: int = 0) -> pd.Dat
     dist = np.hypot(105 - x, 34 - y)
     # Monotone-decreasing-in-distance, strictly positive target.
     possession_cxg = np.clip(0.35 - 0.003 * dist + rng.normal(0, 0.02, n), 0.005, None)
-    return pd.DataFrame({
-        "event_internal_id": [f"e{i}" for i in range(n)],
-        "match_id": [f"m{i % n_matches}" for i in range(n)],
-        "match_internal_id": [f"m{i % n_matches}" for i in range(n)],
-        "x_location": x,
-        "y_location": y,
-        "distance_to_goal": dist,
-        "in_box": (dist < 18).astype(bool),
-        "under_pressure": rng.choice([True, False], n),
-        "minute": rng.integers(0, 95, n),
-        "score_differential": rng.integers(-2, 3, n),
-        "events_before_action": rng.integers(0, 12, n),
-        "passes_before_action": rng.integers(0, 8, n),
-        "carries_before_action": rng.integers(0, 5, n),
-        "time_from_possession_start": rng.uniform(0, 30, n),
-        "vertical_progression_speed": rng.uniform(0, 5, n),
-        "directness": rng.uniform(0, 1, n),
-        "opponent_xg_conceded_rolling_5": rng.uniform(0.5, 2.5, n),
-        "opponent_shots_conceded_rolling_5": rng.uniform(5, 20, n),
-        "opponent_defensive_rating": rng.uniform(0.3, 0.9, n),
-        "opponent_team_strength": rng.uniform(0.3, 0.9, n),
-        "knockout_or_group": rng.choice([True, False], n),
-        "set_piece_flag": np.zeros(n, dtype=bool),
-        "counterpress_regain_flag": rng.choice([True, False], n),
-        "score_state": rng.choice(["winning", "drawing", "losing"], n),
-        "home_or_away": rng.choice(["home", "away"], n),
-        "sequence_type": rng.choice(["open_play", "transition"], n),
-        "possession_start_zone": rng.choice(["defensive", "middle", "attacking"], n),
-        "transition_or_settled": rng.choice(["transition", "settled"], n),
-        "possession_cxg": possession_cxg,
-    })
+    return pd.DataFrame(
+        {
+            "event_internal_id": [f"e{i}" for i in range(n)],
+            "match_id": [f"m{i % n_matches}" for i in range(n)],
+            "match_internal_id": [f"m{i % n_matches}" for i in range(n)],
+            "x_location": x,
+            "y_location": y,
+            "distance_to_goal": dist,
+            "in_box": (dist < 18).astype(bool),
+            "under_pressure": rng.choice([True, False], n),
+            "minute": rng.integers(0, 95, n),
+            "score_differential": rng.integers(-2, 3, n),
+            "events_before_action": rng.integers(0, 12, n),
+            "passes_before_action": rng.integers(0, 8, n),
+            "carries_before_action": rng.integers(0, 5, n),
+            "time_from_possession_start": rng.uniform(0, 30, n),
+            "vertical_progression_speed": rng.uniform(0, 5, n),
+            "directness": rng.uniform(0, 1, n),
+            "opponent_xg_conceded_rolling_5": rng.uniform(0.5, 2.5, n),
+            "opponent_shots_conceded_rolling_5": rng.uniform(5, 20, n),
+            "opponent_defensive_rating": rng.uniform(0.3, 0.9, n),
+            "opponent_team_strength": rng.uniform(0.3, 0.9, n),
+            "knockout_or_group": rng.choice([True, False], n),
+            "set_piece_flag": np.zeros(n, dtype=bool),
+            "counterpress_regain_flag": rng.choice([True, False], n),
+            "score_state": rng.choice(["winning", "drawing", "losing"], n),
+            "home_or_away": rng.choice(["home", "away"], n),
+            "sequence_type": rng.choice(["open_play", "transition"], n),
+            "possession_start_zone": rng.choice(["defensive", "middle", "attacking"], n),
+            "transition_or_settled": rng.choice(["transition", "settled"], n),
+            "possession_cxg": possession_cxg,
+        }
+    )
 
 
-def _synthetic_frames(actions: pd.DataFrame, players_per_event: int = 14, seed: int = 1) -> pd.DataFrame:
+def _synthetic_frames(
+    actions: pd.DataFrame, players_per_event: int = 14, seed: int = 1
+) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     rows = []
-    for eid, ax, ay in zip(actions["event_internal_id"], actions["x_location"], actions["y_location"]):
+    for eid, ax, ay in zip(
+        actions["event_internal_id"], actions["x_location"], actions["y_location"], strict=False
+    ):
         for k in range(players_per_event):
             teammate = bool(k % 2 == 0)
-            keeper = (k == players_per_event - 1)
+            keeper = k == players_per_event - 1
             if keeper:
                 x = 104.0 + rng.uniform(-1, 1)
                 y = 34.0 + rng.uniform(-2, 2)
             else:
                 x = float(np.clip(ax + rng.normal(0, 6), 0, 105))
                 y = float(np.clip(ay + rng.normal(0, 6), 0, 68))
-            rows.append({
-                "event_internal_id": eid,
-                "x": x, "y": y,
-                "teammate": teammate,
-                "keeper": keeper,
-            })
+            rows.append(
+                {
+                    "event_internal_id": eid,
+                    "x": x,
+                    "y": y,
+                    "teammate": teammate,
+                    "keeper": keeper,
+                }
+            )
     return pd.DataFrame(rows)
 
 
 # ── GNNStateValueModel ────────────────────────────────────────────────────────
+
 
 class TestGNNStateValue:
     @pytest.fixture
@@ -99,9 +110,15 @@ class TestGNNStateValue:
         model = GNNStateValueModel(
             feature_set="contextual",
             frames_path=frames_path,
-            d_model=16, n_heads=2, n_layers=1, mlp_hidden=16,
-            max_epochs=2, batch_size=16, k_neighbors=3,
-            device="cpu", random_state=0,
+            d_model=16,
+            n_heads=2,
+            n_layers=1,
+            mlp_hidden=16,
+            max_epochs=2,
+            batch_size=16,
+            k_neighbors=3,
+            device="cpu",
+            random_state=0,
         )
         model.fit(actions, target_col="possession_cxg")
         return model, actions
@@ -133,14 +150,20 @@ class TestGNNStateValue:
         m = GNNStateValueModel(
             frames_path=frames_path,
             device="cpu",
-            d_model=8, n_heads=2, n_layers=1, mlp_hidden=8,
-            max_epochs=1, batch_size=8, k_neighbors=3,
+            d_model=8,
+            n_heads=2,
+            n_layers=1,
+            mlp_hidden=8,
+            max_epochs=1,
+            batch_size=8,
+            k_neighbors=3,
         )
         m.fit(actions, target_col="possession_cxg")
         assert m._torch_device() == "cpu"
 
 
 # ── SetTransformerStateValueModel ─────────────────────────────────────────────
+
 
 class TestSetTransformerStateValue:
     @pytest.fixture
@@ -155,9 +178,14 @@ class TestSetTransformerStateValue:
         model = SetTransformerStateValueModel(
             feature_set="contextual",
             frames_path=frames_path,
-            d_model=16, n_heads=2, n_layers=1, mlp_hidden=16,
-            max_epochs=2, batch_size=16,
-            device="cpu", random_state=0,
+            d_model=16,
+            n_heads=2,
+            n_layers=1,
+            mlp_hidden=16,
+            max_epochs=2,
+            batch_size=16,
+            device="cpu",
+            random_state=0,
         )
         model.fit(actions, target_col="possession_cxg")
         return model, actions
@@ -189,14 +217,19 @@ class TestSetTransformerStateValue:
         m = SetTransformerStateValueModel(
             frames_path=frames_path,
             device="cpu",
-            d_model=8, n_heads=2, n_layers=1, mlp_hidden=8,
-            max_epochs=1, batch_size=8,
+            d_model=8,
+            n_heads=2,
+            n_layers=1,
+            mlp_hidden=8,
+            max_epochs=1,
+            batch_size=8,
         )
         m.fit(actions, target_col="possession_cxg")
         assert m._torch_device() == "cpu"
 
 
 # ── StateValueLadder integration ──────────────────────────────────────────────
+
 
 class TestStateValueLadderNeuralIntegration:
     def test_ladder_includes_gnn_and_set_transformer_when_frames_given(self, tmp_path):

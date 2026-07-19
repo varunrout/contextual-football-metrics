@@ -88,7 +88,9 @@ def test_extra_tags_are_merged() -> None:
     assert fetched.data.tags.get("run_id_external") == "abc123"
 
 
-def test_active_profile_drives_tracking_uri(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_active_profile_drives_tracking_uri(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Switching profile + reconfiguring should update tracking destination."""
     custom = f"file:{tmp_path / 'alt_store'}"
     monkeypatch.setenv("MLFLOW_TRACKING_URI", custom)

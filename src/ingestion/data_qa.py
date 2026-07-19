@@ -45,7 +45,7 @@ class CoverageReport:
     coordinate_violations: int = 0
     key_duplicates: dict[str, int] = field(default_factory=dict)
     missingness: dict[str, dict[str, float]] = field(default_factory=dict)
-    linkage_rates: dict[str, float] = field(default_factory=dict)   # competition → rate
+    linkage_rates: dict[str, float] = field(default_factory=dict)  # competition → rate
     europe_360_share: float = 0.0
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
@@ -143,10 +143,7 @@ def run_qa(
                 rate = float(grp["has_360"].mean())
                 report.linkage_rates[str(comp_id)] = rate
                 if rate < 0.80:
-                    msg = (
-                        f"Competition {comp_id}: 360 linkage rate {rate:.1%} "
-                        f"< 80 % threshold"
-                    )
+                    msg = f"Competition {comp_id}: 360 linkage rate {rate:.1%} < 80 % threshold"
                     report.warnings.append(msg)
 
     # ── 6. Europe-skew monitoring ──────────────────────────────────────────────
@@ -154,11 +151,12 @@ def run_qa(
     if not events.empty and "has_360" in events.columns and "domain" in events.columns:
         events_360 = events[events["has_360"] == True]  # noqa: E712
         if len(events_360) > 0:
-            europe_count = (events_360["domain"] == "continental").sum() + (
-                events_360["region"] == "europe"
-            ).sum() if "region" in events_360.columns else (
-                events_360["domain"] == "continental"
-            ).sum()
+            europe_count = (
+                (events_360["domain"] == "continental").sum()
+                + (events_360["region"] == "europe").sum()
+                if "region" in events_360.columns
+                else (events_360["domain"] == "continental").sum()
+            )
             europe_share = float(europe_count) / len(events_360)
             report.europe_360_share = europe_share
             warn_thresh = skew_cfg.get("europe_360_share_warn", 0.70)

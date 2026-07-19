@@ -18,12 +18,13 @@ from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 
 from src.evaluation.validation_splits import match_kfold
 from src.models.cxg.feature_sets import FeatureSetSpec, get_feature_set
-from src.models.cxg.xgboost_model import _build_tree_pipeline, _make_X
+from src.models.cxg.xgboost_model import _build_tree_pipeline, _make_x
 
 logger = logging.getLogger(__name__)
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class LGBMCxGMetrics:
@@ -34,6 +35,7 @@ class LGBMCxGMetrics:
 
 
 # ── LightGBM model ────────────────────────────────────────────────────────────
+
 
 class LightGBMCxGModel:
     """
@@ -64,9 +66,7 @@ class LightGBMCxGModel:
         try:
             import lightgbm  # noqa: F401
         except ImportError as exc:
-            raise ImportError(
-                "lightgbm not installed. Run: poetry install --with models"
-            ) from exc
+            raise ImportError("lightgbm not installed. Run: poetry install --with models") from exc
         self.device = device
 
         self.feature_set = (
@@ -91,16 +91,16 @@ class LightGBMCxGModel:
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _resolve_cols(
-        self, df: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
+    def _resolve_cols(self, df: pd.DataFrame) -> tuple[list[str], list[str]]:
         numeric_all = [c for c in self.feature_set.numeric_all if c in df.columns]
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
     def _make_estimator(self, params: dict):
         import lightgbm as lgb
+
         from src.runtime.gbm_device import lightgbm_kwargs
+
         return lgb.LGBMClassifier(
             **params,
             **lightgbm_kwargs(self.device),
@@ -110,8 +110,8 @@ class LightGBMCxGModel:
             random_state=self.random_state,
         )
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
-        return _make_X(df, self._numeric_all, self._cat_cols, self._bool_set)
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
+        return _make_x(df, self._numeric_all, self._cat_cols, self._bool_set)
 
     # ── Optuna hyperparameter search ──────────────────────────────────────────
 
@@ -137,19 +137,23 @@ class LightGBMCxGModel:
         df = shots_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
-        X_all = _make_X(df, numeric_all, cat_cols, bool_set)
+        X_all = _make_x(df, numeric_all, cat_cols, bool_set)
         y_all = df[target_col].astype(int).to_numpy()
 
         if match_id_col not in df.columns:
             logger.warning("match_id_col %r not found; using 3-fold stratified CV", match_id_col)
             from sklearn.model_selection import StratifiedKFold
+
             folds = list(
-                StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=self.random_state)
-                .split(X_all, y_all)
+                StratifiedKFold(
+                    n_splits=n_folds, shuffle=True, random_state=self.random_state
+                ).split(X_all, y_all)
             )
         else:
             folds = list(
-                match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=self.random_state)
+                match_kfold(
+                    df, n_splits=n_folds, match_id_col=match_id_col, random_state=self.random_state
+                )
             )
 
         def objective(trial) -> float:
@@ -181,7 +185,8 @@ class LightGBMCxGModel:
         self.best_params_ = study.best_params
         logger.info(
             "LightGBMCxGModel: best_params=%s (cv_log_loss=%.4f)",
-            study.best_params, study.best_value,
+            study.best_params,
+            study.best_value,
         )
         return study.best_params
 
@@ -193,7 +198,7 @@ class LightGBMCxGModel:
         target_col: str = "goal",
         n_trials: int = 0,
         match_id_col: str = "match_id",
-    ) -> "LightGBMCxGModel":
+    ) -> LightGBMCxGModel:
         if shots_df.empty:
             raise ValueError("shots_df is empty")
         if target_col not in shots_df.columns:
@@ -215,7 +220,7 @@ class LightGBMCxGModel:
         self.pipeline = _build_tree_pipeline(
             self._make_estimator(self.params), numeric_all, cat_cols
         )
-        X = self._X(df)
+        X = self._x(df)
         y = df[target_col].astype(int).to_numpy()
         self.pipeline.fit(X, y)
         return self
@@ -223,11 +228,9 @@ class LightGBMCxGModel:
     def predict_proba(self, shots_df: pd.DataFrame) -> np.ndarray:
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return self.pipeline.predict_proba(self._X(shots_df))[:, 1]
+        return self.pipeline.predict_proba(self._x(shots_df))[:, 1]
 
-    def evaluate(
-        self, shots_df: pd.DataFrame, target_col: str = "goal"
-    ) -> LGBMCxGMetrics:
+    def evaluate(self, shots_df: pd.DataFrame, target_col: str = "goal") -> LGBMCxGMetrics:
         y = shots_df[target_col].astype(int).to_numpy()
         p = self.predict_proba(shots_df)
         auc = float(roc_auc_score(y, p)) if len(np.unique(y)) > 1 else None
@@ -246,7 +249,7 @@ class LightGBMCxGModel:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "LightGBMCxGModel":
+    def load(cls, path: str | Path) -> LightGBMCxGModel:
         with open(path, "rb") as f:
             obj = pickle.load(f)
         if not isinstance(obj, cls):

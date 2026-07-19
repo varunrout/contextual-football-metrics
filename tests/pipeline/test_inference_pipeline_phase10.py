@@ -31,11 +31,12 @@ from src.pipeline.inference_pipeline import (
     _score_cxg,
 )
 
-
 # ── Stubs ─────────────────────────────────────────────────────────────────────
+
 
 class _FakeCxGModel:
     """Stub CxG classifier: predict_proba returns constant P(goal) = 0.1."""
+
     def predict_proba(self, df):
         n = len(df)
         prob = np.full(n, 0.1)
@@ -44,12 +45,14 @@ class _FakeCxGModel:
 
 class _SingleColCxGModel:
     """Single-column predict_proba output."""
+
     def predict_proba(self, df):
         return np.full((len(df), 1), 0.2)
 
 
 class _FakeCxAPipeline:
     """Stub CxA pipeline: score() adds cxa column."""
+
     def score(self, df):
         out = df.copy()
         out["cxa"] = np.random.default_rng(0).uniform(0, 0.2, len(df))
@@ -58,6 +61,7 @@ class _FakeCxAPipeline:
 
 class _FakeCxTPipeline:
     """Stub CxT pipeline: score() adds cxt column."""
+
     def score(self, df):
         out = df.copy()
         out["cxt"] = np.random.default_rng(1).uniform(-0.05, 0.15, len(df))
@@ -66,11 +70,13 @@ class _FakeCxTPipeline:
 
 class _ErrorPipeline:
     """Stub that always raises on score()."""
+
     def score(self, df):
         raise RuntimeError("Intentional failure for testing.")
 
 
 # ── Data helpers ──────────────────────────────────────────────────────────────
+
 
 def _rng(seed: int = 0) -> np.random.Generator:
     return np.random.default_rng(seed)
@@ -80,20 +86,23 @@ def _make_events(n: int = 100, n_shots: int = 20, seed: int = 0) -> pd.DataFrame
     rng = _rng(seed)
     action_types = ["pass"] * (n - n_shots) + ["shot"] * n_shots
     rng.shuffle(action_types)
-    return pd.DataFrame({
-        "event_id": [f"e{i}" for i in range(n)],
-        "match_id": [f"m{i % 5}" for i in range(n)],
-        "player_id": [f"p{i % 10}" for i in range(n)],
-        "action_type": action_types,
-        "x_location": rng.uniform(20, 105, n),
-        "y_location": rng.uniform(0, 68, n),
-        "distance_to_goal": rng.uniform(5, 40, n),
-    })
+    return pd.DataFrame(
+        {
+            "event_id": [f"e{i}" for i in range(n)],
+            "match_id": [f"m{i % 5}" for i in range(n)],
+            "player_id": [f"p{i % 10}" for i in range(n)],
+            "action_type": action_types,
+            "x_location": rng.uniform(20, 105, n),
+            "y_location": rng.uniform(0, 68, n),
+            "distance_to_goal": rng.uniform(5, 40, n),
+        }
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # _score_cxg helper
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestScoreCxg:
     def test_shot_rows_get_scores(self):
@@ -141,6 +150,7 @@ class TestScoreCxg:
 # _join_pipeline_output helper
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestJoinPipelineOutput:
     def test_join_by_event_id(self):
         df = _make_events(n=20)
@@ -168,6 +178,7 @@ class TestJoinPipelineOutput:
 # ═══════════════════════════════════════════════════════════════════════════════
 # InferencePipeline.score
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestInferencePipelineScore:
     def test_empty_df_raises(self):
@@ -275,6 +286,7 @@ class TestInferencePipelineScore:
 # InferencePipeline repr
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestInferencePipelineRepr:
     def test_empty_pipeline_repr(self):
         pipe = InferencePipeline()
@@ -299,6 +311,7 @@ class TestInferencePipelineRepr:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Save / Load
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestInferencePipelineSaveLoad:
     def test_save_creates_file(self, tmp_path):
@@ -341,6 +354,7 @@ class TestInferencePipelineSaveLoad:
 
     def test_load_raises_type_error_for_wrong_type(self, tmp_path):
         import pickle
+
         path = tmp_path / "wrong.pkl"
         with open(path, "wb") as fh:
             pickle.dump({"not": "a pipeline"}, fh)
@@ -352,10 +366,12 @@ class TestInferencePipelineSaveLoad:
 # from_config — null production pointers
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestInferencePipelineFromConfig:
     def test_null_pointers_leave_models_none(self, tmp_path):
         """The real configs/models.yaml has null pointers — all models should be None."""
         import pathlib
+
         cfg_path = pathlib.Path(__file__).parent.parent.parent / "configs" / "models.yaml"
         if not cfg_path.exists():
             pytest.skip("configs/models.yaml not found")
@@ -366,6 +382,7 @@ class TestInferencePipelineFromConfig:
 
     def test_from_config_creates_inference_pipeline(self, tmp_path):
         import yaml
+
         cfg = {"production": {"cxg": None, "cxa": None, "cxt": None}}
         cfg_file = tmp_path / "models.yaml"
         cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
@@ -374,6 +391,7 @@ class TestInferencePipelineFromConfig:
 
     def test_from_config_loads_model_file_when_pointer_set(self, tmp_path):
         import pickle
+
         import yaml
 
         # Save a fake CxG model pickle
@@ -390,6 +408,7 @@ class TestInferencePipelineFromConfig:
 
     def test_from_config_raises_file_not_found_for_missing_model(self, tmp_path):
         import yaml
+
         cfg = {"production": {"cxg": "does_not_exist.pkl", "cxa": None, "cxt": None}}
         cfg_file = tmp_path / "models.yaml"
         cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
@@ -400,6 +419,7 @@ class TestInferencePipelineFromConfig:
 # ═══════════════════════════════════════════════════════════════════════════════
 # InferencePipelineConfig defaults
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestInferencePipelineConfig:
     def test_default_action_type_col(self):

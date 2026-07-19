@@ -33,7 +33,7 @@ from statsmodels.stats.proportion import proportion_confint, proportions_ztest
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     derive_shot_created,
     load_actions,
     load_features,
@@ -49,14 +49,27 @@ logging.basicConfig(
 logger = logging.getLogger("05_bivariate_cxa")
 
 _CAT_COLS = [
-    "event_type", "box_entry", "cross", "through_ball", "central_progression",
-    "under_pressure", "pass_height", "pass_body_part", "score_state",
+    "event_type",
+    "box_entry",
+    "cross",
+    "through_ball",
+    "central_progression",
+    "under_pressure",
+    "pass_height",
+    "pass_body_part",
+    "score_state",
     "possession_start_zone",
 ]
 _NUM_COLS = [
-    "x_location", "y_location", "distance_to_goal", "pass_length",
-    "carry_distance", "progressive_distance", "events_before_action",
-    "score_differential", "nearest_defender_distance",
+    "x_location",
+    "y_location",
+    "distance_to_goal",
+    "pass_length",
+    "carry_distance",
+    "progressive_distance",
+    "events_before_action",
+    "score_differential",
+    "nearest_defender_distance",
 ]
 _SEQUENCE_MIN_N = 200
 _MAX_PAIRWISE_TYPES = 12
@@ -83,12 +96,13 @@ def _shot_created_rate_bar(df: pd.DataFrame, col: str) -> None:
 
     fig, ax = plt.subplots(figsize=(max(6, len(rates) * 0.8), 5))
     bars = ax.bar(rates[col].astype(str), rates["rate"], color="#ff7f0e", alpha=0.8)
-    for bar, n in zip(bars, rates["n"]):
+    for bar, n in zip(bars, rates["n"], strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.002,
             f"n={n:,}",
-            ha="center", fontsize=7,
+            ha="center",
+            fontsize=7,
         )
     ax.set_xlabel(col)
     ax.set_ylabel("Shot Creation Rate")
@@ -115,8 +129,10 @@ def _numeric_boxplots(df: pd.DataFrame) -> None:
         s0 = pd.to_numeric(df.loc[df["shot_created"] == 0, col], errors="coerce").dropna()
         s1 = pd.to_numeric(df.loc[df["shot_created"] == 1, col], errors="coerce").dropna()
         ax.boxplot(
-            [s0.clip(*np.percentile(s0, [1, 99])) if len(s0) else [],
-             s1.clip(*np.percentile(s1, [1, 99])) if len(s1) else []],
+            [
+                s0.clip(*np.percentile(s0, [1, 99])) if len(s0) else [],
+                s1.clip(*np.percentile(s1, [1, 99])) if len(s1) else [],
+            ],
             tick_labels=["No Shot", "Shot Created"],
             patch_artist=True,
             boxprops=dict(facecolor="#ffbb78"),
@@ -134,9 +150,12 @@ def _numeric_boxplots(df: pd.DataFrame) -> None:
 
 def _progressive_distance_dist(df: pd.DataFrame) -> None:
     prog_col = next(
-        (c for c in ["progressive_distance", "carry_progressive_distance", "pass_length"]
-         if c in df.columns),
-        None
+        (
+            c
+            for c in ["progressive_distance", "carry_progressive_distance", "pass_length"]
+            if c in df.columns
+        ),
+        None,
     )
     if prog_col is None or "shot_created" not in df.columns:
         return
@@ -146,9 +165,7 @@ def _progressive_distance_dist(df: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(10, 5))
     bins = np.linspace(
-        min(s0.quantile(0.01), s1.quantile(0.01)),
-        max(s0.quantile(0.99), s1.quantile(0.99)),
-        50
+        min(s0.quantile(0.01), s1.quantile(0.01)), max(s0.quantile(0.99), s1.quantile(0.99)), 50
     )
     ax.hist(s0, bins=bins, density=True, alpha=0.6, color="#aec7e8", label="No shot created")
     ax.hist(s1, bins=bins, density=True, alpha=0.6, color="#d62728", label="Shot created")
@@ -243,8 +260,14 @@ def _plot_sequence_rates(rate_df: pd.DataFrame) -> None:
     ax.invert_yaxis()
     ax.set_xlabel("Shot-created rate (with 95% Wilson CI)")
     ax.set_title("Shot-created rate by possession sequence type")
-    for yi, n in zip(y, rate_df["n"]):
-        ax.text(1.005 * max(rate_df["ci_high"].max(), 0.01), yi, f"n={int(n):,}", va="center", fontsize=8)
+    for yi, n in zip(y, rate_df["n"], strict=False):
+        ax.text(
+            1.005 * max(rate_df["ci_high"].max(), 0.01),
+            yi,
+            f"n={int(n):,}",
+            va="center",
+            fontsize=8,
+        )
     plt.tight_layout()
     save_fig("shot_created_by_sequence_type", "bivariate/cxa")
 
@@ -321,7 +344,7 @@ def _pairwise_rate_tests(rate_df: pd.DataFrame) -> list[dict]:
             pvals.append(float(p))
 
     adj = _holm_adjust(pvals)
-    for rec, p_adj in zip(pairs, adj):
+    for rec, p_adj in zip(pairs, adj, strict=False):
         rec["p_value_holm"] = float(p_adj)
     pairs.sort(key=lambda r: r["p_value_holm"])
     return pairs
@@ -392,7 +415,9 @@ def _adjusted_logit_sequence_effects(poss_df: pd.DataFrame) -> list[dict]:
                 "odds_ratio": float(np.exp(coef)),
                 "or_ci_low": float(np.exp(lo)) if np.isfinite(lo) else float("nan"),
                 "or_ci_high": float(np.exp(hi)) if np.isfinite(hi) else float("nan"),
-                "p_value": float(pvals[name]) if pvals is not None and name in pvals.index else float("nan"),
+                "p_value": float(pvals[name])
+                if pvals is not None and name in pvals.index
+                else float("nan"),
                 "model_terms": used_terms,
             }
         )

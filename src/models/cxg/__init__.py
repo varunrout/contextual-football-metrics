@@ -1,6 +1,6 @@
 """CxG models."""
 
-from src.models.cxg.baseline import BaselineCxGModel, BaselineCxGMetrics, filter_shot_events
+from src.models.cxg.baseline import BaselineCxGMetrics, BaselineCxGModel, filter_shot_events
 
 __all__ = [
     "BaselineCxGModel",

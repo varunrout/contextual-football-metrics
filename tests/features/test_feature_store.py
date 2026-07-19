@@ -87,9 +87,30 @@ def _possessions_df() -> pd.DataFrame:
 def _frames_df() -> pd.DataFrame:
     return pd.DataFrame(
         [
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": False, "keeper": False, "x": 70.0, "y": 30.0},
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": False, "keeper": True, "x": 102.0, "y": 34.0},
-            {"event_internal_id": "e1", "match_internal_id": "m1", "teammate": True, "keeper": False, "x": 80.0, "y": 32.0},
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": False,
+                "keeper": False,
+                "x": 70.0,
+                "y": 30.0,
+            },
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": False,
+                "keeper": True,
+                "x": 102.0,
+                "y": 34.0,
+            },
+            {
+                "event_internal_id": "e1",
+                "match_internal_id": "m1",
+                "teammate": True,
+                "keeper": False,
+                "x": 80.0,
+                "y": 32.0,
+            },
         ]
     )
 

@@ -31,12 +31,25 @@ def test_freeze_frame_features_basic_counts() -> None:
     out = build_freeze_frame_features(events, frames)
     assert len(out) == 1
     assert out.iloc[0]["defenders_within_3m"] >= 1
-    assert out.iloc[0]["nearest_defender_distance"] <= out.iloc[0]["second_nearest_defender_distance"]
+    assert (
+        out.iloc[0]["nearest_defender_distance"] <= out.iloc[0]["second_nearest_defender_distance"]
+    )
 
 
 def test_freeze_frame_features_empty_frames_keeps_row() -> None:
     events = pd.DataFrame(
-        [{"internal_id": "e1", "match_internal_id": "m1", "possession_internal_id": "p1", "event_type": "pass", "index": 1, "x": 60.0, "y": 20.0, "has_360": False}]
+        [
+            {
+                "internal_id": "e1",
+                "match_internal_id": "m1",
+                "possession_internal_id": "p1",
+                "event_type": "pass",
+                "index": 1,
+                "x": 60.0,
+                "y": 20.0,
+                "has_360": False,
+            }
+        ]
     )
     out = build_freeze_frame_features(events, pd.DataFrame())
     assert len(out) == 1

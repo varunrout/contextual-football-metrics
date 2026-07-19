@@ -11,9 +11,13 @@ def _passes_df(n: int = 120) -> pd.DataFrame:
     progressive = rng.uniform(0, 40, size=n)
     through_ball = rng.choice([0, 1], size=n, p=[0.8, 0.2])
     box_entry = rng.choice([0, 1], size=n, p=[0.75, 0.25])
-    p_create = 1.0 / (1.0 + np.exp(-(0.08 * progressive + 0.8 * through_ball + 0.7 * box_entry - 2.0)))
+    p_create = 1.0 / (
+        1.0 + np.exp(-(0.08 * progressive + 0.8 * through_ball + 0.7 * box_entry - 2.0))
+    )
     leads = rng.binomial(1, p_create, size=n)
-    quality = np.clip(0.05 + 0.015 * progressive + 0.12 * through_ball + rng.normal(0, 0.05, size=n), 0, 1)
+    quality = np.clip(
+        0.05 + 0.015 * progressive + 0.12 * through_ball + rng.normal(0, 0.05, size=n), 0, 1
+    )
     resulting_xg = leads * quality
 
     return pd.DataFrame(
@@ -34,7 +38,9 @@ def _passes_df(n: int = 120) -> pd.DataFrame:
             "pass_height": rng.choice(["ground", "low", "high"], size=n),
             "pass_body_part": rng.choice(["foot", "head"], size=n),
             "set_piece_type": rng.choice(["none", "corner", "free_kick"], size=n),
-            "phase_of_play": rng.choice(["buildup", "progression", "final_third", "transition"], size=n),
+            "phase_of_play": rng.choice(
+                ["buildup", "progression", "final_third", "transition"], size=n
+            ),
             "sequence_type": rng.choice(["settled_possession", "through_ball_sequence"], size=n),
             "leads_to_shot": leads,
             "resulting_shot_xg": resulting_xg,

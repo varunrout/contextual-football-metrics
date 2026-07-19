@@ -32,7 +32,7 @@ from statsmodels.stats.proportion import proportion_confint, proportions_ztest
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     load_events,
     load_shots,
     save_fig,
@@ -47,13 +47,27 @@ logging.basicConfig(
 logger = logging.getLogger("04_bivariate_cxg")
 
 _CAT_COLS = [
-    "body_part", "shot_type", "set_piece_type", "score_state", "period",
-    "home_or_away", "sequence_type", "possession_start_zone", "final_pass_zone",
+    "body_part",
+    "shot_type",
+    "set_piece_type",
+    "score_state",
+    "period",
+    "home_or_away",
+    "sequence_type",
+    "possession_start_zone",
+    "final_pass_zone",
 ]
 _NUM_COLS = [
-    "x_location", "y_location", "distance_to_goal", "shot_angle",
-    "pass_length", "nearest_defender_distance", "keeper_distance_to_shooter",
-    "keeper_angle_coverage", "events_before_action", "score_differential",
+    "x_location",
+    "y_location",
+    "distance_to_goal",
+    "shot_angle",
+    "pass_length",
+    "nearest_defender_distance",
+    "keeper_distance_to_shooter",
+    "keeper_angle_coverage",
+    "events_before_action",
+    "score_differential",
 ]
 _SEQUENCE_MIN_N = 150
 _MAX_PAIRWISE_TYPES = 12
@@ -88,7 +102,7 @@ def _goal_rate_bar(df: pd.DataFrame, col: str) -> None:
         alpha=0.8,
     )
     # Add count labels
-    for bar, n in zip(bars, rates["n"]):
+    for bar, n in zip(bars, rates["n"], strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.002,
@@ -121,8 +135,10 @@ def _numeric_boxplots(df: pd.DataFrame) -> None:
         s0 = pd.to_numeric(df.loc[df["goal"] == 0, col], errors="coerce").dropna()
         s1 = pd.to_numeric(df.loc[df["goal"] == 1, col], errors="coerce").dropna()
         ax.boxplot(
-            [s0.clip(*np.percentile(s0, [1, 99])) if len(s0) else [],
-             s1.clip(*np.percentile(s1, [1, 99])) if len(s1) else []],
+            [
+                s0.clip(*np.percentile(s0, [1, 99])) if len(s0) else [],
+                s1.clip(*np.percentile(s1, [1, 99])) if len(s1) else [],
+            ],
             tick_labels=["No Goal", "Goal"],
             patch_artist=True,
             boxprops=dict(facecolor="#aec7e8"),
@@ -147,7 +163,11 @@ def _xg_calibration(shots: pd.DataFrame, events: pd.DataFrame) -> None:
     if xg_col in shots.columns:
         plot_df = shots[["goal", xg_col]].copy()
         plot_df[xg_col] = pd.to_numeric(plot_df[xg_col], errors="coerce")
-    elif event_id_col in shots.columns and event_id_col in events.columns and xg_col in events.columns:
+    elif (
+        event_id_col in shots.columns
+        and event_id_col in events.columns
+        and xg_col in events.columns
+    ):
         xg_lookup = events[[event_id_col, xg_col]].drop_duplicates(event_id_col)
         plot_df = shots[["goal", event_id_col]].merge(xg_lookup, on=event_id_col, how="left")
         plot_df[xg_col] = pd.to_numeric(plot_df[xg_col], errors="coerce")
@@ -175,15 +195,25 @@ def _xg_calibration(shots: pd.DataFrame, events: pd.DataFrame) -> None:
 
     valid = valid.copy()
     valid["xg_decile"] = pd.qcut(valid[xg_col], q=10, labels=False, duplicates="drop")
-    calib = valid.groupby("xg_decile").agg(
-        mean_xg=(xg_col, "mean"),
-        actual_goal_rate=("goal", "mean"),
-        n=("goal", "count"),
-    ).reset_index()
+    calib = (
+        valid.groupby("xg_decile")
+        .agg(
+            mean_xg=(xg_col, "mean"),
+            actual_goal_rate=("goal", "mean"),
+            n=("goal", "count"),
+        )
+        .reset_index()
+    )
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    ax.scatter(calib["mean_xg"], calib["actual_goal_rate"], s=calib["n"] / calib["n"].max() * 200,
-               color="#1f77b4", zorder=3, label="Decile bucket")
+    ax.scatter(
+        calib["mean_xg"],
+        calib["actual_goal_rate"],
+        s=calib["n"] / calib["n"].max() * 200,
+        color="#1f77b4",
+        zorder=3,
+        label="Decile bucket",
+    )
     ax.plot([0, 1], [0, 1], "r--", label="Perfect calibration")
     ax.set_xlabel("Mean StatsBomb xG in decile")
     ax.set_ylabel("Actual Goal Rate")
@@ -208,12 +238,18 @@ def _shot_map(df: pd.DataFrame) -> None:
     ax.scatter(
         pd.to_numeric(no_goal["x_location"], errors="coerce"),
         pd.to_numeric(no_goal["y_location"], errors="coerce"),
-        s=8, alpha=0.3, color="#aec7e8", label="No goal",
+        s=8,
+        alpha=0.3,
+        color="#aec7e8",
+        label="No goal",
     )
     ax.scatter(
         pd.to_numeric(goal["x_location"], errors="coerce"),
         pd.to_numeric(goal["y_location"], errors="coerce"),
-        s=20, alpha=0.7, color="#d62728", label="Goal",
+        s=20,
+        alpha=0.7,
+        color="#d62728",
+        label="Goal",
     )
 
     # Draw pitch outline (simplified)
@@ -292,8 +328,14 @@ def _plot_sequence_goal_rates(rate_df: pd.DataFrame) -> None:
     ax.invert_yaxis()
     ax.set_xlabel("Goal rate (with 95% Wilson CI)")
     ax.set_title("Goal rate by sequence type")
-    for yi, n in zip(y, rate_df["n"]):
-        ax.text(1.005 * max(rate_df["ci_high"].max(), 0.01), yi, f"n={int(n):,}", va="center", fontsize=8)
+    for yi, n in zip(y, rate_df["n"], strict=False):
+        ax.text(
+            1.005 * max(rate_df["ci_high"].max(), 0.01),
+            yi,
+            f"n={int(n):,}",
+            va="center",
+            fontsize=8,
+        )
     plt.tight_layout()
     save_fig("goal_by_sequence_type", "bivariate/cxg")
 
@@ -370,7 +412,7 @@ def _pairwise_rate_tests(rate_df: pd.DataFrame) -> list[dict]:
             pvals.append(float(p))
 
     adj = _holm_adjust(pvals)
-    for rec, p_adj in zip(pairs, adj):
+    for rec, p_adj in zip(pairs, adj, strict=False):
         rec["p_value_holm"] = float(p_adj)
     pairs.sort(key=lambda r: r["p_value_holm"])
     return pairs

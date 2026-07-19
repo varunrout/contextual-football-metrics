@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -13,7 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-
 
 _DEFAULT_NUMERIC = ["distance_to_goal", "shot_angle", "x_location", "y_location"]
 _DEFAULT_BOOL = ["header", "volley", "under_pressure", "open_play"]
@@ -45,7 +43,7 @@ class BaselineCxGModel:
             raise ValueError("No usable baseline CxG feature columns found")
         return numeric, booleans, categorical
 
-    def fit(self, shots_df: pd.DataFrame, target_col: str = "goal") -> "BaselineCxGModel":
+    def fit(self, shots_df: pd.DataFrame, target_col: str = "goal") -> BaselineCxGModel:
         if shots_df.empty:
             raise ValueError("shots_df is empty")
         if target_col not in shots_df.columns:

@@ -19,12 +19,12 @@ from src.models.cxg.feature_sets import (
     get_feature_set,
 )
 from src.models.cxg.glm_contextual import GlmContextualCxG, GlmContextualMetrics
-from src.models.cxg.xgboost_model import XGBoostCxGModel, XGBCxGMetrics
-from src.models.cxg.lightgbm_model import LightGBMCxGModel, LGBMCxGMetrics
-from src.models.cxg.ladder import CxGLadder, LadderResult
-
+from src.models.cxg.ladder import CxGLadder
+from src.models.cxg.lightgbm_model import LGBMCxGMetrics, LightGBMCxGModel
+from src.models.cxg.xgboost_model import XGBCxGMetrics, XGBoostCxGModel
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
+
 
 def _shots_contextual(n: int = 120, n_matches: int = 6, seed: int = 0) -> pd.DataFrame:
     """
@@ -118,6 +118,7 @@ def shots_small() -> pd.DataFrame:
 
 # ── Feature set tests ─────────────────────────────────────────────────────────
 
+
 class TestFeatureSets:
     def test_registry_accessible(self):
         for name in ("traditional", "contextual", "full_360"):
@@ -155,6 +156,7 @@ class TestFeatureSets:
 
 
 # ── GLM contextual tests ──────────────────────────────────────────────────────
+
 
 class TestGlmContextualCxG:
     def test_fit_predict_proba_in_range(self, shots_small):
@@ -214,6 +216,7 @@ class TestGlmContextualCxG:
 
 # ── XGBoost tests ─────────────────────────────────────────────────────────────
 
+
 class TestXGBoostCxGModel:
     def test_fit_predict_proba_in_range(self, shots_small):
         model = XGBoostCxGModel(feature_set="contextual", n_estimators=30)
@@ -261,6 +264,7 @@ class TestXGBoostCxGModel:
 
 
 # ── LightGBM tests ────────────────────────────────────────────────────────────
+
 
 class TestLightGBMCxGModel:
     def test_fit_predict_proba_in_range(self, shots_small):
@@ -310,6 +314,7 @@ class TestLightGBMCxGModel:
 
 # ── CxG Ladder tests ──────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def ladder_shots() -> pd.DataFrame:
     """Larger fixture for ladder tests (needs enough data per fold)."""
@@ -341,9 +346,12 @@ class TestCxGLadder:
         ladder.run(ladder_shots, n_folds=3, n_estimators=30)
         lb = ladder.leaderboard()
         expected_names = {
-            "baseline_logit", "glm_contextual",
-            "xgb_traditional", "xgb_contextual",
-            "lgbm_traditional", "lgbm_contextual",
+            "baseline_logit",
+            "glm_contextual",
+            "xgb_traditional",
+            "xgb_contextual",
+            "lgbm_traditional",
+            "lgbm_contextual",
         }
         assert set(lb["name"]) == expected_names
 

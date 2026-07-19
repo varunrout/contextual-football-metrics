@@ -22,19 +22,19 @@ import pandas as pd
 import pytest
 
 from src.monitoring.drift_detector import (
+    PSI_MODERATE,
+    PSI_NO_DRIFT,
     DriftDetector,
     DriftEntry,
     DriftReport,
-    PSI_MODERATE,
-    PSI_NO_DRIFT,
     _make_numeric_bins,
     compute_kl_divergence,
     compute_psi,
     compute_psi_categorical,
 )
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _rng(seed: int = 0) -> np.random.Generator:
     return np.random.default_rng(seed)
@@ -42,18 +42,21 @@ def _rng(seed: int = 0) -> np.random.Generator:
 
 def _make_df(n: int = 500, seed: int = 0, shift: float = 0.0) -> pd.DataFrame:
     rng = _rng(seed)
-    return pd.DataFrame({
-        "distance_to_goal": rng.uniform(5, 35, n) + shift,
-        "x_location": rng.uniform(20, 105, n) + shift,
-        "in_box": rng.integers(0, 2, n).astype(float),
-        "score_state": rng.choice(["winning", "drawing", "losing"], n),
-        "action_type": rng.choice(["pass", "carry", "shot"], n),
-    })
+    return pd.DataFrame(
+        {
+            "distance_to_goal": rng.uniform(5, 35, n) + shift,
+            "x_location": rng.uniform(20, 105, n) + shift,
+            "in_box": rng.integers(0, 2, n).astype(float),
+            "score_state": rng.choice(["winning", "drawing", "losing"], n),
+            "action_type": rng.choice(["pass", "carry", "shot"], n),
+        }
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # compute_psi — numeric
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestComputePsi:
     def test_identical_distributions_near_zero(self):
@@ -102,6 +105,7 @@ class TestComputePsi:
 # compute_psi_categorical
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestComputePsiCategorical:
     def test_identical_distributions_near_zero(self):
         cats = ["a", "b", "c"] * 200
@@ -129,6 +133,7 @@ class TestComputePsiCategorical:
 # ═══════════════════════════════════════════════════════════════════════════════
 # compute_kl_divergence
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestComputeKlDivergence:
     def test_identical_distributions_near_zero(self):
@@ -158,6 +163,7 @@ class TestComputeKlDivergence:
 # _make_numeric_bins
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestMakeNumericBins:
     def test_returns_at_least_two_edges(self):
         vals = np.array([5.0] * 100)  # all identical
@@ -179,9 +185,11 @@ class TestMakeNumericBins:
 # DriftEntry properties
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestDriftEntry:
-    def _make(self, psi: float = 0.05, kl: float = 0.05,
-              psi_alert: bool = False, kl_alert: bool = False) -> DriftEntry:
+    def _make(
+        self, psi: float = 0.05, kl: float = 0.05, psi_alert: bool = False, kl_alert: bool = False
+    ) -> DriftEntry:
         return DriftEntry("dist", False, psi, kl, psi_alert, kl_alert)
 
     def test_any_alert_false_when_none(self):
@@ -207,14 +215,16 @@ class TestDriftEntry:
 # DriftReport
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _make_report(n_psi: int = 2, n_kl: int = 1) -> DriftReport:
     entries = [
-        DriftEntry("f1", False, 0.25, 0.12, True, True),   # psi+kl alert
-        DriftEntry("f2", False, 0.22, 0.05, True, False),   # psi alert only
+        DriftEntry("f1", False, 0.25, 0.12, True, True),  # psi+kl alert
+        DriftEntry("f2", False, 0.22, 0.05, True, False),  # psi alert only
         DriftEntry("f3", False, 0.04, 0.02, False, False),  # no alert
     ]
-    return DriftReport(entries=entries, reference_n=500, current_n=300,
-                       psi_threshold=0.2, kl_threshold=0.1)
+    return DriftReport(
+        entries=entries, reference_n=500, current_n=300, psi_threshold=0.2, kl_threshold=0.1
+    )
 
 
 class TestDriftReport:
@@ -229,7 +239,7 @@ class TestDriftReport:
 
     def test_triggered_alerts_sorted_by_psi(self):
         alerts = _make_report().triggered_alerts
-        assert alerts[0] == "f1"   # psi=0.25 > f2 psi=0.22
+        assert alerts[0] == "f1"  # psi=0.25 > f2 psi=0.22
         assert alerts[1] == "f2"
         assert len(alerts) == 2
 
@@ -247,8 +257,15 @@ class TestDriftReport:
 
     def test_summary_dict_has_required_keys(self):
         s = _make_report().summary()
-        for key in ("reference_n", "current_n", "n_features_checked",
-                    "n_psi_alerts", "n_kl_alerts", "n_total_alerts", "triggered"):
+        for key in (
+            "reference_n",
+            "current_n",
+            "n_features_checked",
+            "n_psi_alerts",
+            "n_kl_alerts",
+            "n_total_alerts",
+            "triggered",
+        ):
             assert key in s
 
     def test_summary_n_features_checked(self):
@@ -258,6 +275,7 @@ class TestDriftReport:
 # ═══════════════════════════════════════════════════════════════════════════════
 # DriftDetector.fit
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestDriftDetectorFit:
     def test_fit_returns_self(self):
@@ -300,6 +318,7 @@ class TestDriftDetectorFit:
 # ═══════════════════════════════════════════════════════════════════════════════
 # DriftDetector.detect
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class TestDriftDetectorDetect:
     @pytest.fixture(scope="class")
@@ -348,7 +367,7 @@ class TestDriftDetectorDetect:
 
     def test_alerts_triggered_for_large_shift(self):
         ref = _make_df(n=500, seed=0, shift=0.0)
-        cur = _make_df(n=500, seed=1, shift=30.0)   # massive shift
+        cur = _make_df(n=500, seed=1, shift=30.0)  # massive shift
         det = DriftDetector(
             numeric_cols=["distance_to_goal"],
             psi_threshold=0.2,

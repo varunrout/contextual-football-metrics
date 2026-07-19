@@ -42,28 +42,32 @@ if str(PROJECT_ROOT) not in sys.path:
 class AnalysisStep:
     """One pre-analysis stage."""
 
-    stage_name: str        # Prefect task / MLflow stage tag
-    script: str            # filename inside analysis/
-    report: str | None     # JSON filename in <reports_root>/ to log; None = skip
+    stage_name: str  # Prefect task / MLflow stage tag
+    script: str  # filename inside analysis/
+    report: str | None  # JSON filename in <reports_root>/ to log; None = skip
 
 
 ANALYSIS_REGISTRY: tuple[AnalysisStep, ...] = (
-    AnalysisStep("data_quality",      "01_data_quality.py",      "data_quality_summary.json"),
+    AnalysisStep("data_quality", "01_data_quality.py", "data_quality_summary.json"),
     AnalysisStep("feature_stability", "02_feature_stability.py", "feature_stability_summary.json"),
-    AnalysisStep("univariate",        "03_univariate.py",        "univariate_stats.json"),
-    AnalysisStep("bivariate_cxg",     "04_bivariate_cxg.py",     None),
-    AnalysisStep("bivariate_cxa",     "05_bivariate_cxa.py",     "bivariate_cxa_sequence_type_summary.json"),
-    AnalysisStep("bivariate_cxt",     "06_bivariate_cxt.py",     None),
-    AnalysisStep("correlations",      "07_correlations.py",      "correlation_summary.json"),
-    AnalysisStep("eda_shots",         "08_eda_shots.py",         None),
-    AnalysisStep("eda_sequences",     "09_eda_sequences.py",     None),
-    AnalysisStep("eda_opponents",     "10_eda_opponents.py",     None),
-    AnalysisStep("hypothesis_cxg",    "11_hypothesis_cxg.py",    "hypothesis_cxg.json"),
-    AnalysisStep("hypothesis_cxa",    "12_hypothesis_cxa.py",    "hypothesis_cxa.json"),
-    AnalysisStep("hypothesis_cxt",    "13_hypothesis_cxt.py",    "hypothesis_cxt.json"),
-    AnalysisStep("statsbomb_baseline", "14_statsbomb_baseline.py", "statsbomb_baseline_metrics.json"),
-    AnalysisStep("zone_xt_priors",    "15_zone_xt_priors.py",    None),
-    AnalysisStep("deep_eda",          "16_deep_eda.py",          "deep_eda_summary.json"),
+    AnalysisStep("univariate", "03_univariate.py", "univariate_stats.json"),
+    AnalysisStep("bivariate_cxg", "04_bivariate_cxg.py", None),
+    AnalysisStep(
+        "bivariate_cxa", "05_bivariate_cxa.py", "bivariate_cxa_sequence_type_summary.json"
+    ),
+    AnalysisStep("bivariate_cxt", "06_bivariate_cxt.py", None),
+    AnalysisStep("correlations", "07_correlations.py", "correlation_summary.json"),
+    AnalysisStep("eda_shots", "08_eda_shots.py", None),
+    AnalysisStep("eda_sequences", "09_eda_sequences.py", None),
+    AnalysisStep("eda_opponents", "10_eda_opponents.py", None),
+    AnalysisStep("hypothesis_cxg", "11_hypothesis_cxg.py", "hypothesis_cxg.json"),
+    AnalysisStep("hypothesis_cxa", "12_hypothesis_cxa.py", "hypothesis_cxa.json"),
+    AnalysisStep("hypothesis_cxt", "13_hypothesis_cxt.py", "hypothesis_cxt.json"),
+    AnalysisStep(
+        "statsbomb_baseline", "14_statsbomb_baseline.py", "statsbomb_baseline_metrics.json"
+    ),
+    AnalysisStep("zone_xt_priors", "15_zone_xt_priors.py", None),
+    AnalysisStep("deep_eda", "16_deep_eda.py", "deep_eda_summary.json"),
 )
 
 ANALYSIS_BY_NAME: dict[str, AnalysisStep] = {s.stage_name: s for s in ANALYSIS_REGISTRY}
@@ -81,7 +85,9 @@ def _load_script_main(script_path: Path):
     return module.main
 
 
-def _flatten_scalars(payload: Any, prefix: str = "", out: dict[str, float] | None = None) -> dict[str, float]:
+def _flatten_scalars(
+    payload: Any, prefix: str = "", out: dict[str, float] | None = None
+) -> dict[str, float]:
     """Lift scalar (int/float/bool) leaf values from a nested dict to a flat metric dict."""
     if out is None:
         out = {}

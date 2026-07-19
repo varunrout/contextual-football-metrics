@@ -82,15 +82,22 @@ def test_cli_parses_minimal() -> None:
 
 
 def test_cli_parses_full() -> None:
-    args = _parse_args([
-        "--profile", "gpu",
-        "--only-group", "train",
-        "--no-promote",
-        "--n-folds", "3",
-        "--include-360",
-        "--seed", "7",
-        "--gate-max-psi", "0.5",
-    ])
+    args = _parse_args(
+        [
+            "--profile",
+            "gpu",
+            "--only-group",
+            "train",
+            "--no-promote",
+            "--n-folds",
+            "3",
+            "--include-360",
+            "--seed",
+            "7",
+            "--gate-max-psi",
+            "0.5",
+        ]
+    )
     assert args.profile == "gpu"
     assert args.only_group == ["train"]
     assert args.no_promote is True

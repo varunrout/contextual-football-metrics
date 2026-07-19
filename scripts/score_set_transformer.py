@@ -28,12 +28,12 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import pandas as pd
-
-from src.models.cxg.set_transformer_model import SetTransformerCxGModel
+from src.models.cxg.set_transformer_model import SetTransformerCxGModel  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,15 +44,26 @@ logger = logging.getLogger("score_set_transformer")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model", type=Path,
-                        default=PROJECT_ROOT / "models" / "cxg" / "set_transformer_360.joblib")
-    parser.add_argument("--shots", type=Path,
-                        default=PROJECT_ROOT / "data" / "features" / "shots.parquet")
-    parser.add_argument("--frames", type=Path, default=None,
-                        help="Override frames parquet path (defaults to model's saved path).")
-    parser.add_argument("--output", type=Path,
-                        default=PROJECT_ROOT / "outputs" / "scores" / "cxg_set_transformer.parquet")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--model", type=Path, default=PROJECT_ROOT / "models" / "cxg" / "set_transformer_360.joblib"
+    )
+    parser.add_argument(
+        "--shots", type=Path, default=PROJECT_ROOT / "data" / "features" / "shots.parquet"
+    )
+    parser.add_argument(
+        "--frames",
+        type=Path,
+        default=None,
+        help="Override frames parquet path (defaults to model's saved path).",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=PROJECT_ROOT / "outputs" / "scores" / "cxg_set_transformer.parquet",
+    )
     parser.add_argument("--device", default="cpu", help="cpu | cuda | cuda:N")
     args = parser.parse_args()
 

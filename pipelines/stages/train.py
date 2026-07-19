@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -80,14 +79,16 @@ def train_cxg_task(
     from scripts.train_cxg import train_cxg
 
     with stage_run("train_cxg", parent_run_id=parent_run_id) as run:
-        mlflow.log_params({
-            "n_folds": n_folds,
-            "n_optuna_trials": n_optuna_trials,
-            "include_360": include_360,
-            "n_estimators": n_estimators,
-            "random_state": random_state,
-            "shots_path": str(shots_path),
-        })
+        mlflow.log_params(
+            {
+                "n_folds": n_folds,
+                "n_optuna_trials": n_optuna_trials,
+                "include_360": include_360,
+                "n_estimators": n_estimators,
+                "random_state": random_state,
+                "shots_path": str(shots_path),
+            }
+        )
         train_cxg(
             shots_path=shots_path,
             n_folds=n_folds,
@@ -98,7 +99,10 @@ def train_cxg_task(
             n_estimators=n_estimators,
         )
         _maybe_log_summary(prof.reports_root / "cxg_training_summary.json")
-        return {"run_id": run.info.run_id, "summary": str(prof.reports_root / "cxg_training_summary.json")}
+        return {
+            "run_id": run.info.run_id,
+            "summary": str(prof.reports_root / "cxg_training_summary.json"),
+        }
 
 
 @task(
@@ -123,14 +127,16 @@ def train_cxa_task(
     from scripts.train_cxa import train_cxa
 
     with stage_run("train_cxa", parent_run_id=parent_run_id) as run:
-        mlflow.log_params({
-            "feature_set": feature_set,
-            "n_folds": n_folds,
-            "n_estimators": n_estimators,
-            "random_state": random_state,
-            "actions_path": str(actions_path),
-            "features_path": str(features_path),
-        })
+        mlflow.log_params(
+            {
+                "feature_set": feature_set,
+                "n_folds": n_folds,
+                "n_estimators": n_estimators,
+                "random_state": random_state,
+                "actions_path": str(actions_path),
+                "features_path": str(features_path),
+            }
+        )
         train_cxa(
             actions_path=actions_path,
             features_path=features_path,
@@ -141,7 +147,10 @@ def train_cxa_task(
             random_state=random_state,
         )
         _maybe_log_summary(prof.reports_root / "cxa_training_summary.json")
-        return {"run_id": run.info.run_id, "summary": str(prof.reports_root / "cxa_training_summary.json")}
+        return {
+            "run_id": run.info.run_id,
+            "summary": str(prof.reports_root / "cxa_training_summary.json"),
+        }
 
 
 @task(
@@ -164,12 +173,14 @@ def train_cxt_task(
     from scripts.train_cxt import train_cxt
 
     with stage_run("train_cxt", parent_run_id=parent_run_id) as run:
-        mlflow.log_params({
-            "n_folds": n_folds,
-            "n_estimators": n_estimators,
-            "random_state": random_state,
-            "features_path": str(features_path),
-        })
+        mlflow.log_params(
+            {
+                "n_folds": n_folds,
+                "n_estimators": n_estimators,
+                "random_state": random_state,
+                "features_path": str(features_path),
+            }
+        )
         train_cxt(
             features_path=features_path,
             n_folds=n_folds,
@@ -178,4 +189,7 @@ def train_cxt_task(
             random_state=random_state,
         )
         _maybe_log_summary(prof.reports_root / "cxt_training_summary.json")
-        return {"run_id": run.info.run_id, "summary": str(prof.reports_root / "cxt_training_summary.json")}
+        return {
+            "run_id": run.info.run_id,
+            "summary": str(prof.reports_root / "cxt_training_summary.json"),
+        }

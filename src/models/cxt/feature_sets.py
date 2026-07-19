@@ -38,11 +38,13 @@ class CxTFeatureSetSpec:
     """Immutable specification of one CxT state-value feature group."""
 
     name: str
-    numeric: tuple[str, ...]          # continuous before-state features
-    boolean: tuple[str, ...]          # binary before-state flags
-    categorical: tuple[str, ...]      # categorical context features (shared)
-    after_numeric: tuple[str, ...]    # after-state numeric equivalents (same order as numeric overlap)
-    after_boolean: tuple[str, ...]    # after-state boolean equivalents
+    numeric: tuple[str, ...]  # continuous before-state features
+    boolean: tuple[str, ...]  # binary before-state flags
+    categorical: tuple[str, ...]  # categorical context features (shared)
+    after_numeric: tuple[
+        str, ...
+    ]  # after-state numeric equivalents (same order as numeric overlap)
+    after_boolean: tuple[str, ...]  # after-state boolean equivalents
     requires_360: bool = False
 
     @property
@@ -61,16 +63,16 @@ class CxTFeatureSetSpec:
 
 # Column mapping: before-state → after-state (used by CxTPipeline)
 BEFORE_TO_AFTER: dict[str, str] = {
-    "x_location":                     "end_x",
-    "y_location":                     "end_y",
-    "distance_to_goal":               "end_distance_to_goal",
-    "in_box":                         "end_in_box",
-    "is_central":                     "end_is_central",
-    "under_pressure":                 "after_under_pressure",
+    "x_location": "end_x",
+    "y_location": "end_y",
+    "distance_to_goal": "end_distance_to_goal",
+    "in_box": "end_in_box",
+    "is_central": "end_is_central",
+    "under_pressure": "after_under_pressure",
     # 360 state columns
-    "nearest_defender_distance":      "after_nearest_defender_distance",
-    "defenders_within_5m":            "after_defenders_within_5m",
-    "defensive_density_in_box":       "after_defensive_density_in_box",
+    "nearest_defender_distance": "after_nearest_defender_distance",
+    "defenders_within_5m": "after_defenders_within_5m",
+    "defensive_density_in_box": "after_defensive_density_in_box",
 }
 
 # Reverse mapping for convenience
@@ -99,21 +101,21 @@ TRADITIONAL = CxTFeatureSetSpec(
         "cutback",
     ),
     categorical=(
-        "action_type",           # pass / carry / cross / cutback
+        "action_type",  # pass / carry / cross / cutback
         "possession_start_zone",
     ),
     after_numeric=(
         "end_x",
         "end_y",
         "end_distance_to_goal",
-        "progressive_distance",   # same value — action already happened
+        "progressive_distance",  # same value — action already happened
         "pass_length",
     ),
     after_boolean=(
         "end_in_box",
         "end_is_central",
         "after_under_pressure",
-        "box_entry",              # box_entry = end is in box (reuse)
+        "box_entry",  # box_entry = end is in box (reuse)
         "cross",
         "cutback",
     ),
@@ -124,7 +126,8 @@ TRADITIONAL = CxTFeatureSetSpec(
 
 CONTEXTUAL = CxTFeatureSetSpec(
     name="contextual",
-    numeric=TRADITIONAL.numeric + (
+    numeric=TRADITIONAL.numeric
+    + (
         # Opponent quality
         "opponent_xg_conceded_rolling_5",
         "opponent_shots_conceded_rolling_5",
@@ -141,7 +144,8 @@ CONTEXTUAL = CxTFeatureSetSpec(
         "vertical_progression_speed",
         "directness",
     ),
-    boolean=TRADITIONAL.boolean + (
+    boolean=TRADITIONAL.boolean
+    + (
         "knockout_or_group",
         "set_piece_flag",
         "counterpress_regain_flag",
@@ -149,14 +153,16 @@ CONTEXTUAL = CxTFeatureSetSpec(
         "through_ball",
         "switch",
     ),
-    categorical=TRADITIONAL.categorical + (
+    categorical=TRADITIONAL.categorical
+    + (
         "score_state",
         "home_or_away",
         "sequence_type",
         "transition_or_settled",
         "phase_of_play",
     ),
-    after_numeric=TRADITIONAL.after_numeric + (
+    after_numeric=TRADITIONAL.after_numeric
+    + (
         # Opponent / match context doesn't change within one action
         "opponent_xg_conceded_rolling_5",
         "opponent_shots_conceded_rolling_5",
@@ -171,7 +177,8 @@ CONTEXTUAL = CxTFeatureSetSpec(
         "vertical_progression_speed",
         "directness",
     ),
-    after_boolean=TRADITIONAL.after_boolean + (
+    after_boolean=TRADITIONAL.after_boolean
+    + (
         "knockout_or_group",
         "set_piece_flag",
         "counterpress_regain_flag",
@@ -186,25 +193,23 @@ CONTEXTUAL = CxTFeatureSetSpec(
 
 FULL_360 = CxTFeatureSetSpec(
     name="full_360",
-    numeric=CONTEXTUAL.numeric + (
+    numeric=CONTEXTUAL.numeric
+    + (
         # Before-state 360 features
         "nearest_defender_distance",
         "defenders_within_5m",
         "defensive_density_in_box",
     ),
-    boolean=CONTEXTUAL.boolean + (
-        "has_360",
-    ),
+    boolean=CONTEXTUAL.boolean + ("has_360",),
     categorical=CONTEXTUAL.categorical,
-    after_numeric=CONTEXTUAL.after_numeric + (
+    after_numeric=CONTEXTUAL.after_numeric
+    + (
         # After-state 360 features
         "after_nearest_defender_distance",
         "after_defenders_within_5m",
         "after_defensive_density_in_box",
     ),
-    after_boolean=CONTEXTUAL.after_boolean + (
-        "has_360",
-    ),
+    after_boolean=CONTEXTUAL.after_boolean + ("has_360",),
     requires_360=True,
 )
 
@@ -221,7 +226,5 @@ _REGISTRY: dict[str, CxTFeatureSetSpec] = {
 def get_feature_set(name: str) -> CxTFeatureSetSpec:
     """Return a CxTFeatureSetSpec by name. Raises ValueError for unknown names."""
     if name not in _REGISTRY:
-        raise ValueError(
-            f"Unknown CxT feature set {name!r}. Choose from: {sorted(_REGISTRY)}"
-        )
+        raise ValueError(f"Unknown CxT feature set {name!r}. Choose from: {sorted(_REGISTRY)}")
     return _REGISTRY[name]

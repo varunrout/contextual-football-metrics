@@ -8,16 +8,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.models.sequence.sequence_classifier import (
-    SequenceClassifier,
-    _LABEL_CLASSES,
-    _CLASS_TO_IDX,
-    _MIN_CONFIDENCE,
-)
 from src.ingestion.schema import SequenceType
-
+from src.models.sequence.sequence_classifier import (
+    _CLASS_TO_IDX,
+    _LABEL_CLASSES,
+    SequenceClassifier,
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _make_possessions_df(n: int = 40) -> pd.DataFrame:
     """Synthetic possessions DataFrame with all required columns.
@@ -28,38 +27,46 @@ def _make_possessions_df(n: int = 40) -> pd.DataFrame:
     rng = np.random.default_rng(42)
     # Tile all classes so each appears at least once, then pad with random choices
     import math
+
     repeats = math.ceil(n / len(_LABEL_CLASSES))
     base = (_LABEL_CLASSES * repeats)[:n]
     labels = np.array(base)
     rng.shuffle(labels)
     confidences = rng.uniform(0.7, 1.0, size=n)
 
-    return pd.DataFrame({
-        "n_events": rng.integers(2, 15, size=n),
-        "n_passes": rng.integers(0, 8, size=n),
-        "n_carries": rng.integers(0, 6, size=n),
-        "vertical_progression": rng.uniform(-5.0, 60.0, size=n),
-        "passes_before_action": rng.integers(0, 8, size=n),
-        "carries_before_action": rng.integers(0, 5, size=n),
-        "time_from_possession_start": rng.uniform(1.0, 40.0, size=n),
-        "vertical_progression_speed": rng.uniform(0.0, 10.0, size=n),
-        "directness": rng.uniform(0.0, 1.0, size=n),
-        "possession_speed": rng.uniform(0.1, 3.0, size=n),
-        "number_of_switches": rng.integers(0, 5, size=n),
-        "set_piece_flag": rng.choice([True, False], size=n),
-        "counterpress_regain_flag": rng.choice([True, False], size=n),
-        "start_x": rng.uniform(0.0, 105.0, size=n),
-        "start_y": rng.uniform(0.0, 68.0, size=n),
-        "possession_start_zone": rng.choice(["defensive_third", "mid_third", "attacking_third"], size=n),
-        "regain_zone": rng.choice(["defensive_third", "mid_third", "attacking_third"], size=n),
-        "phase_of_play": rng.choice(["buildup", "transition", "final_third", "progression"], size=n),
-        "transition_or_settled": rng.choice(["transition", "settled"], size=n),
-        "sequence_type_rule": labels,
-        "sequence_type_confidence": confidences,
-    })
+    return pd.DataFrame(
+        {
+            "n_events": rng.integers(2, 15, size=n),
+            "n_passes": rng.integers(0, 8, size=n),
+            "n_carries": rng.integers(0, 6, size=n),
+            "vertical_progression": rng.uniform(-5.0, 60.0, size=n),
+            "passes_before_action": rng.integers(0, 8, size=n),
+            "carries_before_action": rng.integers(0, 5, size=n),
+            "time_from_possession_start": rng.uniform(1.0, 40.0, size=n),
+            "vertical_progression_speed": rng.uniform(0.0, 10.0, size=n),
+            "directness": rng.uniform(0.0, 1.0, size=n),
+            "possession_speed": rng.uniform(0.1, 3.0, size=n),
+            "number_of_switches": rng.integers(0, 5, size=n),
+            "set_piece_flag": rng.choice([True, False], size=n),
+            "counterpress_regain_flag": rng.choice([True, False], size=n),
+            "start_x": rng.uniform(0.0, 105.0, size=n),
+            "start_y": rng.uniform(0.0, 68.0, size=n),
+            "possession_start_zone": rng.choice(
+                ["defensive_third", "mid_third", "attacking_third"], size=n
+            ),
+            "regain_zone": rng.choice(["defensive_third", "mid_third", "attacking_third"], size=n),
+            "phase_of_play": rng.choice(
+                ["buildup", "transition", "final_third", "progression"], size=n
+            ),
+            "transition_or_settled": rng.choice(["transition", "settled"], size=n),
+            "sequence_type_rule": labels,
+            "sequence_type_confidence": confidences,
+        }
+    )
 
 
 # ── Label classes ─────────────────────────────────────────────────────────────
+
 
 class TestLabelClasses:
     def test_unknown_not_in_classes(self):
@@ -75,6 +82,7 @@ class TestLabelClasses:
 
 
 # ── SequenceClassifier fit / predict ─────────────────────────────────────────
+
 
 class TestSequenceClassifierFitPredict:
     def test_fit_runs_without_error(self):

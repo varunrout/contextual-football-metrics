@@ -21,12 +21,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder
 
 from src.evaluation.validation_splits import match_kfold
-from src.models.cxg.feature_sets import CONTEXTUAL, FeatureSetSpec, get_feature_set
+from src.models.cxg.feature_sets import FeatureSetSpec, get_feature_set
 
 logger = logging.getLogger(__name__)
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class XGBCxGMetrics:
@@ -37,6 +38,7 @@ class XGBCxGMetrics:
 
 
 # ── Shared pipeline builder (used by XGBoost and re-used by ladder) ───────────
+
 
 def _build_tree_pipeline(
     estimator,
@@ -53,23 +55,30 @@ def _build_tree_pipeline(
         ("num", SimpleImputer(strategy="median"), numeric_all),
     ]
     if cat_cols:
-        transformers.append((
-            "cat",
-            Pipeline([
-                ("imputer", SimpleImputer(strategy="constant", fill_value="unknown")),
-                ("enc", OrdinalEncoder(
-                    handle_unknown="use_encoded_value",
-                    unknown_value=-1,
-                    dtype=float,
-                )),
-            ]),
-            cat_cols,
-        ))
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="constant", fill_value="unknown")),
+                        (
+                            "enc",
+                            OrdinalEncoder(
+                                handle_unknown="use_encoded_value",
+                                unknown_value=-1,
+                                dtype=float,
+                            ),
+                        ),
+                    ]
+                ),
+                cat_cols,
+            )
+        )
     pre = ColumnTransformer(transformers, remainder="drop")
     return Pipeline([("pre", pre), ("clf", estimator)])
 
 
-def _make_X(
+def _make_x(
     df: pd.DataFrame,
     numeric_all: list[str],
     cat_cols: list[str],
@@ -92,6 +101,7 @@ def _make_X(
 
 
 # ── XGBoost model ─────────────────────────────────────────────────────────────
+
 
 class XGBoostCxGModel:
     """
@@ -147,16 +157,16 @@ class XGBoostCxGModel:
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 
-    def _resolve_cols(
-        self, df: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
+    def _resolve_cols(self, df: pd.DataFrame) -> tuple[list[str], list[str]]:
         numeric_all = [c for c in self.feature_set.numeric_all if c in df.columns]
         cat_cols = [c for c in self.feature_set.categorical if c in df.columns]
         return numeric_all, cat_cols
 
     def _make_estimator(self, params: dict):
         import xgboost as xgb
+
         from src.runtime.gbm_device import xgboost_kwargs
+
         return xgb.XGBClassifier(
             **params,
             **xgboost_kwargs(self.device),
@@ -166,8 +176,8 @@ class XGBoostCxGModel:
             random_state=self.random_state,
         )
 
-    def _X(self, df: pd.DataFrame) -> pd.DataFrame:
-        return _make_X(df, self._numeric_all, self._cat_cols, self._bool_set)
+    def _x(self, df: pd.DataFrame) -> pd.DataFrame:
+        return _make_x(df, self._numeric_all, self._cat_cols, self._bool_set)
 
     # ── Optuna hyperparameter search ──────────────────────────────────────────
 
@@ -194,15 +204,24 @@ class XGBoostCxGModel:
         df = shots_df.reset_index(drop=True)
         numeric_all, cat_cols = self._resolve_cols(df)
         bool_set = frozenset(c for c in self.feature_set.boolean if c in numeric_all)
-        X_all = _make_X(df, numeric_all, cat_cols, bool_set)
+        X_all = _make_x(df, numeric_all, cat_cols, bool_set)
         y_all = df[target_col].astype(int).to_numpy()
 
         if match_id_col not in df.columns:
             logger.warning("match_id_col %r not found; using 3-fold stratified CV", match_id_col)
             from sklearn.model_selection import StratifiedKFold
-            folds = list(StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=self.random_state).split(X_all, y_all))
+
+            folds = list(
+                StratifiedKFold(
+                    n_splits=n_folds, shuffle=True, random_state=self.random_state
+                ).split(X_all, y_all)
+            )
         else:
-            folds = list(match_kfold(df, n_splits=n_folds, match_id_col=match_id_col, random_state=self.random_state))
+            folds = list(
+                match_kfold(
+                    df, n_splits=n_folds, match_id_col=match_id_col, random_state=self.random_state
+                )
+            )
 
         def objective(trial) -> float:
             params = dict(
@@ -233,7 +252,8 @@ class XGBoostCxGModel:
         self.best_params_ = study.best_params
         logger.info(
             "XGBoostCxGModel: best_params=%s (cv_log_loss=%.4f)",
-            study.best_params, study.best_value,
+            study.best_params,
+            study.best_value,
         )
         return study.best_params
 
@@ -245,7 +265,7 @@ class XGBoostCxGModel:
         target_col: str = "goal",
         n_trials: int = 0,
         match_id_col: str = "match_id",
-    ) -> "XGBoostCxGModel":
+    ) -> XGBoostCxGModel:
         """
         Fit the model.
 
@@ -277,7 +297,7 @@ class XGBoostCxGModel:
         self.pipeline = _build_tree_pipeline(
             self._make_estimator(self.params), numeric_all, cat_cols
         )
-        X = self._X(df)
+        X = self._x(df)
         y = df[target_col].astype(int).to_numpy()
         self.pipeline.fit(X, y)
         return self
@@ -286,11 +306,9 @@ class XGBoostCxGModel:
         """Return P(goal=1) for each row."""
         if self.pipeline is None:
             raise RuntimeError("Model not fitted. Call fit() first.")
-        return self.pipeline.predict_proba(self._X(shots_df))[:, 1]
+        return self.pipeline.predict_proba(self._x(shots_df))[:, 1]
 
-    def evaluate(
-        self, shots_df: pd.DataFrame, target_col: str = "goal"
-    ) -> XGBCxGMetrics:
+    def evaluate(self, shots_df: pd.DataFrame, target_col: str = "goal") -> XGBCxGMetrics:
         y = shots_df[target_col].astype(int).to_numpy()
         p = self.predict_proba(shots_df)
         auc = float(roc_auc_score(y, p)) if len(np.unique(y)) > 1 else None
@@ -309,7 +327,7 @@ class XGBoostCxGModel:
             pickle.dump(self, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "XGBoostCxGModel":
+    def load(cls, path: str | Path) -> XGBoostCxGModel:
         with open(path, "rb") as f:
             obj = pickle.load(f)
         if not isinstance(obj, cls):

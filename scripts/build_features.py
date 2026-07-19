@@ -24,12 +24,12 @@ import logging
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-import pandas as pd
-
-from src.features.feature_store import build_feature_store
+from src.features.feature_store import build_feature_store  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,18 +50,19 @@ _CXT_TYPES = {"pass", "cross", "carry", "cutback"}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _load_table(path: Path, name: str) -> pd.DataFrame:
     if not path.exists():
-        logger.error(
-            "%s not found at %s — run scripts/ingest.py first.", name, path
-        )
+        logger.error("%s not found at %s — run scripts/ingest.py first.", name, path)
         sys.exit(1)
     df = pd.read_parquet(path)
     logger.info("Loaded %-20s  %d rows", name, len(df))
     return df
 
 
-def _filter_split_role(events_df: pd.DataFrame, matches_df: pd.DataFrame, split_role: str | None) -> pd.DataFrame:
+def _filter_split_role(
+    events_df: pd.DataFrame, matches_df: pd.DataFrame, split_role: str | None
+) -> pd.DataFrame:
     """Filter events to matches with the requested split_role (or all if None)."""
     if split_role is None or "split_role" not in matches_df.columns:
         return events_df
@@ -69,15 +70,14 @@ def _filter_split_role(events_df: pd.DataFrame, matches_df: pd.DataFrame, split_
     allowed_roles = set(split_role.split(","))
     # split_role can be compound, e.g. "train_val" means usable for both
     valid_matches = matches_df[
-        matches_df["split_role"].apply(
-            lambda r: bool(set(str(r).split("_")) & allowed_roles)
-        )
+        matches_df["split_role"].apply(lambda r: bool(set(str(r).split("_")) & allowed_roles))
     ]["internal_id"]
     logger.info("Filtering to split_role=%r → %d matches", split_role, len(valid_matches))
     return events_df[events_df["match_internal_id"].isin(valid_matches)]
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def build_features(
     input_dir: Path = PROCESSED_DIR,
@@ -92,12 +92,16 @@ def build_features(
     poss_path = input_dir / "possessions.parquet"
     possessions_df = pd.read_parquet(poss_path) if poss_path.exists() else pd.DataFrame()
     if possessions_df.empty:
-        logger.warning("possessions.parquet not found or empty — possession context may be incomplete.")
+        logger.warning(
+            "possessions.parquet not found or empty — possession context may be incomplete."
+        )
 
     frames_path = input_dir / "frames.parquet"
     frames_df = pd.read_parquet(frames_path) if frames_path.exists() else pd.DataFrame()
     if frames_df.empty:
-        logger.warning("frames.parquet not found or empty — 360 freeze-frame features will be sparse.")
+        logger.warning(
+            "frames.parquet not found or empty — 360 freeze-frame features will be sparse."
+        )
     else:
         logger.info("Loaded %-20s  %d rows", "frames.parquet", len(frames_df))
 
@@ -120,7 +124,9 @@ def build_features(
         logger.error("Feature store returned empty DataFrame. Check input data.")
         sys.exit(1)
 
-    logger.info("Feature store built: %d rows × %d columns", len(features_df), len(features_df.columns))
+    logger.info(
+        "Feature store built: %d rows × %d columns", len(features_df), len(features_df.columns)
+    )
 
     # ── Save full feature table ───────────────────────────────────────────────
     out_path = output_dir / "features.parquet"
@@ -142,7 +148,9 @@ def build_features(
             shots_df = shots_df.merge(_ev_labels, on="event_id", how="left")
             logger.info("Attached outcome columns to shots: %s", _outcome_cols)
         else:
-            logger.warning("No outcome columns (goal, shot_outcome) found in events — shots.parquet will lack targets.")
+            logger.warning(
+                "No outcome columns (goal, shot_outcome) found in events — shots.parquet will lack targets."
+            )
 
         shots_path = output_dir / "shots.parquet"
         shots_df.to_parquet(shots_path, index=False)
@@ -161,6 +169,7 @@ def build_features(
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -181,7 +190,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         metavar="ROLE",
         help="Only include events from matches whose split_role contains ROLE. "
-             "Comma-separate multiple roles, e.g. 'train' or 'train,train_val'.",
+        "Comma-separate multiple roles, e.g. 'train' or 'train,train_val'.",
     )
     return p.parse_args(argv)
 

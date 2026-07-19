@@ -92,6 +92,11 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "W", "UP", "B"]
 ignore = ["E501", "N803", "N806"]
 
+[tool.ruff.lint.per-file-ignores]
+# Numbered analysis scripts (e.g. analysis/20_incremental_lift_vs_baselines.py) are the
+# project's documented CLI, referenced by run_all.py and docs; their names must not change.
+"analysis/*" = ["N999"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 

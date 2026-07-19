@@ -23,7 +23,7 @@ from scipy import stats
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import derive_shot_in_possession, load_features, save_json
+from analysis._utils import derive_shot_in_possession, load_features, save_json  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,8 +44,14 @@ def _cohen_d(a: pd.Series, b: pd.Series) -> float:
     return float((a.mean() - b.mean()) / pooled_std) if pooled_std > 0 else float("nan")
 
 
-def _record(name: str, statistic: float, pval: float, effect_size: float,
-            effect_label: str = "cohen_d", extra: dict | None = None) -> dict:
+def _record(
+    name: str,
+    statistic: float,
+    pval: float,
+    effect_size: float,
+    effect_label: str = "cohen_d",
+    extra: dict | None = None,
+) -> dict:
     bonferroni_pval = min(pval * N_HYPOTHESES, 1.0)
     result: dict = {
         "hypothesis": name,
@@ -75,8 +81,16 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
         vp = vp.dropna()
         if len(vp) > 30:
             r, pval = stats.pearsonr(vp[vp_col], vp["shot_in_possession"])
-            results.append(_record("H1_vertical_progression_vs_sip", r, pval, r,
-                                    effect_label="pearson_r", extra={"n": len(vp)}))
+            results.append(
+                _record(
+                    "H1_vertical_progression_vs_sip",
+                    r,
+                    pval,
+                    r,
+                    effect_label="pearson_r",
+                    extra={"n": len(vp)},
+                )
+            )
 
     # H2: Transition possessions have higher shot_in_possession rate than settled
     trans_col = _col(df, ["transition_or_settled", "is_transition", "phase_of_play"])
@@ -87,10 +101,18 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
         settled = tr[tr_str.isin(["settled", "0", "false"])]["shot_in_possession"]
         if len(transition) > 5 and len(settled) > 5:
             stat, pval = stats.ttest_ind(transition, settled, equal_var=False)
-            results.append(_record("H2_transition_higher_sip", stat, pval,
-                                    _cohen_d(transition, settled),
-                                    extra={"mean_transition": round(transition.mean(), 4),
-                                           "mean_settled": round(settled.mean(), 4)}))
+            results.append(
+                _record(
+                    "H2_transition_higher_sip",
+                    stat,
+                    pval,
+                    _cohen_d(transition, settled),
+                    extra={
+                        "mean_transition": round(transition.mean(), 4),
+                        "mean_settled": round(settled.mean(), 4),
+                    },
+                )
+            )
 
     # H3: Directness positively predicts shot_in_possession
     dir_col = _col(df, ["directness"])
@@ -100,8 +122,16 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
         d = d.dropna()
         if len(d) > 30:
             r, pval = stats.pearsonr(d[dir_col], d["shot_in_possession"])
-            results.append(_record("H3_directness_vs_sip", r, pval, r,
-                                    effect_label="pearson_r", extra={"n": len(d)}))
+            results.append(
+                _record(
+                    "H3_directness_vs_sip",
+                    r,
+                    pval,
+                    r,
+                    effect_label="pearson_r",
+                    extra={"n": len(d)},
+                )
+            )
 
     # H4: Possessions starting in own half have lower shot_in_possession than attacking half
     pstart_col = _col(df, ["possession_start_zone", "possession_start_x"])
@@ -120,10 +150,18 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
 
         if len(attacking) > 5 and len(defensive) > 5:
             stat, pval = stats.ttest_ind(attacking, defensive, equal_var=False)
-            results.append(_record("H4_possession_start_zone_sip", stat, pval,
-                                    _cohen_d(attacking, defensive),
-                                    extra={"mean_attacking": round(attacking.mean(), 4),
-                                           "mean_defensive": round(defensive.mean(), 4)}))
+            results.append(
+                _record(
+                    "H4_possession_start_zone_sip",
+                    stat,
+                    pval,
+                    _cohen_d(attacking, defensive),
+                    extra={
+                        "mean_attacking": round(attacking.mean(), 4),
+                        "mean_defensive": round(defensive.mean(), 4),
+                    },
+                )
+            )
 
     # H5: Lower opponent pressing → higher shot_in_possession
     pressing_col = _col(df, ["opponent_pressing_intensity", "opp_press_intensity"])
@@ -136,10 +174,18 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
             high_press = press[press[pressing_col] >= median_press]["shot_in_possession"]
             low_press = press[press[pressing_col] < median_press]["shot_in_possession"]
             stat, pval = stats.ttest_ind(high_press, low_press, equal_var=False)
-            results.append(_record("H5_low_pressing_higher_sip", stat, pval,
-                                    _cohen_d(low_press, high_press),
-                                    extra={"mean_high_press": round(high_press.mean(), 4),
-                                           "mean_low_press": round(low_press.mean(), 4)}))
+            results.append(
+                _record(
+                    "H5_low_pressing_higher_sip",
+                    stat,
+                    pval,
+                    _cohen_d(low_press, high_press),
+                    extra={
+                        "mean_high_press": round(high_press.mean(), 4),
+                        "mean_low_press": round(low_press.mean(), 4),
+                    },
+                )
+            )
 
     # H6: Possessions with more events have higher shot_in_possession rate
     len_col = _col(df, ["events_in_possession", "events_before_action", "possession_length"])
@@ -149,8 +195,16 @@ def run_hypotheses(df: pd.DataFrame) -> list[dict]:
         pl = pl.dropna()
         if len(pl) > 30:
             r, pval = stats.spearmanr(pl[len_col], pl["shot_in_possession"])
-            results.append(_record("H6_possession_length_vs_sip", r, pval, r,
-                                    effect_label="spearman_rho", extra={"n": len(pl)}))
+            results.append(
+                _record(
+                    "H6_possession_length_vs_sip",
+                    r,
+                    pval,
+                    r,
+                    effect_label="spearman_rho",
+                    extra={"n": len(pl)},
+                )
+            )
 
     return results
 
@@ -160,9 +214,7 @@ def main() -> None:
     features = load_features()
 
     # Filter to CxT action types
-    type_col = next(
-        (c for c in ["event_type", "action_type"] if c in features.columns), None
-    )
+    type_col = next((c for c in ["event_type", "action_type"] if c in features.columns), None)
     if type_col:
         df = features[features[type_col].astype(str).isin(_CXT_TYPES)].copy()
         logger.info("Filtered to CxT types: %d rows", len(df))
@@ -178,8 +230,10 @@ def main() -> None:
     n_rejected = sum(1 for r in results if r.get("reject_H0"))
     logger.info("Hypotheses run: %d — rejected (Bonferroni): %d", len(results), n_rejected)
 
-    save_json({"n_hypotheses": len(results), "n_rejected_bonferroni": n_rejected, "results": results},
-              "hypothesis_cxt")
+    save_json(
+        {"n_hypotheses": len(results), "n_rejected_bonferroni": n_rejected, "results": results},
+        "hypothesis_cxt",
+    )
     logger.info("13_hypothesis_cxt.py complete.")
 
 

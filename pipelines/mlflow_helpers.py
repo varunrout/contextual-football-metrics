@@ -51,7 +51,8 @@ def _git_branch() -> str | None:
     try:
         out = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            stderr=subprocess.DEVNULL, text=True,
+            stderr=subprocess.DEVNULL,
+            text=True,
         )
         return out.strip() or None
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -62,7 +63,8 @@ def _git_dirty() -> bool | None:
     try:
         out = subprocess.check_output(
             ["git", "status", "--porcelain"],
-            stderr=subprocess.DEVNULL, text=True,
+            stderr=subprocess.DEVNULL,
+            text=True,
         )
         return bool(out.strip())
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -89,7 +91,8 @@ def configure_mlflow(force: bool = False) -> None:
     _configured = True
     logger.info(
         "MLflow configured: tracking_uri=%s experiment=%s",
-        prof.mlflow_tracking_uri, prof.mlflow_experiment,
+        prof.mlflow_tracking_uri,
+        prof.mlflow_experiment,
     )
 
 
@@ -135,9 +138,11 @@ def pipeline_run(name: str, **extra_tags: Any) -> Iterator[mlflow.ActiveRun]:
         Free-form tags merged on top of the standard ones.
     """
     configure_mlflow()
-    tags = {**_standard_tags(stage="pipeline"), "pipeline_name": name, **{
-        k: str(v) for k, v in extra_tags.items()
-    }}
+    tags = {
+        **_standard_tags(stage="pipeline"),
+        "pipeline_name": name,
+        **{k: str(v) for k, v in extra_tags.items()},
+    }
     with mlflow.start_run(run_name=f"pipeline:{name}", tags=tags) as run:
         prof = require_profile()
         mlflow.log_dict(prof.to_dict(), "profile.json")

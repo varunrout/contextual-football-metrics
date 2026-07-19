@@ -34,7 +34,7 @@ from sklearn.metrics import (
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import load_events, load_shots, save_fig, save_json
+from analysis._utils import load_events, load_shots, save_fig, save_json  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,7 +68,10 @@ def _build_dataset(shots: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
     if _XG_COL in shots.columns:
         df = shots.copy()
     elif not events.empty:
-        id_col = next((c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns), None)
+        id_col = next(
+            (c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns),
+            None,
+        )
         if id_col and _XG_COL in events.columns:
             xg_lookup = events[[id_col, _XG_COL]].drop_duplicates(id_col)
             df = shots.merge(xg_lookup, on=id_col, how="left")
@@ -115,7 +118,7 @@ def evaluate_cv(df: pd.DataFrame) -> list[dict]:
         return []
 
     fold_results = []
-    for fold_idx, (train_idx, val_idx) in enumerate(
+    for fold_idx, (_train_idx, val_idx) in enumerate(
         match_kfold(df, n_splits=5, match_id_col="match_id", random_state=42)
     ):
         val = df.iloc[val_idx]
@@ -126,15 +129,17 @@ def evaluate_cv(df: pd.DataFrame) -> list[dict]:
             logger.warning("Fold %d: no class variation — skipping.", fold_idx)
             continue
 
-        fold_results.append({
-            "fold": fold_idx,
-            "n_val": len(y_true),
-            "log_loss": round(log_loss(y_true, y_prob), 5),
-            "brier_score": round(brier_score_loss(y_true, y_prob), 5),
-            "roc_auc": round(roc_auc_score(y_true, y_prob), 5),
-            "average_precision": round(average_precision_score(y_true, y_prob), 5),
-            "ece": round(_ece(y_true, y_prob), 5),
-        })
+        fold_results.append(
+            {
+                "fold": fold_idx,
+                "n_val": len(y_true),
+                "log_loss": round(log_loss(y_true, y_prob), 5),
+                "brier_score": round(brier_score_loss(y_true, y_prob), 5),
+                "roc_auc": round(roc_auc_score(y_true, y_prob), 5),
+                "average_precision": round(average_precision_score(y_true, y_prob), 5),
+                "ece": round(_ece(y_true, y_prob), 5),
+            }
+        )
 
     return fold_results
 
@@ -156,8 +161,16 @@ def plot_calibration(df: pd.DataFrame) -> None:
         mean_xg = float(y_prob[mask].mean())
         rate = float(y_true[mask].mean())
         # Wilson CI
-        lo = (rate + z**2 / (2 * n_bin) - z * np.sqrt(rate * (1 - rate) / n_bin + z**2 / (4 * n_bin**2))) / (1 + z**2 / n_bin)
-        hi = (rate + z**2 / (2 * n_bin) + z * np.sqrt(rate * (1 - rate) / n_bin + z**2 / (4 * n_bin**2))) / (1 + z**2 / n_bin)
+        lo = (
+            rate
+            + z**2 / (2 * n_bin)
+            - z * np.sqrt(rate * (1 - rate) / n_bin + z**2 / (4 * n_bin**2))
+        ) / (1 + z**2 / n_bin)
+        hi = (
+            rate
+            + z**2 / (2 * n_bin)
+            + z * np.sqrt(rate * (1 - rate) / n_bin + z**2 / (4 * n_bin**2))
+        ) / (1 + z**2 / n_bin)
         bin_means_xg.append(mean_xg)
         bin_rates.append(rate)
         ci_lo.append(lo)
@@ -216,9 +229,13 @@ def main() -> None:
 
     logger.info("Overall metrics …")
     overall = evaluate_overall(df)
-    logger.info("  log_loss=%.4f  brier=%.4f  AUC=%.4f  ECE=%.4f",
-                overall["log_loss"], overall["brier_score"],
-                overall["roc_auc"], overall["ece"])
+    logger.info(
+        "  log_loss=%.4f  brier=%.4f  AUC=%.4f  ECE=%.4f",
+        overall["log_loss"],
+        overall["brier_score"],
+        overall["roc_auc"],
+        overall["ece"],
+    )
 
     logger.info("Cross-validated metrics …")
     cv_folds = evaluate_cv(df)
@@ -237,11 +254,14 @@ def main() -> None:
     logger.info("ROC plot …")
     plot_roc(df)
 
-    save_json({
-        "overall": overall,
-        "cv_5fold": cv_folds,
-        "cv_summary": cv_summary,
-    }, "statsbomb_baseline_metrics")
+    save_json(
+        {
+            "overall": overall,
+            "cv_5fold": cv_folds,
+            "cv_summary": cv_summary,
+        },
+        "statsbomb_baseline_metrics",
+    )
 
     logger.info("14_statsbomb_baseline.py complete.")
 

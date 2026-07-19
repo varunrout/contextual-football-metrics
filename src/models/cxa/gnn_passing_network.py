@@ -27,16 +27,21 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
-    average_precision_score, brier_score_loss, log_loss, roc_auc_score,
+    average_precision_score,
+    brier_score_loss,
+    log_loss,
+    roc_auc_score,
 )
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from src.models.cxa.shot_creation_model import (
-    ShotCreationMetrics, _make_X,
-)
 from src.models.cxa.feature_sets import (
-    CxAFeatureSetSpec, get_feature_set,
+    CxAFeatureSetSpec,
+    get_feature_set,
+)
+from src.models.cxa.shot_creation_model import (
+    ShotCreationMetrics,
+    _make_x,
 )
 from src.models.neural import (
     TOKEN_DIM,
@@ -117,11 +122,13 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
         return self._frames_cache
 
     def _build_tabular_pipeline(self, df: pd.DataFrame) -> Pipeline:
-        pipe = Pipeline([
-            ("imp", SimpleImputer(strategy="median")),
-            ("sc", StandardScaler()),
-        ])
-        X_tab = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        pipe = Pipeline(
+            [
+                ("imp", SimpleImputer(strategy="median")),
+                ("sc", StandardScaler()),
+            ]
+        )
+        X_tab = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         pipe.fit(X_tab)
         return pipe
 
@@ -162,7 +169,8 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
     def _encode_batch_inputs(self, df: pd.DataFrame):
         torch, _ = require_torch()
         tokens, mask = encode_frame_tokens(
-            df, self._frames(),
+            df,
+            self._frames(),
             max_players=self.max_players,
             event_id_col=self._event_id_col or "event_internal_id",
             frames_event_id_col="event_internal_id",
@@ -170,7 +178,7 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
         adj = build_knn_adjacency(tokens, mask, k=self.k_neighbors)
         if self.pipeline is None:
             raise RuntimeError("Tabular pipeline not fitted — call fit() first.")
-        X_tab_raw = _make_X(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
+        X_tab_raw = _make_x(df, self._numeric_all, [], self._bool_set)[self._numeric_all]
         X_tab = torch.tensor(self.pipeline.transform(X_tab_raw), dtype=torch.float32)
         return tokens, mask, adj, X_tab
 
@@ -180,7 +188,7 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
         self,
         actions_df: pd.DataFrame,
         target_col: str = "shot_created",
-    ) -> "GNNPassingNetworkCxAModel":
+    ) -> GNNPassingNetworkCxAModel:
         if actions_df.empty:
             raise ValueError("actions_df is empty")
         if target_col not in actions_df.columns:
@@ -236,7 +244,9 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
                 n_batches += 1
             logger.info(
                 "GNNPassingNetworkCxA epoch %d/%d loss=%.4f",
-                epoch + 1, self.max_epochs, epoch_loss / max(1, n_batches),
+                epoch + 1,
+                self.max_epochs,
+                epoch_loss / max(1, n_batches),
             )
         return self
 
@@ -250,8 +260,10 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
         self._torch_model.eval()
         with torch.no_grad():
             logits = self._torch_model(
-                tokens.to(device), mask.to(device),
-                adj.to(device), X_tab.to(device),
+                tokens.to(device),
+                mask.to(device),
+                adj.to(device),
+                X_tab.to(device),
             )
             probs = torch.sigmoid(logits).cpu().numpy()
         return probs.astype(float)
@@ -308,7 +320,7 @@ class GNNPassingNetworkCxAModel(TorchModelMixin):
             pickle.dump(state, f)
 
     @classmethod
-    def load(cls, path: str | Path) -> "GNNPassingNetworkCxAModel":
+    def load(cls, path: str | Path) -> GNNPassingNetworkCxAModel:
         require_torch()
         with open(path, "rb") as f:
             state = pickle.load(f)

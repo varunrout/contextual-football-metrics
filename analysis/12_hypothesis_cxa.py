@@ -23,7 +23,7 @@ from scipy import stats
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import derive_shot_created, load_actions, save_json
+from analysis._utils import derive_shot_created, load_actions, save_json  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,8 +43,14 @@ def _cohen_d(a: pd.Series, b: pd.Series) -> float:
     return float((a.mean() - b.mean()) / pooled_std) if pooled_std > 0 else float("nan")
 
 
-def _record(name: str, statistic: float, pval: float, effect_size: float,
-            effect_label: str = "cohen_d", extra: dict | None = None) -> dict:
+def _record(
+    name: str,
+    statistic: float,
+    pval: float,
+    effect_size: float,
+    effect_label: str = "cohen_d",
+    extra: dict | None = None,
+) -> dict:
     bonferroni_pval = min(pval * N_HYPOTHESES, 1.0)
     result: dict = {
         "hypothesis": name,
@@ -76,10 +82,18 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
         not_progressive = vp[vp[vp_col] <= 0]["shot_created"]
         if len(progressive) > 5 and len(not_progressive) > 5:
             stat, pval = stats.mannwhitneyu(progressive, not_progressive, alternative="greater")
-            results.append(_record("H1_progressive_actions_shot_created", stat, pval,
-                                    _cohen_d(progressive, not_progressive),
-                                    extra={"mean_progressive": round(progressive.mean(), 4),
-                                           "mean_not_progressive": round(not_progressive.mean(), 4)}))
+            results.append(
+                _record(
+                    "H1_progressive_actions_shot_created",
+                    stat,
+                    pval,
+                    _cohen_d(progressive, not_progressive),
+                    extra={
+                        "mean_progressive": round(progressive.mean(), 4),
+                        "mean_not_progressive": round(not_progressive.mean(), 4),
+                    },
+                )
+            )
 
     # H2: Actions in the final third have higher shot_created rate
     x_col = _col(actions, ["x_location", "end_x", "x"])
@@ -91,10 +105,18 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
         not_final = ax[ax[x_col] < 70]["shot_created"]
         if len(final_third) > 5 and len(not_final) > 5:
             stat, pval = stats.ttest_ind(final_third, not_final, equal_var=False)
-            results.append(_record("H2_final_third_shot_created", stat, pval,
-                                    _cohen_d(final_third, not_final),
-                                    extra={"mean_final_third": round(final_third.mean(), 4),
-                                           "mean_other": round(not_final.mean(), 4)}))
+            results.append(
+                _record(
+                    "H2_final_third_shot_created",
+                    stat,
+                    pval,
+                    _cohen_d(final_third, not_final),
+                    extra={
+                        "mean_final_third": round(final_third.mean(), 4),
+                        "mean_other": round(not_final.mean(), 4),
+                    },
+                )
+            )
 
     # H3: Carries have different shot_created rate than passes
     etype_col = _col(actions, ["event_type", "action_type"])
@@ -105,10 +127,18 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
         passes = et[et_str == "pass"]["shot_created"]
         if len(carries) > 5 and len(passes) > 5:
             stat, pval = stats.ttest_ind(carries, passes, equal_var=False)
-            results.append(_record("H3_carry_vs_pass_shot_created", stat, pval,
-                                    _cohen_d(carries, passes),
-                                    extra={"mean_carry": round(carries.mean(), 4),
-                                           "mean_pass": round(passes.mean(), 4)}))
+            results.append(
+                _record(
+                    "H3_carry_vs_pass_shot_created",
+                    stat,
+                    pval,
+                    _cohen_d(carries, passes),
+                    extra={
+                        "mean_carry": round(carries.mean(), 4),
+                        "mean_pass": round(passes.mean(), 4),
+                    },
+                )
+            )
 
     # H4: Actions in transition sequences have higher shot_created rate
     trans_col = _col(actions, ["transition_or_settled", "is_transition", "phase_of_play"])
@@ -119,13 +149,23 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
         settled = tr[tr_str.isin(["settled", "0", "false"])]["shot_created"]
         if len(transition) > 5 and len(settled) > 5:
             stat, pval = stats.ttest_ind(transition, settled, equal_var=False)
-            results.append(_record("H4_transition_vs_settled_shot_created", stat, pval,
-                                    _cohen_d(transition, settled),
-                                    extra={"mean_transition": round(transition.mean(), 4),
-                                           "mean_settled": round(settled.mean(), 4)}))
+            results.append(
+                _record(
+                    "H4_transition_vs_settled_shot_created",
+                    stat,
+                    pval,
+                    _cohen_d(transition, settled),
+                    extra={
+                        "mean_transition": round(transition.mean(), 4),
+                        "mean_settled": round(settled.mean(), 4),
+                    },
+                )
+            )
 
     # H5: High opponent pressing intensity reduces shot_created rate
-    pressing_col = _col(actions, ["opponent_pressing_intensity", "opp_press_intensity", "pressing_intensity"])
+    pressing_col = _col(
+        actions, ["opponent_pressing_intensity", "opp_press_intensity", "pressing_intensity"]
+    )
     if pressing_col and "shot_created" in actions.columns:
         press = actions[[pressing_col, "shot_created"]].copy()
         press[pressing_col] = pd.to_numeric(press[pressing_col], errors="coerce")
@@ -135,10 +175,18 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
             high_press = press[press[pressing_col] >= median_press]["shot_created"]
             low_press = press[press[pressing_col] < median_press]["shot_created"]
             stat, pval = stats.ttest_ind(high_press, low_press, equal_var=False)
-            results.append(_record("H5_high_pressing_reduces_shot_created", stat, pval,
-                                    _cohen_d(high_press, low_press),
-                                    extra={"mean_high_press": round(high_press.mean(), 4),
-                                           "mean_low_press": round(low_press.mean(), 4)}))
+            results.append(
+                _record(
+                    "H5_high_pressing_reduces_shot_created",
+                    stat,
+                    pval,
+                    _cohen_d(high_press, low_press),
+                    extra={
+                        "mean_high_press": round(high_press.mean(), 4),
+                        "mean_low_press": round(low_press.mean(), 4),
+                    },
+                )
+            )
 
     # H6: Score state affects shot creation rate (leading teams defend more)
     ss_col = _col(actions, ["score_state", "score_differential"])
@@ -166,10 +214,20 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
                         stat, pval = np.nan, np.nan
                     if not np.isnan(stat) and not np.isnan(pval):
                         eta2 = float((stat - len(vals) + 1) / (len(ss) - len(vals)))
-                        results.append(_record("H6_score_state_shot_created", stat, pval, eta2,
-                                                effect_label="eta_squared",
-                                                extra={"group_means": {str(k): round(float(v.mean()), 4)
-                                                                         for k, v in groups.items()}}))
+                        results.append(
+                            _record(
+                                "H6_score_state_shot_created",
+                                stat,
+                                pval,
+                                eta2,
+                                effect_label="eta_squared",
+                                extra={
+                                    "group_means": {
+                                        str(k): round(float(v.mean()), 4) for k, v in groups.items()
+                                    }
+                                },
+                            )
+                        )
 
     # H7: Directness positively correlates with shot_created
     dir_col = _col(actions, ["directness"])
@@ -179,9 +237,16 @@ def run_hypotheses(actions: pd.DataFrame) -> list[dict]:
         d = d.dropna()
         if len(d) > 30:
             r, pval = stats.pearsonr(d[dir_col], d["shot_created"])
-            results.append(_record("H7_directness_shot_created_correlation", r, pval, r,
-                                    effect_label="pearson_r",
-                                    extra={"n": len(d)}))
+            results.append(
+                _record(
+                    "H7_directness_shot_created_correlation",
+                    r,
+                    pval,
+                    r,
+                    effect_label="pearson_r",
+                    extra={"n": len(d)},
+                )
+            )
 
     return results
 
@@ -199,8 +264,10 @@ def main() -> None:
     n_rejected = sum(1 for r in results if r.get("reject_H0"))
     logger.info("Hypotheses run: %d — rejected (Bonferroni): %d", len(results), n_rejected)
 
-    save_json({"n_hypotheses": len(results), "n_rejected_bonferroni": n_rejected, "results": results},
-              "hypothesis_cxa")
+    save_json(
+        {"n_hypotheses": len(results), "n_rejected_bonferroni": n_rejected, "results": results},
+        "hypothesis_cxa",
+    )
     logger.info("12_hypothesis_cxa.py complete.")
 
 

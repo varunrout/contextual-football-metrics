@@ -24,6 +24,7 @@ import pytest
 
 # ── Feature-store fixture ──────────────────────────────────────────────────────
 
+
 def _make_actions_df(n: int = 200, n_matches: int = 8, seed: int = 0) -> pd.DataFrame:
     """
     Synthetic actions DataFrame with all CONTEXTUAL feature columns, plus
@@ -64,75 +65,77 @@ def _make_actions_df(n: int = 200, n_matches: int = 8, seed: int = 0) -> pd.Data
     pass_height = rng.choice(["ground", "low", "high"], n)
     pass_body = rng.choice(["foot", "head", "other"], n)
 
-    df = pd.DataFrame({
-        # IDs
-        "event_id": [f"e{i}" for i in range(n)],
-        "match_id": match_ids,
-        "player_id": player_ids,
-        "team_id": team_ids,
-        "possession_id": [f"pos{i}" for i in range(n)],
-        # Spatial
-        "x_location": x,
-        "y_location": y,
-        "pass_length": rng.uniform(5, 40, n),
-        "pass_angle": rng.uniform(-3.14, 3.14, n),
-        "progressive_distance": prog_dist,
-        "end_x": np.clip(x + rng.uniform(-20, 20, n), 0, 105),
-        "end_y": np.clip(y + rng.uniform(-10, 10, n), 0, 68),
-        "distance_to_goal": dist_to_goal,
-        "end_distance_to_goal": rng.uniform(5, 80, n),
-        "distance_gained": rng.uniform(-5, 20, n),
-        # Boolean flags
-        "cross": rng.integers(0, 2, n),
-        "cutback": rng.integers(0, 2, n),
-        "through_ball": rng.integers(0, 2, n),
-        "switch": rng.integers(0, 2, n),
-        "central_progression": rng.integers(0, 2, n),
-        "box_entry": rng.integers(0, 2, n),
-        "under_pressure": rng.integers(0, 2, n),
-        # Opponent quality context
-        "opponent_xg_conceded_rolling_5": rng.uniform(0.5, 2.0, n),
-        "opponent_shots_conceded_rolling_5": rng.uniform(5, 20, n),
-        "opponent_defensive_rating": rng.uniform(0.4, 1.0, n),
-        "opponent_team_strength": rng.uniform(0.4, 1.0, n),
-        # Match context
-        "minute": rng.uniform(1, 90, n),
-        "score_differential": rng.integers(-3, 4, n),
-        # Sequence context
-        "events_before_action": rng.integers(0, 15, n),
-        "passes_before_action": rng.integers(0, 10, n),
-        "carries_before_action": rng.integers(0, 5, n),
-        "time_from_possession_start": rng.uniform(0, 30, n),
-        "vertical_progression_speed": rng.uniform(-1, 5, n),
-        "directness": rng.uniform(0, 1, n),
-        # Receiver context
-        "receiver_distance_to_goal": rng.uniform(5, 60, n),
-        "receiver_x": rng.uniform(20, 105, n),
-        "receiver_y": rng.uniform(0, 68, n),
-        "receiver_in_box": rng.integers(0, 2, n),
-        "receiver_is_central": rng.integers(0, 2, n),
-        # Context flags
-        "knockout_or_group": rng.integers(0, 2, n),
-        "set_piece_flag": rng.integers(0, 2, n),
-        "counterpress_regain_flag": rng.integers(0, 2, n),
-        # Categorical
-        "action_type": action_types,
-        "pass_height": pass_height,
-        "pass_body_part": pass_body,
-        "set_piece_type": cat_values,
-        "score_state": score_states,
-        "home_or_away": home_or_away,
-        "sequence_type": seq_types,
-        "possession_start_zone": poss_zones,
-        "transition_or_settled": t_or_s,
-        "phase_of_play": phase,
-        # Labels
-        "shot_created": shot_created,
-        "shot_within_5_actions": shot_w5,
-        "shot_within_10s": shot_w10s,
-        "shot_within_15s": shot_w15s,
-        "resulting_shot_cxg": cxg_values,
-    })
+    df = pd.DataFrame(
+        {
+            # IDs
+            "event_id": [f"e{i}" for i in range(n)],
+            "match_id": match_ids,
+            "player_id": player_ids,
+            "team_id": team_ids,
+            "possession_id": [f"pos{i}" for i in range(n)],
+            # Spatial
+            "x_location": x,
+            "y_location": y,
+            "pass_length": rng.uniform(5, 40, n),
+            "pass_angle": rng.uniform(-3.14, 3.14, n),
+            "progressive_distance": prog_dist,
+            "end_x": np.clip(x + rng.uniform(-20, 20, n), 0, 105),
+            "end_y": np.clip(y + rng.uniform(-10, 10, n), 0, 68),
+            "distance_to_goal": dist_to_goal,
+            "end_distance_to_goal": rng.uniform(5, 80, n),
+            "distance_gained": rng.uniform(-5, 20, n),
+            # Boolean flags
+            "cross": rng.integers(0, 2, n),
+            "cutback": rng.integers(0, 2, n),
+            "through_ball": rng.integers(0, 2, n),
+            "switch": rng.integers(0, 2, n),
+            "central_progression": rng.integers(0, 2, n),
+            "box_entry": rng.integers(0, 2, n),
+            "under_pressure": rng.integers(0, 2, n),
+            # Opponent quality context
+            "opponent_xg_conceded_rolling_5": rng.uniform(0.5, 2.0, n),
+            "opponent_shots_conceded_rolling_5": rng.uniform(5, 20, n),
+            "opponent_defensive_rating": rng.uniform(0.4, 1.0, n),
+            "opponent_team_strength": rng.uniform(0.4, 1.0, n),
+            # Match context
+            "minute": rng.uniform(1, 90, n),
+            "score_differential": rng.integers(-3, 4, n),
+            # Sequence context
+            "events_before_action": rng.integers(0, 15, n),
+            "passes_before_action": rng.integers(0, 10, n),
+            "carries_before_action": rng.integers(0, 5, n),
+            "time_from_possession_start": rng.uniform(0, 30, n),
+            "vertical_progression_speed": rng.uniform(-1, 5, n),
+            "directness": rng.uniform(0, 1, n),
+            # Receiver context
+            "receiver_distance_to_goal": rng.uniform(5, 60, n),
+            "receiver_x": rng.uniform(20, 105, n),
+            "receiver_y": rng.uniform(0, 68, n),
+            "receiver_in_box": rng.integers(0, 2, n),
+            "receiver_is_central": rng.integers(0, 2, n),
+            # Context flags
+            "knockout_or_group": rng.integers(0, 2, n),
+            "set_piece_flag": rng.integers(0, 2, n),
+            "counterpress_regain_flag": rng.integers(0, 2, n),
+            # Categorical
+            "action_type": action_types,
+            "pass_height": pass_height,
+            "pass_body_part": pass_body,
+            "set_piece_type": cat_values,
+            "score_state": score_states,
+            "home_or_away": home_or_away,
+            "sequence_type": seq_types,
+            "possession_start_zone": poss_zones,
+            "transition_or_settled": t_or_s,
+            "phase_of_play": phase,
+            # Labels
+            "shot_created": shot_created,
+            "shot_within_5_actions": shot_w5,
+            "shot_within_10s": shot_w10s,
+            "shot_within_15s": shot_w15s,
+            "resulting_shot_cxg": cxg_values,
+        }
+    )
     return df
 
 
@@ -152,42 +155,50 @@ def pos_actions_df():
 # Feature Set Tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestCxAFeatureSets:
     def test_registry_has_three_entries(self):
         from src.models.cxa.feature_sets import _REGISTRY
+
         assert len(_REGISTRY) == 3
 
     def test_all_sets_accessible_by_name(self):
         from src.models.cxa.feature_sets import get_feature_set
+
         for name in ("traditional", "contextual", "full_360"):
             fs = get_feature_set(name)
             assert fs.name == name
 
     def test_unknown_name_raises_value_error(self):
         from src.models.cxa.feature_sets import get_feature_set
+
         with pytest.raises(ValueError, match="Unknown CxA feature set"):
             get_feature_set("nonexistent")
 
     def test_feature_sets_have_no_duplicate_features(self):
-        from src.models.cxa.feature_sets import TRADITIONAL, CONTEXTUAL, FULL_360
+        from src.models.cxa.feature_sets import CONTEXTUAL, FULL_360, TRADITIONAL
+
         for fs in (TRADITIONAL, CONTEXTUAL, FULL_360):
             features = fs.all_features
             assert len(features) == len(set(features)), f"{fs.name} has duplicate features"
 
     def test_feature_set_ordering_is_nested(self):
         """FULL_360 should have more features than CONTEXTUAL > TRADITIONAL."""
-        from src.models.cxa.feature_sets import TRADITIONAL, CONTEXTUAL, FULL_360
+        from src.models.cxa.feature_sets import CONTEXTUAL, FULL_360, TRADITIONAL
+
         assert len(FULL_360.all_features) > len(CONTEXTUAL.all_features)
         assert len(CONTEXTUAL.all_features) > len(TRADITIONAL.all_features)
 
     def test_360_flag(self):
-        from src.models.cxa.feature_sets import TRADITIONAL, CONTEXTUAL, FULL_360
+        from src.models.cxa.feature_sets import CONTEXTUAL, FULL_360, TRADITIONAL
+
         assert not TRADITIONAL.requires_360
         assert not CONTEXTUAL.requires_360
         assert FULL_360.requires_360
 
     def test_numeric_all_is_numeric_plus_boolean(self):
         from src.models.cxa.feature_sets import TRADITIONAL
+
         expected = TRADITIONAL.numeric + TRADITIONAL.boolean
         assert TRADITIONAL.numeric_all == expected
 
@@ -196,9 +207,11 @@ class TestCxAFeatureSets:
 # Shot-Creation Model Tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestGlmShotCreation:
     def test_fit_predict_returns_probabilities(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel(feature_set="traditional")
         m.fit(actions_df, "shot_created")
         p = m.predict_proba(actions_df)
@@ -207,6 +220,7 @@ class TestGlmShotCreation:
 
     def test_evaluate_returns_metrics(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel, ShotCreationMetrics
+
         m = GlmShotCreationModel(feature_set="traditional")
         m.fit(actions_df, "shot_created")
         metrics = m.evaluate(actions_df, "shot_created")
@@ -217,6 +231,7 @@ class TestGlmShotCreation:
 
     def test_contextual_feature_set_fits(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel(feature_set="contextual")
         m.fit(actions_df, "shot_created")
         p = m.predict_proba(actions_df)
@@ -224,12 +239,14 @@ class TestGlmShotCreation:
 
     def test_missing_target_raises(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel()
         with pytest.raises((ValueError, KeyError)):
             m.fit(actions_df, "nonexistent_target")
 
     def test_not_fitted_raises_on_predict(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel()
         with pytest.raises(RuntimeError):
             m.predict_proba(actions_df)
@@ -239,6 +256,7 @@ class TestXGBoostShotCreation:
     def test_fit_predict(self, actions_df):
         pytest.importorskip("xgboost")
         from src.models.cxa.shot_creation_model import XGBoostShotCreationModel
+
         m = XGBoostShotCreationModel(feature_set="contextual", n_estimators=30)
         m.fit(actions_df, "shot_created")
         p = m.predict_proba(actions_df)
@@ -250,6 +268,7 @@ class TestLightGBMShotCreation:
     def test_fit_predict(self, actions_df):
         pytest.importorskip("lightgbm")
         from src.models.cxa.shot_creation_model import LightGBMShotCreationModel
+
         m = LightGBMShotCreationModel(feature_set="contextual", n_estimators=30)
         m.fit(actions_df, "shot_created")
         p = m.predict_proba(actions_df)
@@ -261,10 +280,15 @@ class TestShotCreationPartialFeatures:
     def test_handles_partial_columns(self, actions_df):
         """Model should work when only a subset of feature columns are present."""
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         # Keep only traditional numeric cols + target
         keep_cols = [
-            "x_location", "y_location", "distance_to_goal", "progressive_distance",
-            "shot_created", "match_id"
+            "x_location",
+            "y_location",
+            "distance_to_goal",
+            "progressive_distance",
+            "shot_created",
+            "match_id",
         ]
         partial_df = actions_df[[c for c in keep_cols if c in actions_df.columns]].copy()
         m = GlmShotCreationModel(feature_set="traditional")
@@ -276,14 +300,21 @@ class TestShotCreationPartialFeatures:
 class TestWindowStabilityReport:
     def test_stability_report_best_window(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel(feature_set="traditional")
         m.fit(actions_df, "shot_created")
         report = m.stability_analysis(actions_df)
         best = report.best_window()
-        assert best in ("shot_created", "shot_within_5_actions", "shot_within_10s", "shot_within_15s")
+        assert best in (
+            "shot_created",
+            "shot_within_5_actions",
+            "shot_within_10s",
+            "shot_within_15s",
+        )
 
     def test_stability_report_to_dataframe(self, actions_df):
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
+
         m = GlmShotCreationModel(feature_set="traditional")
         m.fit(actions_df, "shot_created")
         report = m.stability_analysis(actions_df)
@@ -295,6 +326,7 @@ class TestWindowStabilityReport:
 class TestShotCreationLadder:
     def test_end_to_end(self, actions_df):
         from src.models.cxa.shot_creation_model import ShotCreationLadder
+
         ladder = ShotCreationLadder()
         results = ladder.run(
             actions_df,
@@ -308,6 +340,7 @@ class TestShotCreationLadder:
 
     def test_results_sorted_by_log_loss(self, actions_df):
         from src.models.cxa.shot_creation_model import ShotCreationLadder
+
         ladder = ShotCreationLadder()
         results = ladder.run(
             actions_df,
@@ -322,6 +355,7 @@ class TestShotCreationLadder:
 
     def test_leaderboard_returns_dataframe(self, actions_df):
         from src.models.cxa.shot_creation_model import ShotCreationLadder
+
         ladder = ShotCreationLadder()
         ladder.run(
             actions_df,
@@ -337,6 +371,7 @@ class TestShotCreationLadder:
 
     def test_best_returns_top_result(self, actions_df):
         from src.models.cxa.shot_creation_model import ShotCreationLadder
+
         ladder = ShotCreationLadder()
         results = ladder.run(
             actions_df,
@@ -354,9 +389,11 @@ class TestShotCreationLadder:
 # Shot-Quality Model Tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 class TestGammaShotQuality:
     def test_fit_predict_positive_only(self, pos_actions_df):
         from src.models.cxa.shot_quality_model import GammaShotQualityModel
+
         m = GammaShotQualityModel(feature_set="contextual")
         m.fit(pos_actions_df, "resulting_shot_cxg")
         preds = m.predict(pos_actions_df)
@@ -365,6 +402,7 @@ class TestGammaShotQuality:
 
     def test_rejects_nonpositive_targets(self, actions_df):
         from src.models.cxa.shot_quality_model import GammaShotQualityModel
+
         # actions_df has zeros in resulting_shot_cxg
         df_with_zeros = actions_df[actions_df["resulting_shot_cxg"] == 0].head(20).copy()
         if df_with_zeros.empty:
@@ -375,6 +413,7 @@ class TestGammaShotQuality:
 
     def test_evaluate_returns_metrics(self, pos_actions_df):
         from src.models.cxa.shot_quality_model import GammaShotQualityModel, ShotQualityMetrics
+
         m = GammaShotQualityModel(feature_set="contextual")
         m.fit(pos_actions_df, "resulting_shot_cxg")
         metrics = m.evaluate(pos_actions_df, "resulting_shot_cxg")
@@ -387,6 +426,7 @@ class TestXGBoostShotQuality:
     def test_fit_predict(self, actions_df):
         pytest.importorskip("xgboost")
         from src.models.cxa.shot_quality_model import XGBoostShotQualityModel
+
         m = XGBoostShotQualityModel(feature_set="contextual", n_estimators=30)
         pos_df = actions_df[actions_df["resulting_shot_cxg"] > 0]
         m.fit(pos_df, "resulting_shot_cxg")
@@ -398,6 +438,7 @@ class TestXGBoostShotQuality:
         """XGBoost should predict on any row (not just shot rows) after fitting on positive."""
         pytest.importorskip("xgboost")
         from src.models.cxa.shot_quality_model import XGBoostShotQualityModel
+
         pos_df = actions_df[actions_df["resulting_shot_cxg"] > 0].reset_index(drop=True)
         m = XGBoostShotQualityModel(feature_set="contextual", n_estimators=30)
         m.fit(pos_df, "resulting_shot_cxg")
@@ -409,6 +450,7 @@ class TestLightGBMShotQuality:
     def test_fit_predict(self, actions_df):
         pytest.importorskip("lightgbm")
         from src.models.cxa.shot_quality_model import LightGBMShotQualityModel
+
         pos_df = actions_df[actions_df["resulting_shot_cxg"] > 0]
         m = LightGBMShotQualityModel(feature_set="contextual", n_estimators=30)
         m.fit(pos_df, "resulting_shot_cxg")
@@ -420,6 +462,7 @@ class TestLightGBMShotQuality:
 class TestShotQualityLadder:
     def test_end_to_end(self, actions_df):
         from src.models.cxa.shot_quality_model import ShotQualityLadder
+
         ladder = ShotQualityLadder()
         results = ladder.run(
             actions_df,
@@ -433,6 +476,7 @@ class TestShotQualityLadder:
 
     def test_results_sorted_by_mae(self, actions_df):
         from src.models.cxa.shot_quality_model import ShotQualityLadder
+
         ladder = ShotQualityLadder()
         results = ladder.run(
             actions_df,
@@ -447,6 +491,7 @@ class TestShotQualityLadder:
 
     def test_leaderboard_returns_dataframe(self, actions_df):
         from src.models.cxa.shot_quality_model import ShotQualityLadder
+
         ladder = ShotQualityLadder()
         ladder.run(
             actions_df,
@@ -465,11 +510,12 @@ class TestShotQualityLadder:
 # CxA Pipeline Tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _make_pipeline(actions_df):
     """Helper: fit and return a CxAPipeline using fast GLM models."""
+    from src.models.cxa.cxa_pipeline import CxAPipeline
     from src.models.cxa.shot_creation_model import GlmShotCreationModel
     from src.models.cxa.shot_quality_model import XGBoostShotQualityModel
-    from src.models.cxa.cxa_pipeline import CxAPipeline
 
     creation = GlmShotCreationModel(feature_set="traditional")
     creation.fit(actions_df, "shot_created")
@@ -486,7 +532,13 @@ class TestCxAPipeline:
         pytest.importorskip("xgboost")
         pipeline = _make_pipeline(actions_df)
         out = pipeline.score(actions_df)
-        for col in ("p_shot_created", "expected_cxg_if_shot", "cxa", "realised_cxa", "opponent_adjustment_delta"):
+        for col in (
+            "p_shot_created",
+            "expected_cxg_if_shot",
+            "cxa",
+            "realised_cxa",
+            "opponent_adjustment_delta",
+        ):
             assert col in out.columns, f"Missing column: {col}"
 
     def test_cxa_formula(self, actions_df):
@@ -520,7 +572,11 @@ class TestCxAPipeline:
             # Non-shot rows should have NaN realised_cxa
             assert non_shot_rows["realised_cxa"].isna().all()
             # Shot rows should have finite realised_cxa (where resulting_shot_cxg > 0)
-            shot_with_cxg = shot_rows[shot_rows["resulting_shot_cxg"] > 0] if "resulting_shot_cxg" in out.columns else shot_rows
+            shot_with_cxg = (
+                shot_rows[shot_rows["resulting_shot_cxg"] > 0]
+                if "resulting_shot_cxg" in out.columns
+                else shot_rows
+            )
             if not shot_with_cxg.empty:
                 assert shot_with_cxg["realised_cxa"].notna().any()
 
@@ -536,6 +592,7 @@ class TestCxAPipeline:
         """score with filter_creative=True should only include CREATIVE_ACTION_TYPES."""
         pytest.importorskip("xgboost")
         from src.models.cxa.cxa_pipeline import CREATIVE_ACTION_TYPES
+
         pipeline = _make_pipeline(actions_df)
         out = pipeline.score(actions_df, filter_creative=True)
         if "action_type" in out.columns:
@@ -544,9 +601,10 @@ class TestCxAPipeline:
     def test_fit_method(self, actions_df):
         """CxAPipeline.fit() should train both stages from scratch."""
         pytest.importorskip("xgboost")
+        from src.models.cxa.cxa_pipeline import CxAPipeline
         from src.models.cxa.shot_creation_model import GlmShotCreationModel
         from src.models.cxa.shot_quality_model import XGBoostShotQualityModel
-        from src.models.cxa.cxa_pipeline import CxAPipeline
+
         creation = GlmShotCreationModel(feature_set="traditional")
         quality = XGBoostShotQualityModel(feature_set="contextual", n_estimators=30)
         pipeline = CxAPipeline(creation, quality)
@@ -558,6 +616,7 @@ class TestCxAPipeline:
         """Pipeline should serialise and deserialise correctly."""
         pytest.importorskip("xgboost")
         from src.models.cxa.cxa_pipeline import CxAPipeline
+
         pipeline = _make_pipeline(actions_df)
         save_path = tmp_path / "pipeline.pkl"
         pipeline.save(save_path)
@@ -568,7 +627,6 @@ class TestCxAPipeline:
 
     def test_empty_df_raises(self, actions_df):
         pytest.importorskip("xgboost")
-        from src.models.cxa.cxa_pipeline import CxAPipeline, CxADecompositionRecord
         pipeline = _make_pipeline(actions_df)
         empty_all_creative = actions_df[actions_df["action_type"] == "nonexistent_type"]
         out = pipeline.score(empty_all_creative)
@@ -580,32 +638,36 @@ class TestCxAPipeline:
 # Leaderboard Tests
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 def _make_scored_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
     """Minimal scored DataFrame with required CxA columns."""
     rng = np.random.default_rng(seed)
     n_players = 10
     n_teams = 4
     n_matches = 6
-    return pd.DataFrame({
-        "event_id": [f"e{i}" for i in range(n)],
-        "player_id": [f"p{i % n_players}" for i in range(n)],
-        "team_id": [f"t{i % n_teams}" for i in range(n)],
-        "match_id": [f"m{i % n_matches}" for i in range(n)],
-        "action_type": rng.choice(["pass", "carry", "cross", "cutback"], n),
-        "cxa": rng.uniform(0.01, 0.15, n),
-        "p_shot_created": rng.uniform(0.05, 0.4, n),
-        "expected_cxg_if_shot": rng.uniform(0.05, 0.35, n),
-        "realised_cxa": np.where(rng.uniform(0, 1, n) > 0.8, rng.uniform(0.05, 0.3, n), np.nan),
-        "opponent_adjustment_delta": rng.uniform(-0.02, 0.02, n),
-        "sequence_type": rng.choice(["open_play", "transition", "set_piece"], n),
-        "transition_or_settled": rng.choice(["transition", "settled"], n),
-        "set_piece_flag": rng.integers(0, 2, n).astype(float),
-    })
+    return pd.DataFrame(
+        {
+            "event_id": [f"e{i}" for i in range(n)],
+            "player_id": [f"p{i % n_players}" for i in range(n)],
+            "team_id": [f"t{i % n_teams}" for i in range(n)],
+            "match_id": [f"m{i % n_matches}" for i in range(n)],
+            "action_type": rng.choice(["pass", "carry", "cross", "cutback"], n),
+            "cxa": rng.uniform(0.01, 0.15, n),
+            "p_shot_created": rng.uniform(0.05, 0.4, n),
+            "expected_cxg_if_shot": rng.uniform(0.05, 0.35, n),
+            "realised_cxa": np.where(rng.uniform(0, 1, n) > 0.8, rng.uniform(0.05, 0.3, n), np.nan),
+            "opponent_adjustment_delta": rng.uniform(-0.02, 0.02, n),
+            "sequence_type": rng.choice(["open_play", "transition", "set_piece"], n),
+            "transition_or_settled": rng.choice(["transition", "settled"], n),
+            "set_piece_flag": rng.integers(0, 2, n).astype(float),
+        }
+    )
 
 
 class TestCxAPlayerLeaderboard:
     def test_has_expected_columns(self):
         from src.dashboards.cxa_leaderboard import build_player_leaderboard
+
         scored = _make_scored_df()
         lb = build_player_leaderboard(scored, min_minutes=0)
         for col in ("CxA_per_90", "CxA_total", "shot_creation_prob_per_90"):
@@ -613,11 +675,14 @@ class TestCxAPlayerLeaderboard:
 
     def test_per_90_scaling(self):
         from src.dashboards.cxa_leaderboard import build_player_leaderboard
+
         scored = _make_scored_df(n=200)
-        mins_df = pd.DataFrame({
-            "player_id": [f"p{i}" for i in range(10)],
-            "minutes_played": [450.0] * 10,
-        })
+        mins_df = pd.DataFrame(
+            {
+                "player_id": [f"p{i}" for i in range(10)],
+                "minutes_played": [450.0] * 10,
+            }
+        )
         lb = build_player_leaderboard(scored, minutes_df=mins_df, min_minutes=0)
         assert not lb.empty
         # CxA_per_90 should be positive
@@ -625,16 +690,20 @@ class TestCxAPlayerLeaderboard:
 
     def test_min_minutes_filter(self):
         from src.dashboards.cxa_leaderboard import build_player_leaderboard
-        scored = _make_scored_df(n=20)   # few actions per player
-        mins_df = pd.DataFrame({
-            "player_id": [f"p{i}" for i in range(10)],
-            "minutes_played": [20.0] * 10,  # below default threshold
-        })
+
+        scored = _make_scored_df(n=20)  # few actions per player
+        mins_df = pd.DataFrame(
+            {
+                "player_id": [f"p{i}" for i in range(10)],
+                "minutes_played": [20.0] * 10,  # below default threshold
+            }
+        )
         lb = build_player_leaderboard(scored, minutes_df=mins_df, min_minutes=90.0)
         assert lb.empty
 
     def test_sorted_by_cxa_per_90(self):
         from src.dashboards.cxa_leaderboard import build_player_leaderboard
+
         scored = _make_scored_df(n=200)
         lb = build_player_leaderboard(scored, min_minutes=0)
         values = lb["CxA_per_90"].tolist()
@@ -642,6 +711,7 @@ class TestCxAPlayerLeaderboard:
 
     def test_transition_and_cutback_columns_present(self):
         from src.dashboards.cxa_leaderboard import build_player_leaderboard
+
         scored = _make_scored_df()
         lb = build_player_leaderboard(scored, min_minutes=0)
         assert "CxA_transition" in lb.columns
@@ -651,6 +721,7 @@ class TestCxAPlayerLeaderboard:
 class TestCxATeamLeaderboard:
     def test_has_expected_columns(self):
         from src.dashboards.cxa_leaderboard import build_team_leaderboard
+
         scored = _make_scored_df()
         lb = build_team_leaderboard(scored, min_minutes=0)
         for col in ("CxA_per_90", "CxA_total", "CxA_passes_per_90", "CxA_carries_per_90"):
@@ -658,12 +729,14 @@ class TestCxATeamLeaderboard:
 
     def test_returns_non_empty_for_valid_df(self):
         from src.dashboards.cxa_leaderboard import build_team_leaderboard
+
         scored = _make_scored_df(n=200)
         lb = build_team_leaderboard(scored, min_minutes=0)
         assert not lb.empty
 
     def test_missing_team_id_returns_empty(self):
         from src.dashboards.cxa_leaderboard import build_team_leaderboard
+
         scored = _make_scored_df()
         scored = scored.drop(columns=["team_id"])
         lb = build_team_leaderboard(scored, min_minutes=0)
@@ -671,6 +744,7 @@ class TestCxATeamLeaderboard:
 
     def test_sorted_by_cxa_per_90(self):
         from src.dashboards.cxa_leaderboard import build_team_leaderboard
+
         scored = _make_scored_df(n=400)
         lb = build_team_leaderboard(scored, min_minutes=0)
         values = lb["CxA_per_90"].tolist()

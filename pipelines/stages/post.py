@@ -27,7 +27,7 @@ from prefect import task
 from prefect.tasks import task_input_hash
 
 from pipelines.mlflow_helpers import log_path, stage_run
-from pipelines.stages.analysis import _maybe_log_report, AnalysisStep
+from pipelines.stages.analysis import AnalysisStep, _maybe_log_report
 from src.runtime import require_profile
 
 logger = logging.getLogger(__name__)
@@ -61,8 +61,8 @@ class PostStep:
 
 POST_REGISTRY: tuple[PostStep, ...] = (
     PostStep("scoring_validation", "17_scoring_validation.py", None),
-    PostStep("interpretability",   "18_interpretability.py",   "interpretability_report.html"),
-    PostStep("model_comparison",   "19_model_comparison.py",   "model_comparison_cxg.json"),
+    PostStep("interpretability", "18_interpretability.py", "interpretability_report.html"),
+    PostStep("model_comparison", "19_model_comparison.py", "model_comparison_cxg.json"),
 )
 
 POST_BY_NAME: dict[str, PostStep] = {s.stage_name: s for s in POST_REGISTRY}
@@ -152,11 +152,15 @@ def drift_monitor_task(
     from scripts.monitor import monitor
 
     prof = require_profile()
-    ref = Path(reference_path) if reference_path else (prof.data_root / "features" / "shots.parquet")
-    cur = Path(current_path) if current_path else ref  # pragma: no cover — caller normally overrides
+    ref = (
+        Path(reference_path) if reference_path else (prof.data_root / "features" / "shots.parquet")
+    )
+    cur = (
+        Path(current_path) if current_path else ref
+    )  # pragma: no cover — caller normally overrides
     report_path = prof.outputs_root / "drift_report.json"
 
-    with stage_run("drift_monitor", parent_run_id=parent_run_id) as run:
+    with stage_run("drift_monitor", parent_run_id=parent_run_id):
         mlflow.log_param("reference_path", str(ref))
         mlflow.log_param("current_path", str(cur))
         has_drift = monitor(

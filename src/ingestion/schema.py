@@ -15,19 +15,18 @@ Internal IDs are stable UUIDs constructed as:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Optional
-
+from dataclasses import dataclass
+from enum import StrEnum
 
 # ── Enumerations ──────────────────────────────────────────────────────────────
 
-class Provider(str, Enum):
+
+class Provider(StrEnum):
     STATSBOMB = "statsbomb"
     # Future: OPTA = "opta", TRACAB = "tracab"
 
 
-class EventType(str, Enum):
+class EventType(StrEnum):
     SHOT = "shot"
     PASS = "pass"
     CARRY = "carry"
@@ -51,14 +50,14 @@ class EventType(str, Enum):
     OTHER = "other"
 
 
-class BodyPart(str, Enum):
+class BodyPart(StrEnum):
     HEAD = "head"
     FOOT = "foot"
     CHEST = "chest"
     NO_TOUCH = "no_touch"
 
 
-class SetPieceType(str, Enum):
+class SetPieceType(StrEnum):
     NONE = "none"
     CORNER = "corner"
     FREE_KICK = "free_kick"
@@ -67,20 +66,20 @@ class SetPieceType(str, Enum):
     PENALTY = "penalty"
 
 
-class PassHeight(str, Enum):
+class PassHeight(StrEnum):
     GROUND = "ground"
     LOW = "low"
     HIGH = "high"
 
 
-class Domain(str, Enum):
+class Domain(StrEnum):
     INTERNATIONAL = "international"
     CONTINENTAL = "continental"
     CLUB_DOMESTIC = "club_domestic"
     CLUB_CONTINENTAL = "club_continental"
 
 
-class Region(str, Enum):
+class Region(StrEnum):
     EUROPE = "europe"
     GLOBAL = "global"
     SOUTH_AMERICA = "south_america"
@@ -89,7 +88,7 @@ class Region(str, Enum):
     ASIA = "asia"
 
 
-class SplitRole(str, Enum):
+class SplitRole(StrEnum):
     TRAIN = "train"
     VAL = "val"
     TEST = "test"
@@ -97,7 +96,7 @@ class SplitRole(str, Enum):
     VAL_TEST = "val_test"
 
 
-class SequenceType(str, Enum):
+class SequenceType(StrEnum):
     SETTLED_POSSESSION = "settled_possession"
     FAST_COUNTERATTACK = "fast_counterattack"
     HIGH_PRESS_REGAIN = "high_press_regain"
@@ -120,6 +119,7 @@ class SequenceType(str, Enum):
 
 # ── Core entity dataclasses ───────────────────────────────────────────────────
 
+
 @dataclass
 class Competition:
     internal_id: str
@@ -132,7 +132,7 @@ class Competition:
     domain: Domain
     region: Region
     split_role: SplitRole
-    competition_weight_cap: Optional[float] = None
+    competition_weight_cap: float | None = None
     notes: str = ""
 
 
@@ -163,12 +163,12 @@ class Match:
     competition_internal_id: str
     home_team_internal_id: str
     away_team_internal_id: str
-    match_date: str          # ISO 8601
+    match_date: str  # ISO 8601
     home_score: int
     away_score: int
     has_360: bool
-    stage: str = ""          # "group" | "round_of_16" | "quarter_final" | …
-    match_week: Optional[int] = None
+    stage: str = ""  # "group" | "round_of_16" | "quarter_final" | …
+    match_week: int | None = None
     referee: str = ""
 
 
@@ -189,17 +189,18 @@ class Possession:
     A reconstructed possession — consecutive events under control of one team.
     Sequence classification fields are populated by Phase 2.
     """
-    internal_id: str              # "{match_id}:{possession_index}"
+
+    internal_id: str  # "{match_id}:{possession_index}"
     match_internal_id: str
     team_internal_id: str
-    possession_index: int         # StatsBomb possession_id
+    possession_index: int  # StatsBomb possession_id
     start_event_internal_id: str
     end_event_internal_id: str
-    start_timestamp: float        # seconds from kick-off
+    start_timestamp: float  # seconds from kick-off
     end_timestamp: float
     start_x: float
     start_y: float
-    regain_zone: str              # "defensive_third" | "mid_third" | "attacking_third"
+    regain_zone: str  # "defensive_third" | "mid_third" | "attacking_third"
     n_events: int
     n_passes: int
     n_carries: int
@@ -211,7 +212,7 @@ class Possession:
     # Populated by Phase 2
     sequence_type: SequenceType = SequenceType.UNKNOWN
     sequence_type_confidence: float = 0.0
-    sequence_type_source: str = "none"   # "rule" | "classifier" | "none"
+    sequence_type_source: str = "none"  # "rule" | "classifier" | "none"
 
 
 @dataclass
@@ -220,17 +221,18 @@ class Event:
     Base event record. Shot, Pass and Carry subclass this for type-specific fields.
     All coordinates are in the internal 105×68m system.
     """
+
     internal_id: str
     provider_source: Provider
     provider_event_id: str
     match_internal_id: str
     possession_internal_id: str
     team_internal_id: str
-    player_internal_id: Optional[str]
+    player_internal_id: str | None
     event_type: EventType
-    index: int               # ordering index within match
+    index: int  # ordering index within match
     period: int
-    timestamp: float         # seconds from period start
+    timestamp: float  # seconds from period start
     x: float
     y: float
     under_pressure: bool
@@ -247,12 +249,12 @@ class ShotEvent(Event):
     header: bool = False
     volley: bool = False
     open_play: bool = True
-    outcome: str = "off_target"   # "goal" | "saved" | "off_target" | "blocked" | "post"
+    outcome: str = "off_target"  # "goal" | "saved" | "off_target" | "blocked" | "post"
     goal: bool = False
-    statsbomb_xg: Optional[float] = None    # raw provider xG for reference
-    end_x: Optional[float] = None
-    end_y: Optional[float] = None
-    end_z: Optional[float] = None
+    statsbomb_xg: float | None = None  # raw provider xG for reference
+    end_x: float | None = None
+    end_y: float | None = None
+    end_z: float | None = None
 
 
 @dataclass
@@ -270,8 +272,8 @@ class PassEvent(Event):
     switch: bool = False
     goal_assist: bool = False
     shot_assist: bool = False
-    outcome: str = "complete"    # "complete" | "incomplete" | "out" | "pass_offside"
-    recipient_internal_id: Optional[str] = None
+    outcome: str = "complete"  # "complete" | "incomplete" | "out" | "pass_offside"
+    recipient_internal_id: str | None = None
 
 
 @dataclass
@@ -288,12 +290,13 @@ class FreezeFrame360:
     A single player entry from a StatsBomb 360 freeze frame, linked to one event.
     Multiple rows per event (one per visible player).
     """
+
     internal_id: str
     event_internal_id: str
     match_internal_id: str
-    player_internal_id: Optional[str]   # None if player not identified
+    player_internal_id: str | None  # None if player not identified
     teammate: bool
-    actor: bool       # True if this is the player performing the action
+    actor: bool  # True if this is the player performing the action
     keeper: bool
     x: float
     y: float

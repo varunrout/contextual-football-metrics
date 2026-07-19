@@ -26,7 +26,7 @@ import pandas as pd
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import load_features, save_fig
+from analysis._utils import load_features, save_fig  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -101,14 +101,16 @@ def _extract_zone_records(model) -> pd.DataFrame:
     zone_id = 0
     for yi in range(n_y):
         for xi in range(n_x):
-            records.append({
-                "zone_id": zone_id,
-                "x_bin": xi,
-                "y_bin": yi,
-                "xt_value": float(values[yi, xi]),
-                "shot_prob": float(shot_prob[yi, xi]),
-                "shot_value": float(shot_value[yi, xi]),
-            })
+            records.append(
+                {
+                    "zone_id": zone_id,
+                    "x_bin": xi,
+                    "y_bin": yi,
+                    "xt_value": float(values[yi, xi]),
+                    "shot_prob": float(shot_prob[yi, xi]),
+                    "shot_value": float(shot_value[yi, xi]),
+                }
+            )
             zone_id += 1
 
     return pd.DataFrame(records)
@@ -124,8 +126,12 @@ def plot_value_surface(priors_df: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(12, 8))
     im = ax.imshow(
-        mat, origin="lower", aspect="auto", cmap="YlOrRd",
-        vmin=0, vmax=np.nanpercentile(mat, 98),
+        mat,
+        origin="lower",
+        aspect="auto",
+        cmap="YlOrRd",
+        vmin=0,
+        vmax=np.nanpercentile(mat, 98),
         extent=[0, 105, 0, 68],
     )
     plt.colorbar(im, ax=ax, label="xT Value")
@@ -148,8 +154,12 @@ def plot_shot_frequency(priors_df: pd.DataFrame) -> None:
 
     fig, ax = plt.subplots(figsize=(12, 8))
     im = ax.imshow(
-        mat, origin="lower", aspect="auto", cmap="Blues",
-        vmin=0, vmax=np.nanpercentile(mat, 98),
+        mat,
+        origin="lower",
+        aspect="auto",
+        cmap="Blues",
+        vmin=0,
+        vmax=np.nanpercentile(mat, 98),
         extent=[0, 105, 0, 68],
     )
     plt.colorbar(im, ax=ax, label="Shot Probability")
@@ -175,8 +185,9 @@ def main() -> None:
     logger.info("Extracting zone records …")
     priors_df = _extract_zone_records(model)
     logger.info("Zones extracted: %d rows", len(priors_df))
-    logger.info("  xt_value range: [%.4f, %.4f]",
-                priors_df["xt_value"].min(), priors_df["xt_value"].max())
+    logger.info(
+        "  xt_value range: [%.4f, %.4f]", priors_df["xt_value"].min(), priors_df["xt_value"].max()
+    )
 
     logger.info("Saving zone_xt_priors.parquet → %s", _PRIORS_PATH)
     _PRIORS_PATH.parent.mkdir(parents=True, exist_ok=True)

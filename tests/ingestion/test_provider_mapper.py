@@ -17,15 +17,14 @@ import pytest
 
 from src.ingestion.provider_mapper import (
     make_internal_id,
-    map_freeze_frame_row,
     map_event_row,
+    map_freeze_frame_row,
     normalise_coords,
     normalise_x,
     normalise_y,
 )
 from src.ingestion.schema import (
     CarryEvent,
-    EventType,
     PassEvent,
     Provider,
     ShotEvent,
@@ -81,6 +80,7 @@ class TestInternalIdGeneration:
         id1 = make_internal_id(Provider.STATSBOMB, "match", 1)
         # Manually check that changing the prefix changes the hash
         import hashlib
+
         raw = "otherprovider:match:1"
         id2 = hashlib.sha256(raw.encode()).hexdigest()[:16]
         assert id1 != id2
@@ -90,6 +90,7 @@ class TestInternalIdGeneration:
 
 
 # ── Sample raw StatsBomb event dicts ─────────────────────────────────────────
+
 
 def _base_event(event_type_name: str, extra: dict | None = None) -> dict:
     row = {
@@ -161,7 +162,7 @@ class TestShotMapping:
     def test_end_coordinates_normalised(self):
         row = self._make_shot_row()
         ev = map_event_row(row, "m", "p", "t", "pl", False)
-        assert ev.end_x == pytest.approx(105.0)   # 120 → 105
+        assert ev.end_x == pytest.approx(105.0)  # 120 → 105
         assert ev.end_y == pytest.approx(34.0)
 
 
@@ -199,7 +200,7 @@ class TestPassMapping:
         row = self._make_pass_row()
         ev = map_event_row(row, "m", "p", "t", "pl", False)
         assert ev.end_x == pytest.approx(96.25)  # 110 × 105/120
-        assert ev.end_y == pytest.approx(42.5)   # 50 × 68/80
+        assert ev.end_y == pytest.approx(42.5)  # 50 × 68/80
 
 
 class TestCarryMapping:
@@ -242,7 +243,7 @@ class TestFreezeFrameMapping:
             "player": None,
         }
         ff = map_freeze_frame_row(ff_row, "event_001", "match_001", 1)
-        assert ff.x == pytest.approx(5.25)   # 6 × 105/120
+        assert ff.x == pytest.approx(5.25)  # 6 × 105/120
         assert ff.y == pytest.approx(34.0)
 
     def test_player_none_allowed(self):

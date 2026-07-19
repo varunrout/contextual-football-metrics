@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from src.runtime import gbm_device, load_profile
+from src.runtime import load_profile
 from src.runtime.gbm_device import lightgbm_kwargs, xgboost_kwargs
 
 

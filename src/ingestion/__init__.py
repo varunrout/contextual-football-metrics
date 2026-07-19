@@ -14,4 +14,3 @@ Public surface:
 # Sub-modules are imported on demand; import them explicitly where needed.
 # e.g.:  from src.ingestion.schema import ShotEvent
 #        from src.ingestion.statsbomb_loader import load_events
-

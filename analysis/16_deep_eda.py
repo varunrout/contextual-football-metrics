@@ -29,7 +29,7 @@ import seaborn as sns
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     competition_labels,
     derive_shot_created,
     load_actions,
@@ -79,7 +79,10 @@ def _attach_xg(shots: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
     if xg_col in shots.columns:
         out = shots.copy()
     else:
-        id_col = next((c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns), None)
+        id_col = next(
+            (c for c in ["event_id", "internal_id"] if c in shots.columns and c in events.columns),
+            None,
+        )
         if id_col is None or xg_col not in events.columns:
             return pd.DataFrame()
         lookup = events[[id_col, xg_col]].drop_duplicates(id_col)
@@ -142,7 +145,13 @@ def _plot_group_calibration(cal_df: pd.DataFrame, fig_name: str, title: str) -> 
 
     for yi, row in enumerate(plot_df.itertuples(index=False)):
         ax.plot([row.mean_xg, row.actual_rate], [yi, yi], color="#999999", alpha=0.6)
-        ax.text(max(row.mean_xg, row.actual_rate) + 0.005, yi, f"n={int(row.n)}", va="center", fontsize=8)
+        ax.text(
+            max(row.mean_xg, row.actual_rate) + 0.005,
+            yi,
+            f"n={int(row.n)}",
+            va="center",
+            fontsize=8,
+        )
 
     ax.set_yticks(y)
     ax.set_yticklabels(plot_df["group"].astype(str))
@@ -174,7 +183,9 @@ def _interaction_stats(df: pd.DataFrame, row_col: str, col_col: str, target_col:
     }
 
 
-def _interaction_cell_table(df: pd.DataFrame, row_col: str, col_col: str, target_col: str) -> pd.DataFrame:
+def _interaction_cell_table(
+    df: pd.DataFrame, row_col: str, col_col: str, target_col: str
+) -> pd.DataFrame:
     grouped = (
         df.groupby([row_col, col_col], observed=True)[target_col]
         .agg(n="count", positives="sum", rate="mean")
@@ -208,13 +219,11 @@ def _plot_interaction_heatmap(
 
     top_rows = work[row_col].astype(str).value_counts().head(10).index
     top_cols = work[col_col].astype(str).value_counts().head(8).index
-    work = work[work[row_col].astype(str).isin(top_rows) & work[col_col].astype(str).isin(top_cols)].copy()
+    work = work[
+        work[row_col].astype(str).isin(top_rows) & work[col_col].astype(str).isin(top_cols)
+    ].copy()
 
-    rates = (
-        work.groupby([row_col, col_col], observed=True)[target_col]
-        .mean()
-        .unstack(col_col)
-    )
+    rates = work.groupby([row_col, col_col], observed=True)[target_col].mean().unstack(col_col)
     counts = (
         work.groupby([row_col, col_col], observed=True)[target_col]
         .count()
@@ -257,31 +266,56 @@ def _run_cxg_deep(shots: pd.DataFrame, events: pd.DataFrame) -> dict:
     labels = competition_labels()
     if "competition_id" in xg_df.columns:
         xg_df = xg_df.copy()
-        xg_df["competition_label"] = xg_df["competition_id"].astype(str).map(labels).fillna(xg_df["competition_id"].astype(str))
+        xg_df["competition_label"] = (
+            xg_df["competition_id"]
+            .astype(str)
+            .map(labels)
+            .fillna(xg_df["competition_id"].astype(str))
+        )
 
-    cal_seq = _group_calibration(xg_df, "sequence_type") if "sequence_type" in xg_df.columns else pd.DataFrame()
-    cal_comp = _group_calibration(xg_df, "competition_label") if "competition_label" in xg_df.columns else pd.DataFrame()
+    cal_seq = (
+        _group_calibration(xg_df, "sequence_type")
+        if "sequence_type" in xg_df.columns
+        else pd.DataFrame()
+    )
+    cal_comp = (
+        _group_calibration(xg_df, "competition_label")
+        if "competition_label" in xg_df.columns
+        else pd.DataFrame()
+    )
 
-    _plot_group_calibration(cal_seq, "cxg_calibration_by_sequence_type", "CxG Calibration by Sequence Type")
-    _plot_group_calibration(cal_comp, "cxg_calibration_by_competition", "CxG Calibration by Competition")
+    _plot_group_calibration(
+        cal_seq, "cxg_calibration_by_sequence_type", "CxG Calibration by Sequence Type"
+    )
+    _plot_group_calibration(
+        cal_comp, "cxg_calibration_by_competition", "CxG Calibration by Competition"
+    )
 
-    cxg_inter_1 = _plot_interaction_heatmap(
-        xg_df,
-        row_col="sequence_type",
-        col_col="possession_start_zone",
-        target_col="goal",
-        fig_name="cxg_interaction_sequence_vs_start_zone",
-        title="CxG: Goal Rate by Sequence Type x Start Zone",
-    ) if "sequence_type" in xg_df.columns and "possession_start_zone" in xg_df.columns else pd.DataFrame()
+    cxg_inter_1 = (
+        _plot_interaction_heatmap(
+            xg_df,
+            row_col="sequence_type",
+            col_col="possession_start_zone",
+            target_col="goal",
+            fig_name="cxg_interaction_sequence_vs_start_zone",
+            title="CxG: Goal Rate by Sequence Type x Start Zone",
+        )
+        if "sequence_type" in xg_df.columns and "possession_start_zone" in xg_df.columns
+        else pd.DataFrame()
+    )
 
-    cxg_inter_2 = _plot_interaction_heatmap(
-        xg_df,
-        row_col="sequence_type",
-        col_col="body_part",
-        target_col="goal",
-        fig_name="cxg_interaction_sequence_vs_body_part",
-        title="CxG: Goal Rate by Sequence Type x Body Part",
-    ) if "sequence_type" in xg_df.columns and "body_part" in xg_df.columns else pd.DataFrame()
+    cxg_inter_2 = (
+        _plot_interaction_heatmap(
+            xg_df,
+            row_col="sequence_type",
+            col_col="body_part",
+            target_col="goal",
+            fig_name="cxg_interaction_sequence_vs_body_part",
+            title="CxG: Goal Rate by Sequence Type x Body Part",
+        )
+        if "sequence_type" in xg_df.columns and "body_part" in xg_df.columns
+        else pd.DataFrame()
+    )
 
     out["cxg"] = {
         "n_shots": int(len(xg_df)),
@@ -290,18 +324,40 @@ def _run_cxg_deep(shots: pd.DataFrame, events: pd.DataFrame) -> dict:
         "calibration_by_sequence_type": cal_seq.to_dict("records"),
         "calibration_by_competition": cal_comp.to_dict("records"),
         "interaction_sequence_x_start_zone": {
-            "stats": _interaction_stats(xg_df.dropna(subset=["sequence_type", "possession_start_zone", "goal"]), "sequence_type", "possession_start_zone", "goal")
+            "stats": _interaction_stats(
+                xg_df.dropna(subset=["sequence_type", "possession_start_zone", "goal"]),
+                "sequence_type",
+                "possession_start_zone",
+                "goal",
+            )
             if "sequence_type" in xg_df.columns and "possession_start_zone" in xg_df.columns
             else {},
-            "top_positive_lift_cells": cxg_inter_1.head(10).to_dict("records") if not cxg_inter_1.empty else [],
-            "top_negative_lift_cells": cxg_inter_1.tail(10).sort_values("lift_vs_baseline", ascending=True).to_dict("records") if not cxg_inter_1.empty else [],
+            "top_positive_lift_cells": cxg_inter_1.head(10).to_dict("records")
+            if not cxg_inter_1.empty
+            else [],
+            "top_negative_lift_cells": cxg_inter_1.tail(10)
+            .sort_values("lift_vs_baseline", ascending=True)
+            .to_dict("records")
+            if not cxg_inter_1.empty
+            else [],
         },
         "interaction_sequence_x_body_part": {
-            "stats": _interaction_stats(xg_df.dropna(subset=["sequence_type", "body_part", "goal"]), "sequence_type", "body_part", "goal")
+            "stats": _interaction_stats(
+                xg_df.dropna(subset=["sequence_type", "body_part", "goal"]),
+                "sequence_type",
+                "body_part",
+                "goal",
+            )
             if "sequence_type" in xg_df.columns and "body_part" in xg_df.columns
             else {},
-            "top_positive_lift_cells": cxg_inter_2.head(10).to_dict("records") if not cxg_inter_2.empty else [],
-            "top_negative_lift_cells": cxg_inter_2.tail(10).sort_values("lift_vs_baseline", ascending=True).to_dict("records") if not cxg_inter_2.empty else [],
+            "top_positive_lift_cells": cxg_inter_2.head(10).to_dict("records")
+            if not cxg_inter_2.empty
+            else [],
+            "top_negative_lift_cells": cxg_inter_2.tail(10)
+            .sort_values("lift_vs_baseline", ascending=True)
+            .to_dict("records")
+            if not cxg_inter_2.empty
+            else [],
         },
     }
     return out
@@ -314,40 +370,70 @@ def _run_cxa_deep(actions: pd.DataFrame) -> dict:
         logger.warning("CxA deep EDA skipped: shot_created unavailable.")
         return out
 
-    cxa_inter_1 = _plot_interaction_heatmap(
-        act,
-        row_col="sequence_type",
-        col_col="event_type",
-        target_col="shot_created",
-        fig_name="cxa_interaction_sequence_vs_event_type",
-        title="CxA: Shot-Created Rate by Sequence Type x Event Type",
-    ) if "sequence_type" in act.columns and "event_type" in act.columns else pd.DataFrame()
+    cxa_inter_1 = (
+        _plot_interaction_heatmap(
+            act,
+            row_col="sequence_type",
+            col_col="event_type",
+            target_col="shot_created",
+            fig_name="cxa_interaction_sequence_vs_event_type",
+            title="CxA: Shot-Created Rate by Sequence Type x Event Type",
+        )
+        if "sequence_type" in act.columns and "event_type" in act.columns
+        else pd.DataFrame()
+    )
 
-    cxa_inter_2 = _plot_interaction_heatmap(
-        act,
-        row_col="sequence_type",
-        col_col="possession_start_zone",
-        target_col="shot_created",
-        fig_name="cxa_interaction_sequence_vs_start_zone",
-        title="CxA: Shot-Created Rate by Sequence Type x Start Zone",
-    ) if "sequence_type" in act.columns and "possession_start_zone" in act.columns else pd.DataFrame()
+    cxa_inter_2 = (
+        _plot_interaction_heatmap(
+            act,
+            row_col="sequence_type",
+            col_col="possession_start_zone",
+            target_col="shot_created",
+            fig_name="cxa_interaction_sequence_vs_start_zone",
+            title="CxA: Shot-Created Rate by Sequence Type x Start Zone",
+        )
+        if "sequence_type" in act.columns and "possession_start_zone" in act.columns
+        else pd.DataFrame()
+    )
 
     out["cxa"] = {
         "n_actions": int(len(act)),
         "overall_shot_created_rate": float(act["shot_created"].mean()),
         "interaction_sequence_x_event_type": {
-            "stats": _interaction_stats(act.dropna(subset=["sequence_type", "event_type", "shot_created"]), "sequence_type", "event_type", "shot_created")
+            "stats": _interaction_stats(
+                act.dropna(subset=["sequence_type", "event_type", "shot_created"]),
+                "sequence_type",
+                "event_type",
+                "shot_created",
+            )
             if "sequence_type" in act.columns and "event_type" in act.columns
             else {},
-            "top_positive_lift_cells": cxa_inter_1.head(10).to_dict("records") if not cxa_inter_1.empty else [],
-            "top_negative_lift_cells": cxa_inter_1.tail(10).sort_values("lift_vs_baseline", ascending=True).to_dict("records") if not cxa_inter_1.empty else [],
+            "top_positive_lift_cells": cxa_inter_1.head(10).to_dict("records")
+            if not cxa_inter_1.empty
+            else [],
+            "top_negative_lift_cells": cxa_inter_1.tail(10)
+            .sort_values("lift_vs_baseline", ascending=True)
+            .to_dict("records")
+            if not cxa_inter_1.empty
+            else [],
         },
         "interaction_sequence_x_start_zone": {
-            "stats": _interaction_stats(act.dropna(subset=["sequence_type", "possession_start_zone", "shot_created"]), "sequence_type", "possession_start_zone", "shot_created")
+            "stats": _interaction_stats(
+                act.dropna(subset=["sequence_type", "possession_start_zone", "shot_created"]),
+                "sequence_type",
+                "possession_start_zone",
+                "shot_created",
+            )
             if "sequence_type" in act.columns and "possession_start_zone" in act.columns
             else {},
-            "top_positive_lift_cells": cxa_inter_2.head(10).to_dict("records") if not cxa_inter_2.empty else [],
-            "top_negative_lift_cells": cxa_inter_2.tail(10).sort_values("lift_vs_baseline", ascending=True).to_dict("records") if not cxa_inter_2.empty else [],
+            "top_positive_lift_cells": cxa_inter_2.head(10).to_dict("records")
+            if not cxa_inter_2.empty
+            else [],
+            "top_negative_lift_cells": cxa_inter_2.tail(10)
+            .sort_values("lift_vs_baseline", ascending=True)
+            .to_dict("records")
+            if not cxa_inter_2.empty
+            else [],
         },
     }
     return out

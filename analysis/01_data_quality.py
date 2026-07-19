@@ -20,18 +20,16 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import yaml
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     competition_labels,
     feature_groups,
     load_features,
-    load_matches,
     save_fig,
     save_json,
 )
@@ -43,8 +41,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("01_data_quality")
 
-_ID_COLS = {"player_id", "team_id", "opponent_id", "competition_id",
-            "match_id", "possession_id", "event_id"}
+_ID_COLS = {
+    "player_id",
+    "team_id",
+    "opponent_id",
+    "competition_id",
+    "match_id",
+    "possession_id",
+    "event_id",
+}
 
 
 def _feature_cols(df: pd.DataFrame) -> list[str]:
@@ -57,8 +62,9 @@ def missing_rates(df: pd.DataFrame) -> None:
     non_zero = missing[missing > 0]
 
     fig, ax = plt.subplots(figsize=(12, max(4, len(non_zero) * 0.25)))
-    colors = ["#d62728" if v > 0.5 else "#ff7f0e" if v > 0.2 else "#1f77b4"
-              for v in non_zero.values]
+    colors = [
+        "#d62728" if v > 0.5 else "#ff7f0e" if v > 0.2 else "#1f77b4" for v in non_zero.values
+    ]
     ax.barh(non_zero.index[::-1], non_zero.values[::-1], color=colors[::-1])
     ax.set_xlabel("Missing Rate")
     ax.set_title(f"Missing Rates per Feature ({len(non_zero)} columns with any missing)")
@@ -110,11 +116,7 @@ def coverage_360(df: pd.DataFrame) -> dict:
     # By competition
     comp_labels = competition_labels()
     if "competition_id" in df.columns:
-        comp_rates = (
-            df.groupby("competition_id")["has_360"]
-            .mean()
-            .sort_values()
-        )
+        comp_rates = df.groupby("competition_id")["has_360"].mean().sort_values()
         labels = [comp_labels.get(str(c), str(c)) for c in comp_rates.index]
         axes[0].barh(labels, comp_rates.values, color="#2ca02c")
         axes[0].set_xlabel("360 Coverage Rate")
@@ -125,11 +127,7 @@ def coverage_360(df: pd.DataFrame) -> dict:
 
     # By event type
     if "event_type" in df.columns:
-        type_rates = (
-            df.groupby("event_type")["has_360"]
-            .mean()
-            .sort_values(ascending=False)
-        )
+        type_rates = df.groupby("event_type")["has_360"].mean().sort_values(ascending=False)
         axes[1].bar(type_rates.index, type_rates.values, color="#9467bd")
         axes[1].set_ylabel("360 Coverage Rate")
         axes[1].set_title("360 Coverage by Event Type")
@@ -195,17 +193,21 @@ def dtype_audit(df: pd.DataFrame, groups: dict[str, list[str]]) -> list[dict]:
             actual = str(df[col].dtype)
             allowed = dtype_map.get(expected_dtype, [expected_dtype])
             if actual not in allowed:
-                mismatches.append({
-                    "column": col,
-                    "group": group_name,
-                    "expected_dtype": expected_dtype,
-                    "actual_dtype": actual,
-                })
+                mismatches.append(
+                    {
+                        "column": col,
+                        "group": group_name,
+                        "expected_dtype": expected_dtype,
+                        "actual_dtype": actual,
+                    }
+                )
 
     if mismatches:
         logger.warning("Dtype mismatches (%d):", len(mismatches))
         for m in mismatches[:20]:
-            logger.warning("  %s: expected %s, got %s", m["column"], m["expected_dtype"], m["actual_dtype"])
+            logger.warning(
+                "  %s: expected %s, got %s", m["column"], m["expected_dtype"], m["actual_dtype"]
+            )
     else:
         logger.info("No dtype mismatches found.")
 
@@ -223,8 +225,12 @@ def row_completeness(df: pd.DataFrame) -> None:
     ax.set_xlabel("Fraction of features non-null")
     ax.set_ylabel("Number of rows")
     ax.set_title(f"Row-Level Feature Completeness  (n_features={n_features})")
-    ax.axvline(completeness_frac.mean(), color="red", linestyle="--",
-               label=f"Mean: {completeness_frac.mean():.2f}")
+    ax.axvline(
+        completeness_frac.mean(),
+        color="red",
+        linestyle="--",
+        label=f"Mean: {completeness_frac.mean():.2f}",
+    )
     ax.legend()
     plt.tight_layout()
     save_fig("row_completeness", "data_quality")

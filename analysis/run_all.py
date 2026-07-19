@@ -61,10 +61,10 @@ def main(continue_on_error: bool = False) -> int:
     total_start = time.time()
     failures: list[str] = []
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  Analysis run_all.py")
     print(f"  {len(SCRIPTS)} scripts to execute")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     for i, script in enumerate(SCRIPTS, 1):
         print(f"[{i:02d}/{len(SCRIPTS)}] {script}")
@@ -83,13 +83,13 @@ def main(continue_on_error: bool = False) -> int:
                 break
 
     total = time.time() - total_start
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Total time: {total:.1f}s")
     if failures:
         print(f"  FAILED ({len(failures)}): {', '.join(failures)}")
     else:
         print("  All scripts completed successfully.")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     return 1 if failures else 0
 

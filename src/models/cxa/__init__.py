@@ -1,6 +1,6 @@
 """CxA models."""
 
-from src.models.cxa.baseline import BaselineCxAModel, BaselineCxAMetrics, filter_pass_events
+from src.models.cxa.baseline import BaselineCxAMetrics, BaselineCxAModel, filter_pass_events
 
 __all__ = [
     "BaselineCxAModel",

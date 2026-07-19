@@ -25,7 +25,7 @@ import pandas as pd
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import load_features, save_fig
+from analysis._utils import load_features, save_fig  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,8 +37,12 @@ logger = logging.getLogger("09_eda_sequences")
 
 def possession_length_dist(df: pd.DataFrame) -> None:
     col = next(
-        (c for c in ["events_in_possession", "possession_length", "events_before_action"]
-         if c in df.columns), None
+        (
+            c
+            for c in ["events_in_possession", "possession_length", "events_before_action"]
+            if c in df.columns
+        ),
+        None,
     )
     if col is None:
         logger.warning("No possession-length column found — skipping.")
@@ -64,11 +68,7 @@ def sequence_type_dist(df: pd.DataFrame) -> None:
         logger.warning("sequence_type not found — skipping.")
         return
 
-    counts = (
-        df["sequence_type"].astype(str)
-        .value_counts()
-        .reset_index()
-    )
+    counts = df["sequence_type"].astype(str).value_counts().reset_index()
     counts.columns = ["sequence_type", "count"]
     counts = counts.sort_values("count", ascending=True)
 
@@ -77,7 +77,9 @@ def sequence_type_dist(df: pd.DataFrame) -> None:
     ax.set_xlabel("Event Count")
     ax.set_title("Event Count by Sequence Type")
     for _, row in counts.iterrows():
-        ax.text(row["count"] + 5, row["sequence_type"], f'{row["count"]:,}', va="center", fontsize=8)
+        ax.text(
+            row["count"] + 5, row["sequence_type"], f"{row['count']:,}", va="center", fontsize=8
+        )
     plt.tight_layout()
     save_fig("sequence_type_dist", "eda")
 
@@ -164,9 +166,7 @@ def possession_speed_by_sequence(df: pd.DataFrame) -> None:
     plot_df = plot_df.dropna()
 
     seq_order = (
-        plot_df.groupby(seq_col)[speed_col].median()
-        .sort_values(ascending=True)
-        .index.tolist()
+        plot_df.groupby(seq_col)[speed_col].median().sort_values(ascending=True).index.tolist()
     )
 
     fig, ax = plt.subplots(figsize=(10, max(5, len(seq_order) * 0.55)))
@@ -183,7 +183,7 @@ def possession_speed_by_sequence(df: pd.DataFrame) -> None:
     bp = ax.boxplot(data, vert=False, patch_artist=True, notch=False)
     cmap = plt.get_cmap("tab10")
     colors = cmap(np.linspace(0, 1, len(seq_order)))
-    for patch, color in zip(bp["boxes"], colors):
+    for patch, color in zip(bp["boxes"], colors, strict=False):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
 

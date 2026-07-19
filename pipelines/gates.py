@@ -88,7 +88,9 @@ def feature_stability_gate_task(
         mlflow.log_param("threshold_psi", max_psi)
         if max_observed > max_psi:
             mlflow.set_tag("gate_status", "failed")
-            raise PipelineGateError(f"Feature stability gate failed: max_psi={max_observed:.3f} > {max_psi}")
+            raise PipelineGateError(
+                f"Feature stability gate failed: max_psi={max_observed:.3f} > {max_psi}"
+            )
         mlflow.set_tag("gate_status", "passed")
     logger.info("[gate] feature stability OK (max_psi=%.3f)", max_observed)
 

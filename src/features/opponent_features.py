@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import pandas as pd
 
@@ -16,18 +14,36 @@ def _safe_sort_matches(matches_df: pd.DataFrame) -> pd.DataFrame:
     return out.sort_values(["internal_id"])
 
 
-def _build_match_team_table(events_df: pd.DataFrame, matches_df: pd.DataFrame | None) -> pd.DataFrame:
+def _build_match_team_table(
+    events_df: pd.DataFrame, matches_df: pd.DataFrame | None
+) -> pd.DataFrame:
     """Return rows: (match_internal_id, team_internal_id, opponent_team_internal_id)."""
-    if matches_df is not None and not matches_df.empty and {
-        "internal_id", "home_team_internal_id", "away_team_internal_id"
-    }.issubset(matches_df.columns):
+    if (
+        matches_df is not None
+        and not matches_df.empty
+        and {"internal_id", "home_team_internal_id", "away_team_internal_id"}.issubset(
+            matches_df.columns
+        )
+    ):
         rows = []
         for _, row in matches_df.iterrows():
             mid = row["internal_id"]
             home = row["home_team_internal_id"]
             away = row["away_team_internal_id"]
-            rows.append({"match_internal_id": mid, "team_internal_id": home, "opponent_team_internal_id": away})
-            rows.append({"match_internal_id": mid, "team_internal_id": away, "opponent_team_internal_id": home})
+            rows.append(
+                {
+                    "match_internal_id": mid,
+                    "team_internal_id": home,
+                    "opponent_team_internal_id": away,
+                }
+            )
+            rows.append(
+                {
+                    "match_internal_id": mid,
+                    "team_internal_id": away,
+                    "opponent_team_internal_id": home,
+                }
+            )
         return pd.DataFrame(rows)
 
     pairs = []
@@ -36,43 +52,62 @@ def _build_match_team_table(events_df: pd.DataFrame, matches_df: pd.DataFrame | 
         if len(teams) < 2:
             continue
         a, b = teams[0], teams[1]
-        pairs.append({"match_internal_id": mid, "team_internal_id": a, "opponent_team_internal_id": b})
-        pairs.append({"match_internal_id": mid, "team_internal_id": b, "opponent_team_internal_id": a})
+        pairs.append(
+            {"match_internal_id": mid, "team_internal_id": a, "opponent_team_internal_id": b}
+        )
+        pairs.append(
+            {"match_internal_id": mid, "team_internal_id": b, "opponent_team_internal_id": a}
+        )
     return pd.DataFrame(pairs)
 
 
 def _compute_match_level_stats(events_df: pd.DataFrame, team_map_df: pd.DataFrame) -> pd.DataFrame:
     """Compute per-team-in-match defensive and context stats (vectorised)."""
     # Pre-group events by (match, team) once — avoids O(n * matches) row scans
-    ev = events_df[["match_internal_id", "team_internal_id", "action_type",
-                     "end_x", "shot_statsbomb_xg"]].copy() if "shot_statsbomb_xg" in events_df.columns \
+    ev = (
+        events_df[
+            ["match_internal_id", "team_internal_id", "action_type", "end_x", "shot_statsbomb_xg"]
+        ].copy()
+        if "shot_statsbomb_xg" in events_df.columns
         else events_df[["match_internal_id", "team_internal_id", "action_type", "end_x"]].copy()
+    )
 
     ev["_is_shot"] = ev["action_type"].astype(str) == "shot"
     ev["_is_pass"] = ev["action_type"].astype(str) == "pass"
     ev["_is_carry"] = ev["action_type"].astype(str) == "carry"
     ev["_is_pressure"] = ev["action_type"].astype(str) == "pressure"
-    ev["_xg"] = pd.to_numeric(ev.get("shot_statsbomb_xg"), errors="coerce").fillna(0.0) \
-        if "shot_statsbomb_xg" in ev.columns else 0.0
+    ev["_xg"] = (
+        pd.to_numeric(ev.get("shot_statsbomb_xg"), errors="coerce").fillna(0.0)
+        if "shot_statsbomb_xg" in ev.columns
+        else 0.0
+    )
     ev["_end_x"] = pd.to_numeric(ev.get("end_x"), errors="coerce")
     ev["_box_entry"] = (ev["_is_pass"] | ev["_is_carry"]) & (ev["_end_x"] >= 88.5)
 
-    agg = ev.groupby(["match_internal_id", "team_internal_id"], sort=False).agg(
-        shots=("_is_shot", "sum"),
-        xg=("_xg", "sum"),
-        passes=("_is_pass", "sum"),
-        pressures=("_is_pressure", "sum"),
-        box_entries=("_box_entry", "sum"),
-    ).reset_index()
+    agg = (
+        ev.groupby(["match_internal_id", "team_internal_id"], sort=False)
+        .agg(
+            shots=("_is_shot", "sum"),
+            xg=("_xg", "sum"),
+            passes=("_is_pass", "sum"),
+            pressures=("_is_pressure", "sum"),
+            box_entries=("_box_entry", "sum"),
+        )
+        .reset_index()
+    )
 
     # Merge team_map to get opponent side
     merged = team_map_df.merge(
-        agg.rename(columns={
-            "team_internal_id": "opponent_team_internal_id",
-            "shots": "opp_shots", "xg": "opp_xg",
-            "passes": "opp_passes", "box_entries": "opp_box_entries",
-            "pressures": "opp_pressures",
-        }),
+        agg.rename(
+            columns={
+                "team_internal_id": "opponent_team_internal_id",
+                "shots": "opp_shots",
+                "xg": "opp_xg",
+                "passes": "opp_passes",
+                "box_entries": "opp_box_entries",
+                "pressures": "opp_pressures",
+            }
+        ),
         on=["match_internal_id", "opponent_team_internal_id"],
         how="left",
     ).merge(
@@ -91,15 +126,17 @@ def _compute_match_level_stats(events_df: pd.DataFrame, team_map_df: pd.DataFram
     for _, r in merged.iterrows():
         pressures = int(r["pressures"])
         opp_passes = int(r["opp_passes"])
-        rows.append({
-            "match_internal_id": r["match_internal_id"],
-            "team_internal_id": r["team_internal_id"],
-            "opponent_team_internal_id": r["opponent_team_internal_id"],
-            "xg_conceded": float(r["opp_xg"]),
-            "shots_conceded": int(r["opp_shots"]),
-            "box_entries_conceded": int(r["opp_box_entries"]),
-            "pressing_intensity": float(opp_passes / max(1, pressures)),
-        })
+        rows.append(
+            {
+                "match_internal_id": r["match_internal_id"],
+                "team_internal_id": r["team_internal_id"],
+                "opponent_team_internal_id": r["opponent_team_internal_id"],
+                "xg_conceded": float(r["opp_xg"]),
+                "shots_conceded": int(r["opp_shots"]),
+                "box_entries_conceded": int(r["opp_box_entries"]),
+                "pressing_intensity": float(opp_passes / max(1, pressures)),
+            }
+        )
 
     return pd.DataFrame(rows)
 
@@ -110,14 +147,22 @@ def _rolling_pre_match(match_stats_df: pd.DataFrame, window: int = 5) -> pd.Data
     if match_stats_df.empty:
         return pd.DataFrame()
 
-    for team_id, grp in match_stats_df.groupby("team_internal_id", sort=False):
+    for _team_id, grp in match_stats_df.groupby("team_internal_id", sort=False):
         grp = grp.copy()
         grp = grp.sort_values(["match_order"]) if "match_order" in grp.columns else grp
 
-        grp["opponent_xg_conceded_rolling_5"] = grp["xg_conceded"].shift(1).rolling(window, min_periods=1).mean()
-        grp["opponent_shots_conceded_rolling_5"] = grp["shots_conceded"].shift(1).rolling(window, min_periods=1).mean()
-        grp["opponent_box_entries_conceded_rolling_5"] = grp["box_entries_conceded"].shift(1).rolling(window, min_periods=1).mean()
-        grp["opponent_pressing_intensity"] = grp["pressing_intensity"].shift(1).rolling(window, min_periods=1).mean()
+        grp["opponent_xg_conceded_rolling_5"] = (
+            grp["xg_conceded"].shift(1).rolling(window, min_periods=1).mean()
+        )
+        grp["opponent_shots_conceded_rolling_5"] = (
+            grp["shots_conceded"].shift(1).rolling(window, min_periods=1).mean()
+        )
+        grp["opponent_box_entries_conceded_rolling_5"] = (
+            grp["box_entries_conceded"].shift(1).rolling(window, min_periods=1).mean()
+        )
+        grp["opponent_pressing_intensity"] = (
+            grp["pressing_intensity"].shift(1).rolling(window, min_periods=1).mean()
+        )
 
         # Composite ratings (simple proxies, intentionally transparent)
         grp["opponent_defensive_rating"] = (
@@ -126,15 +171,29 @@ def _rolling_pre_match(match_stats_df: pd.DataFrame, window: int = 5) -> pd.Data
             + 0.1 * grp["opponent_pressing_intensity"].fillna(grp["pressing_intensity"].median())
         )
 
-        grp["opponent_transition_defence_strength"] = 1.0 / (1.0 + grp["opponent_xg_conceded_rolling_5"].fillna(1.0))
-        grp["opponent_set_piece_defence_strength"] = 1.0 / (1.0 + grp["opponent_box_entries_conceded_rolling_5"].fillna(1.0))
-        grp["opponent_keeper_shot_stopping_rating"] = -grp["opponent_xg_conceded_rolling_5"].fillna(0.0)
+        grp["opponent_transition_defence_strength"] = 1.0 / (
+            1.0 + grp["opponent_xg_conceded_rolling_5"].fillna(1.0)
+        )
+        grp["opponent_set_piece_defence_strength"] = 1.0 / (
+            1.0 + grp["opponent_box_entries_conceded_rolling_5"].fillna(1.0)
+        )
+        grp["opponent_keeper_shot_stopping_rating"] = -grp["opponent_xg_conceded_rolling_5"].fillna(
+            0.0
+        )
 
-        grp["opponent_team_elo"] = 1500.0 - (50.0 * grp["opponent_xg_conceded_rolling_5"].fillna(0.0))
-        grp["opponent_chance_suppression_rating"] = 1.0 / (1.0 + grp["opponent_shots_conceded_rolling_5"].fillna(1.0))
-        grp["opponent_box_defence_rating"] = 1.0 / (1.0 + grp["opponent_box_entries_conceded_rolling_5"].fillna(1.0))
+        grp["opponent_team_elo"] = 1500.0 - (
+            50.0 * grp["opponent_xg_conceded_rolling_5"].fillna(0.0)
+        )
+        grp["opponent_chance_suppression_rating"] = 1.0 / (
+            1.0 + grp["opponent_shots_conceded_rolling_5"].fillna(1.0)
+        )
+        grp["opponent_box_defence_rating"] = 1.0 / (
+            1.0 + grp["opponent_box_entries_conceded_rolling_5"].fillna(1.0)
+        )
         grp["opponent_cross_defence_rating"] = grp["opponent_box_defence_rating"]
-        grp["opponent_pressing_rating"] = 1.0 / (1.0 + grp["opponent_pressing_intensity"].fillna(1.0))
+        grp["opponent_pressing_rating"] = 1.0 / (
+            1.0 + grp["opponent_pressing_intensity"].fillna(1.0)
+        )
         grp["opponent_block_compactness_rating"] = grp["opponent_box_defence_rating"]
         grp["opponent_box_entry_prevention_rating"] = grp["opponent_box_defence_rating"]
         grp["opponent_team_strength"] = grp["opponent_team_elo"]

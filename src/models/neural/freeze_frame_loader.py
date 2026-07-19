@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -38,15 +38,15 @@ BOX_Y_MAX = 54.16
 # Per-token feature dimension. Keep stable — encoders read it.
 TOKEN_DIM = 9
 TOKEN_FEATURES = (
-    "x_norm",                # x / 105
-    "y_norm",                # y / 68
-    "is_teammate",           # 1.0 / 0.0
-    "is_opponent",           # 1.0 / 0.0
-    "is_keeper",             # 1.0 / 0.0
-    "dist_to_ball_norm",     # / pitch diag
-    "dist_to_goal_norm",     # / pitch diag
-    "angle_to_goal",         # radians, signed
-    "in_box",                # 1.0 / 0.0
+    "x_norm",  # x / 105
+    "y_norm",  # y / 68
+    "is_teammate",  # 1.0 / 0.0
+    "is_opponent",  # 1.0 / 0.0
+    "is_keeper",  # 1.0 / 0.0
+    "dist_to_ball_norm",  # / pitch diag
+    "dist_to_goal_norm",  # / pitch diag
+    "angle_to_goal",  # radians, signed
+    "in_box",  # 1.0 / 0.0
 )
 
 
@@ -68,9 +68,7 @@ def load_freeze_frames(path: str | Path | None = None) -> pd.DataFrame:
     fp = Path(path) if path is not None else default_frames_path()
     if not fp.exists():
         logger.warning("freeze_frames_360 not found at %s", fp)
-        return pd.DataFrame(
-            columns=["event_internal_id", "x", "y", "teammate", "keeper"]
-        )
+        return pd.DataFrame(columns=["event_internal_id", "x", "y", "teammate", "keeper"])
     return pd.read_parquet(fp)
 
 
@@ -152,10 +150,7 @@ def encode_frame_tokens(
             px, py = x[idx], y[idx]
             d_goal = math.hypot(GOAL_X - px, GOAL_Y - py)
             angle = math.atan2(GOAL_Y - py, GOAL_X - px)
-            in_box = (
-                (px >= BOX_X_MIN)
-                and (BOX_Y_MIN <= py <= BOX_Y_MAX)
-            )
+            in_box = (px >= BOX_X_MIN) and (BOX_Y_MIN <= py <= BOX_Y_MAX)
             tokens[i, j] = (
                 px / PITCH_X,
                 py / PITCH_Y,
@@ -200,15 +195,15 @@ def build_knn_adjacency(tokens, mask, k: int = 4):
 
     B, N, _ = tokens.shape
     attn = torch.ones(B, N, N, dtype=torch.bool)  # default: no edge
-    coords = tokens[..., :2]                       # (B, N, 2) in [0,1]
-    is_teammate = tokens[..., 2] > 0.5             # (B, N)
+    coords = tokens[..., :2]  # (B, N, 2) in [0,1]
+    is_teammate = tokens[..., 2] > 0.5  # (B, N)
 
     # Pairwise distances per graph
-    diff = coords.unsqueeze(2) - coords.unsqueeze(1)   # (B, N, N, 2)
-    dist = (diff * diff).sum(dim=-1).sqrt()            # (B, N, N)
+    diff = coords.unsqueeze(2) - coords.unsqueeze(1)  # (B, N, N, 2)
+    dist = (diff * diff).sum(dim=-1).sqrt()  # (B, N, N)
 
     # Disallow edges to padded positions or to self
-    pad_col = mask.unsqueeze(1).expand(B, N, N)        # mask along columns
+    pad_col = mask.unsqueeze(1).expand(B, N, N)  # mask along columns
     not_teammate_col = (~is_teammate).unsqueeze(1).expand(B, N, N)
     invalid = pad_col | not_teammate_col
     eye = torch.eye(N, dtype=torch.bool).unsqueeze(0).expand(B, N, N)
@@ -220,17 +215,20 @@ def build_knn_adjacency(tokens, mask, k: int = 4):
     # Take k smallest along last dim
     k_eff = min(k, N - 1)
     _, idx = masked_dist.topk(k_eff, dim=-1, largest=False)
-    keep = torch.zeros_like(attn)                       # False = will keep edge
+    keep = torch.zeros_like(attn)  # False = will keep edge
     keep.scatter_(2, idx, True)
     # An edge exists where keep AND not invalid.
     edges_present = keep & (~invalid)
-    attn = ~edges_present                              # True = mask out
+    attn = ~edges_present  # True = mask out
     return attn
 
 
-def shots_with_frames_count(shots_df: pd.DataFrame, frames_df: pd.DataFrame,
-                             event_id_col: str = "event_internal_id",
-                             frames_event_id_col: str | None = None) -> int:
+def shots_with_frames_count(
+    shots_df: pd.DataFrame,
+    frames_df: pd.DataFrame,
+    event_id_col: str = "event_internal_id",
+    frames_event_id_col: str | None = None,
+) -> int:
     """Diagnostic: how many shots actually have any freeze-frame data."""
     f_col = frames_event_id_col or event_id_col
     if frames_df.empty or event_id_col not in shots_df.columns or f_col not in frames_df.columns:

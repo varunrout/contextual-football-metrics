@@ -27,7 +27,7 @@ import scipy.stats as stats
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from analysis._utils import (
+from analysis._utils import (  # noqa: E402
     feature_groups,
     load_features,
     save_fig,
@@ -41,8 +41,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("03_univariate")
 
-_ID_COLS = {"player_id", "team_id", "opponent_id", "competition_id",
-            "match_id", "possession_id", "event_id"}
+_ID_COLS = {
+    "player_id",
+    "team_id",
+    "opponent_id",
+    "competition_id",
+    "match_id",
+    "possession_id",
+    "event_id",
+}
 _SKEW_FLAG = 2.0
 _ZSCORE_THRESHOLD = 3.0
 _MAX_COLS_PER_GRID = 6
@@ -146,9 +153,9 @@ def _distribution_grid(group_name: str, cols: list[str], df: pd.DataFrame) -> No
 
 def _categorical_grid(group_name: str, cols: list[str], df: pd.DataFrame) -> None:
     cat_cols = [
-        c for c in cols
-        if c in df.columns and not pd.api.types.is_numeric_dtype(df[c])
-        and c not in _ID_COLS
+        c
+        for c in cols
+        if c in df.columns and not pd.api.types.is_numeric_dtype(df[c]) and c not in _ID_COLS
     ]
     if not cat_cols:
         return
@@ -182,15 +189,13 @@ def _categorical_grid(group_name: str, cols: list[str], df: pd.DataFrame) -> Non
 def outlier_summary(df: pd.DataFrame, stat_results: dict) -> None:
     """Bar chart of top-20 features by outlier fraction."""
     items = [
-        (col, v["outlier_fraction"])
-        for col, v in stat_results.items()
-        if "outlier_fraction" in v
+        (col, v["outlier_fraction"]) for col, v in stat_results.items() if "outlier_fraction" in v
     ]
     items.sort(key=lambda x: x[1], reverse=True)
     top20 = items[:20]
     if not top20:
         return
-    feats, fracs = zip(*top20)
+    feats, fracs = zip(*top20, strict=False)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.barh(list(feats)[::-1], list(fracs)[::-1], color="#d62728")
@@ -202,24 +207,22 @@ def outlier_summary(df: pd.DataFrame, stat_results: dict) -> None:
 
 def skewness_ranking(stat_results: dict) -> list[str]:
     """Bar chart of |skewness| per numeric feature; flag > 2 as log-transform candidates."""
-    items = [
-        (col, abs(v["skew"]))
-        for col, v in stat_results.items()
-        if "skew" in v
-    ]
+    items = [(col, abs(v["skew"])) for col, v in stat_results.items() if "skew" in v]
     items.sort(key=lambda x: x[1], reverse=True)
     top40 = items[:40]
     if not top40:
         return []
 
-    feats, skews = zip(*top40)
+    feats, skews = zip(*top40, strict=False)
     colors = ["#d62728" if s > _SKEW_FLAG else "#1f77b4" for s in skews]
 
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.bar(range(len(feats)), skews, color=colors)
     ax.set_xticks(range(len(feats)))
     ax.set_xticklabels(feats, rotation=90, fontsize=7)
-    ax.axhline(_SKEW_FLAG, color="red", linestyle="--", label=f"|skew| = {_SKEW_FLAG} (log-transform)")
+    ax.axhline(
+        _SKEW_FLAG, color="red", linestyle="--", label=f"|skew| = {_SKEW_FLAG} (log-transform)"
+    )
     ax.set_ylabel("|Skewness|")
     ax.set_title("Feature Skewness Ranking  (red = log-transform candidate)")
     ax.legend()
