@@ -33,6 +33,8 @@ data/features/
 data/external/
 mlruns/
 outputs/
+# SQLite results store (regenerate with scripts/build_results_db.py)
+results.db
 *.parquet
 *.feather
 *.joblib
