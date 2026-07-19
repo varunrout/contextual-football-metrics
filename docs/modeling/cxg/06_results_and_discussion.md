@@ -18,7 +18,9 @@ evaluated on the Euro 2024 held-out set (1,340 shots).
 **HO** = Euro 2024 held-out set (1,340 shots, unseen during all training).
 
 Model selection criterion: CV log-loss (rank 1 = `baseline_logit`).
-Production model selected: `glm_contextual` — best on all three held-out metrics.
+Production model selected: `baseline_logit` — the CV rank-1 model. The held-out
+set is used once as confirmation only, not to pick the winner (see section 5 and
+`docs/modeling/cxg/07`).
 
 ---
 
@@ -110,34 +112,42 @@ CV–HO alignment.
 
 ## 5. Production Model Selection
 
-The CV criterion (log-loss) nominates `baseline_logit` as rank 1. However,
-on every held-out metric, `glm_contextual` is strictly better:
+The selection rule is fixed in advance: **rank 1 on 5-fold CV log-loss**. On that
+criterion the winner is `baseline_logit`. The held-out set is inspected once,
+after selection, only to confirm the choice generalises, never to break the tie.
 
-| Criterion | `baseline_logit` | `glm_contextual` | Winner |
+| Criterion | `baseline_logit` | `glm_contextual` | CV winner |
 |---|---|---|---|
-| CV log-loss | **0.2960** | 0.2982 | baseline_logit |
-| HO log-loss | 0.2504 | **0.2413** | **glm_contextual** |
-| HO AUC | 0.7987 | **0.8131** | **glm_contextual** |
-| HO Brier | 0.0694 | **0.0667** | **glm_contextual** |
-| Interpretability | medium | high | **glm_contextual** |
-| Downstream suitability | medium | high | **glm_contextual** |
+| CV log-loss (selection) | **0.2960** | 0.2982 | **baseline_logit** |
+| HO log-loss (confirmation) | 0.2504 | 0.2413 | glm_contextual |
+| HO AUC (confirmation) | 0.7987 | 0.8131 | glm_contextual |
+| HO Brier (confirmation) | 0.0694 | 0.0667 | glm_contextual |
 
-The CV difference (0.2982 vs 0.2960 = 0.0022) is within sampling noise
-across 5 folds of ~557 shots each. The held-out advantage of `glm_contextual`
-(−0.0091 log-loss, +0.0144 AUC) over a truly independent 1,340-shot test set
-is more reliable evidence of true superiority.
+An earlier version of this document promoted `glm_contextual` because it wins on
+every held-out metric. That was a mistake: choosing the production model by its
+score on the final held-out set contaminates that set and turns a confirmation
+into a tie-break. Under the pre-committed CV rule the production model is
+`baseline_logit`, and `configs/models.yaml` points to it.
 
-`glm_contextual` is additionally preferred because:
+The held-out edge of `glm_contextual` is real but small, and it does not change
+the decision:
 
-1. **Calibration**: Lower Brier score (0.067 vs 0.069) means CxG scores
-   used as inputs to CxA and CxT are better-calibrated probability estimates,
-   not just better-ranked ones.
-2. **Interpretability**: Coefficients are log-odds ratios, directly readable
-   as the additive effect of each contextual factor on shot difficulty.
-3. **Contextual signal**: It incorporates opponent quality and build-up context,
-   which is the theoretical contribution of this work over traditional xG.
+- On the matched Euro 2024 held-out comparison
+  (`analysis/20_incremental_lift_vs_baselines.py`), `glm_contextual` beats
+  `baseline_logit` on log-loss by 0.0096 with a 95 percent paired-bootstrap CI
+  of [−0.0174, −0.0022] that excludes zero; its AUC edge (+0.0152) has a CI
+  [−0.0026, +0.0333] that includes zero, so it is not established.
+- Against off-the-shelf StatsBomb xG on the same rows, `glm_contextual` shows
+  **no demonstrable lift**: both the log-loss and AUC deltas have CIs spanning
+  zero, and StatsBomb xG is better on the point estimates (log-loss 0.233 vs
+  0.241, AUC 0.830 vs 0.813, ECE 0.013 vs 0.017). See `docs/modeling/cxg/07`.
 
-**Production model: `models/cxg/glm_contextual.joblib`**
+So the contextual GLM is a defensible improvement on our own traditional
+baseline, but it is not promoted: it is not selected by the pre-committed
+criterion, and it does not beat off-the-shelf xG. `baseline_logit` remains the
+production model, chosen honestly and reported without cherry-picking.
+
+**Production model: `models/cxg/baseline_logit.joblib`**
 
 ---
 

@@ -35,6 +35,7 @@ from functools import lru_cache
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -52,6 +53,7 @@ _FEATURE_REGISTRY = _ROOT / "configs" / "features.yaml"
 
 
 # ── Cached data loaders ────────────────────────────────────────────────────────
+
 
 @lru_cache(maxsize=1)
 def load_features() -> pd.DataFrame:
@@ -124,10 +126,14 @@ def load_shots() -> pd.DataFrame:
                     cols.append("shot_statsbomb_xg")
 
                 lookup = events[cols].drop_duplicates(rcol)
-                merged = df.merge(lookup, left_on=lcol, right_on=rcol, how="left", suffixes=("", "_ev"))
+                merged = df.merge(
+                    lookup, left_on=lcol, right_on=rcol, how="left", suffixes=("", "_ev")
+                )
 
                 if "goal" not in df.columns and "goal" in merged.columns:
-                    merged["goal"] = pd.to_numeric(merged["goal"], errors="coerce").fillna(0).astype(int)
+                    merged["goal"] = (
+                        pd.to_numeric(merged["goal"], errors="coerce").fillna(0).astype(int)
+                    )
 
                 if rcol != lcol and rcol in merged.columns:
                     merged = merged.drop(columns=[rcol])
@@ -166,9 +172,7 @@ def load_events() -> pd.DataFrame:
     """Raw processed events — contains shot_statsbomb_xg."""
     path = _PROCESSED_DIR / "events.parquet"
     if not path.exists():
-        raise FileNotFoundError(
-            f"events.parquet not found at {path}. Run scripts/ingest.py first."
-        )
+        raise FileNotFoundError(f"events.parquet not found at {path}. Run scripts/ingest.py first.")
     df = pd.read_parquet(path)
 
     # Normalise event identifier naming across datasets.
@@ -193,7 +197,60 @@ def load_matches() -> pd.DataFrame:
     return df
 
 
+# ── Held-out split resolution ───────────────────────────────────────────────────
+
+# Final external held-out competition/season: UEFA Euro 2024 (StatsBomb ids).
+HELDOUT_COMPETITION_ID = 55
+HELDOUT_SEASON_ID = 282
+
+
+def heldout_match_ids(
+    competition_id: int = HELDOUT_COMPETITION_ID,
+    season_id: int = HELDOUT_SEASON_ID,
+) -> set[str]:
+    """Return the set of match internal_ids for the held-out competition/season.
+
+    The feature tables (shots.parquet, actions.parquet) carry a hashed
+    competition_id and drop season_id, so they cannot be filtered on the raw
+    StatsBomb ids directly. matches.parquet keeps the real integer ids, so we
+    resolve the held-out matches there and return their internal_ids for joining.
+    """
+    matches = load_matches()
+    for col in ("competition_id", "season_id", "internal_id"):
+        if col not in matches.columns:
+            raise KeyError(f"matches.parquet is missing required column {col!r}.")
+    sel = matches[
+        (matches["competition_id"] == competition_id) & (matches["season_id"] == season_id)
+    ]
+    if sel.empty:
+        raise ValueError(
+            f"No matches for competition {competition_id}, season {season_id} in matches.parquet."
+        )
+    return set(sel["internal_id"].astype(str))
+
+
+def heldout_mask(
+    df: pd.DataFrame,
+    competition_id: int = HELDOUT_COMPETITION_ID,
+    season_id: int = HELDOUT_SEASON_ID,
+) -> pd.Series:
+    """Boolean mask selecting rows of a shots/actions frame in the held-out split.
+
+    Joins the frame to matches.parquet via match_internal_id (falling back to
+    match_id) rather than relying on a competition_id/season_id column in the
+    frame itself.
+    """
+    ids = heldout_match_ids(competition_id, season_id)
+    key = "match_internal_id" if "match_internal_id" in df.columns else "match_id"
+    if key not in df.columns:
+        raise KeyError(
+            "Frame has no match_internal_id/match_id column to resolve the held-out split."
+        )
+    return df[key].astype(str).isin(ids)
+
+
 # ── Label derivation ───────────────────────────────────────────────────────────
+
 
 def derive_shot_created(actions: pd.DataFrame) -> pd.DataFrame:
     """
@@ -274,6 +331,7 @@ def _find_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
 
 # ── Figure / JSON persistence ──────────────────────────────────────────────────
 
+
 def save_fig(name: str, subfolder: str, dpi: int = 150) -> Path:
     """Save current matplotlib figure to reports/figures/{subfolder}/{name}.png."""
     out_dir = _FIGURES_DIR / subfolder
@@ -297,6 +355,7 @@ def save_json(data: dict, name: str) -> Path:
 
 def _json_default(obj):
     import numpy as np
+
     if isinstance(obj, (np.integer,)):
         return int(obj)
     if isinstance(obj, (np.floating,)):
@@ -309,6 +368,7 @@ def _json_default(obj):
 
 
 # ── Metadata helpers ───────────────────────────────────────────────────────────
+
 
 def competition_labels(df: pd.DataFrame | None = None) -> dict[str, str]:
     """
@@ -361,14 +421,27 @@ def feature_groups() -> dict[str, list[str]]:
 
 def numeric_feature_cols(df: pd.DataFrame) -> list[str]:
     """All float32/int columns that are actual feature values (not IDs)."""
-    id_cols = {"player_id", "team_id", "opponent_id", "competition_id",
-               "match_id", "possession_id", "event_id"}
+    id_cols = {
+        "player_id",
+        "team_id",
+        "opponent_id",
+        "competition_id",
+        "match_id",
+        "possession_id",
+        "event_id",
+    }
     return [c for c in df.select_dtypes(include=["number"]).columns if c not in id_cols]
 
 
 def categorical_feature_cols(df: pd.DataFrame) -> list[str]:
     """All category/object columns that are actual feature values (not IDs)."""
-    id_cols = {"player_id", "team_id", "opponent_id", "competition_id",
-               "match_id", "possession_id", "event_id"}
-    return [c for c in df.select_dtypes(include=["category", "object"]).columns
-            if c not in id_cols]
+    id_cols = {
+        "player_id",
+        "team_id",
+        "opponent_id",
+        "competition_id",
+        "match_id",
+        "possession_id",
+        "event_id",
+    }
+    return [c for c in df.select_dtypes(include=["category", "object"]).columns if c not in id_cols]

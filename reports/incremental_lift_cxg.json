@@ -1,0 +1,59 @@
+{
+  "evaluation": "identical Euro 2024 held-out rows; single ECE definition; paired bootstrap",
+  "n_shots": 1340,
+  "n_goals": 126,
+  "n_bootstrap": 2000,
+  "per_model": {
+    "statsbomb_xg": {
+      "log_loss": 0.233287902319627,
+      "brier": 0.06453235428534512,
+      "roc_auc": 0.8295252477707175,
+      "ece": 0.012581240731716417,
+      "mean_pred": 0.10418258917350746
+    },
+    "baseline_logit": {
+      "log_loss": 0.25072694864758316,
+      "brier": 0.06945840629089096,
+      "roc_auc": 0.7982401087837662,
+      "ece": 0.02037054074251415,
+      "mean_pred": 0.10726834302240222
+    },
+    "glm_contextual": {
+      "log_loss": 0.2413127201205658,
+      "brier": 0.06668785011186162,
+      "roc_auc": 0.8130802018775659,
+      "ece": 0.017073144828728803,
+      "mean_pred": 0.10492903650687917
+    }
+  },
+  "deltas_vs_baselines": {
+    "statsbomb_xg": {
+      "log_loss": {
+        "delta_mean": 0.007959988188574966,
+        "ci_low": -0.0038918032176957535,
+        "ci_high": 0.01971006418908994
+      },
+      "roc_auc": {
+        "delta_mean": -0.016431772639766997,
+        "ci_low": -0.04308875066294512,
+        "ci_high": 0.009360335587517499
+      }
+    },
+    "baseline_logit": {
+      "log_loss": {
+        "delta_mean": -0.009557415875411694,
+        "ci_low": -0.017395672143280826,
+        "ci_high": -0.0021761692858399233
+      },
+      "roc_auc": {
+        "delta_mean": 0.015211850352490282,
+        "ci_low": -0.0026053628827258533,
+        "ci_high": 0.033346646790240825
+      }
+    }
+  },
+  "candidate": "glm_contextual",
+  "strict_baseline": "statsbomb_xg",
+  "verdict": "NO DEMONSTRABLE LIFT over statsbomb_xg: neither log-loss nor AUC improvement has a CI excluding zero. Honest conclusion - contextual context does not yet beat off-the-shelf xG.",
+  "smoke": false
+}
