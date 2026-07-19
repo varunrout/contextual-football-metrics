@@ -349,6 +349,7 @@ def save_json(data: dict, name: str) -> Path:
     path = _REPORTS_DIR / f"{name}.json"
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=_json_default)
+        f.write("\n")  # trailing newline so the file passes the end-of-file hook
     logger.info("Saved JSON: %s", path.relative_to(_ROOT))
     return path
 

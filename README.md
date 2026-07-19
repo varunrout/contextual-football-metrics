@@ -249,6 +249,13 @@ Known future work, deliberately not claimed as done:
 - **Expanding beyond the current competitions** to tighten the confidence
   intervals on the headline comparisons.
 
+## Credentials
+
+There are no secrets in this repository or its git history. All credentials
+(MLflow/DagsHub tracking, any DVC remote) are read from environment variables at
+runtime; copy [`.env.example`](.env.example) to `.env` (gitignored) and fill in
+locally. `.dvc/config` holds no tokens, and CI needs no secrets.
+
 ## Further reading
 
 - [docs/quickstart.md](docs/quickstart.md) — clone to results in one page
