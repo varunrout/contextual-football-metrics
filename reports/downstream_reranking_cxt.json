@@ -1,0 +1,374 @@
+{
+  "evaluation": "player threat leaderboard: contextual CxT (production model) vs static zone xT surface, over all CxT actions",
+  "n_players": 676,
+  "min_actions": 150,
+  "rank_agreement_spearman": 0.875871215100848,
+  "top_by_contextual_cxt": [
+    {
+      "player": "Lionel Andr\u00e9s Messi Cuccittini",
+      "cxt_sum": 169.52,
+      "cxt_rank": 1,
+      "xt_rank": 3,
+      "rank_delta": 2,
+      "n_actions": 5615
+    },
+    {
+      "player": "Jordi Alba Ramos",
+      "cxt_sum": 169.214,
+      "cxt_rank": 2,
+      "xt_rank": 1,
+      "rank_delta": -1,
+      "n_actions": 6569
+    },
+    {
+      "player": "Sergio Busquets i Burgos",
+      "cxt_sum": 148.954,
+      "cxt_rank": 3,
+      "xt_rank": 4,
+      "rank_delta": 1,
+      "n_actions": 5465
+    },
+    {
+      "player": "Pedro Gonz\u00e1lez L\u00f3pez",
+      "cxt_sum": 147.906,
+      "cxt_rank": 4,
+      "xt_rank": 5,
+      "rank_delta": 1,
+      "n_actions": 4976
+    },
+    {
+      "player": "Frenkie de Jong",
+      "cxt_sum": 139.295,
+      "cxt_rank": 5,
+      "xt_rank": 2,
+      "rank_delta": -3,
+      "n_actions": 5902
+    },
+    {
+      "player": "Antoine Griezmann",
+      "cxt_sum": 99.502,
+      "cxt_rank": 6,
+      "xt_rank": 7,
+      "rank_delta": 1,
+      "n_actions": 3470
+    },
+    {
+      "player": "Cl\u00e9ment Lenglet",
+      "cxt_sum": 96.166,
+      "cxt_rank": 7,
+      "xt_rank": 6,
+      "rank_delta": -1,
+      "n_actions": 4119
+    },
+    {
+      "player": "Ousmane Demb\u00e9l\u00e9",
+      "cxt_sum": 80.815,
+      "cxt_rank": 8,
+      "xt_rank": 9,
+      "rank_delta": 1,
+      "n_actions": 2618
+    },
+    {
+      "player": "Sergino Dest",
+      "cxt_sum": 65.966,
+      "cxt_rank": 9,
+      "xt_rank": 12,
+      "rank_delta": 3,
+      "n_actions": 2651
+    },
+    {
+      "player": "Aymeric Laporte",
+      "cxt_sum": 63.672,
+      "cxt_rank": 10,
+      "xt_rank": 8,
+      "rank_delta": -2,
+      "n_actions": 2891
+    },
+    {
+      "player": "\u00d3scar Mingueza Garc\u00eda",
+      "cxt_sum": 59.566,
+      "cxt_rank": 11,
+      "xt_rank": 11,
+      "rank_delta": 0,
+      "n_actions": 2709
+    },
+    {
+      "player": "Joshua Kimmich",
+      "cxt_sum": 59.083,
+      "cxt_rank": 12,
+      "xt_rank": 25,
+      "rank_delta": 13,
+      "n_actions": 1670
+    },
+    {
+      "player": "Rodrigo Hern\u00e1ndez Cascante",
+      "cxt_sum": 57.401,
+      "cxt_rank": 13,
+      "xt_rank": 13,
+      "rank_delta": 0,
+      "n_actions": 2355
+    },
+    {
+      "player": "Gerard Piqu\u00e9 Bernab\u00e9u",
+      "cxt_sum": 49.91,
+      "cxt_rank": 14,
+      "xt_rank": 14,
+      "rank_delta": 0,
+      "n_actions": 2208
+    },
+    {
+      "player": "Antonio R\u00fcdiger",
+      "cxt_sum": 48.117,
+      "cxt_rank": 15,
+      "xt_rank": 23,
+      "rank_delta": 8,
+      "n_actions": 1736
+    }
+  ],
+  "biggest_risers_under_cxt": [
+    {
+      "player": "Jo\u00e3o Filipe Iria Santos Moutinho",
+      "cxt_sum": 9.398,
+      "cxt_rank": 193,
+      "xt_rank": 520,
+      "rank_delta": 327,
+      "n_actions": 199
+    },
+    {
+      "player": "Rafael Tol\u00f3i",
+      "cxt_sum": 5.148,
+      "cxt_rank": 364,
+      "xt_rank": 671,
+      "rank_delta": 307,
+      "n_actions": 154
+    },
+    {
+      "player": "Thiago Alc\u00e2ntara do Nascimento",
+      "cxt_sum": 5.439,
+      "cxt_rank": 349,
+      "xt_rank": 638,
+      "rank_delta": 289,
+      "n_actions": 157
+    },
+    {
+      "player": "Alejandro Balde Mart\u00ednez",
+      "cxt_sum": 8.134,
+      "cxt_rank": 227,
+      "xt_rank": 479,
+      "rank_delta": 252,
+      "n_actions": 226
+    },
+    {
+      "player": "Dennis Man",
+      "cxt_sum": 4.749,
+      "cxt_rank": 395,
+      "xt_rank": 641,
+      "rank_delta": 246,
+      "n_actions": 156
+    },
+    {
+      "player": "Che Adams",
+      "cxt_sum": 5.514,
+      "cxt_rank": 342,
+      "xt_rank": 584,
+      "rank_delta": 242,
+      "n_actions": 173
+    },
+    {
+      "player": "Abdul Rahman Baba",
+      "cxt_sum": 5.087,
+      "cxt_rank": 367,
+      "xt_rank": 600,
+      "rank_delta": 233,
+      "n_actions": 174
+    },
+    {
+      "player": "Ryan Gravenberch",
+      "cxt_sum": 5.674,
+      "cxt_rank": 328,
+      "xt_rank": 561,
+      "rank_delta": 233,
+      "n_actions": 182
+    },
+    {
+      "player": "Wout Weghorst",
+      "cxt_sum": 5.237,
+      "cxt_rank": 357,
+      "xt_rank": 585,
+      "rank_delta": 228,
+      "n_actions": 175
+    },
+    {
+      "player": "Andreas Skov Olsen",
+      "cxt_sum": 8.505,
+      "cxt_rank": 213,
+      "xt_rank": 441,
+      "rank_delta": 228,
+      "n_actions": 238
+    },
+    {
+      "player": "Juli\u00e1n \u00c1lvarez",
+      "cxt_sum": 8.18,
+      "cxt_rank": 225,
+      "xt_rank": 453,
+      "rank_delta": 228,
+      "n_actions": 230
+    },
+    {
+      "player": "Luka Su\u010di\u0107",
+      "cxt_sum": 4.768,
+      "cxt_rank": 393,
+      "xt_rank": 618,
+      "rank_delta": 225,
+      "n_actions": 165
+    },
+    {
+      "player": "Junya Ito",
+      "cxt_sum": 5.169,
+      "cxt_rank": 360,
+      "xt_rank": 582,
+      "rank_delta": 222,
+      "n_actions": 176
+    },
+    {
+      "player": "Jack Grealish",
+      "cxt_sum": 10.68,
+      "cxt_rank": 171,
+      "xt_rank": 387,
+      "rank_delta": 216,
+      "n_actions": 273
+    },
+    {
+      "player": "Kr\u00e9pin Diatta",
+      "cxt_sum": 4.057,
+      "cxt_rank": 451,
+      "xt_rank": 665,
+      "rank_delta": 214,
+      "n_actions": 152
+    }
+  ],
+  "biggest_fallers_under_cxt": [
+    {
+      "player": "Boualem Khoukhi",
+      "cxt_sum": 2.226,
+      "cxt_rank": 606,
+      "xt_rank": 304,
+      "rank_delta": -302,
+      "n_actions": 340
+    },
+    {
+      "player": "\u013dubom\u00edr \u0160atka",
+      "cxt_sum": 2.314,
+      "cxt_rank": 599,
+      "xt_rank": 306,
+      "rank_delta": -293,
+      "n_actions": 342
+    },
+    {
+      "player": "H\u00e9ctor Alfredo Moreno Herrera",
+      "cxt_sum": 2.309,
+      "cxt_rank": 600,
+      "xt_rank": 314,
+      "rank_delta": -286,
+      "n_actions": 331
+    },
+    {
+      "player": "Wojciech Szcz\u0119sny",
+      "cxt_sum": 3.187,
+      "cxt_rank": 528,
+      "xt_rank": 250,
+      "rank_delta": -278,
+      "n_actions": 406
+    },
+    {
+      "player": "Kamil Glik",
+      "cxt_sum": 3.657,
+      "cxt_rank": 482,
+      "xt_rank": 216,
+      "rank_delta": -266,
+      "n_actions": 450
+    },
+    {
+      "player": "Aaron Mooy",
+      "cxt_sum": 3.137,
+      "cxt_rank": 535,
+      "xt_rank": 271,
+      "rank_delta": -264,
+      "n_actions": 374
+    },
+    {
+      "player": "Dami\u00e1n Emiliano Mart\u00ednez",
+      "cxt_sum": 1.841,
+      "cxt_rank": 644,
+      "xt_rank": 388,
+      "rank_delta": -256,
+      "n_actions": 285
+    },
+    {
+      "player": "Kye Rowles",
+      "cxt_sum": 2.592,
+      "cxt_rank": 578,
+      "xt_rank": 323,
+      "rank_delta": -255,
+      "n_actions": 322
+    },
+    {
+      "player": "Marek Ham\u0161\u00edk",
+      "cxt_sum": 1.969,
+      "cxt_rank": 634,
+      "xt_rank": 396,
+      "rank_delta": -238,
+      "n_actions": 269
+    },
+    {
+      "player": "Martin D\u00fabravka",
+      "cxt_sum": 4.081,
+      "cxt_rank": 450,
+      "xt_rank": 221,
+      "rank_delta": -229,
+      "n_actions": 445
+    },
+    {
+      "player": "Yassine Meriah",
+      "cxt_sum": 2.461,
+      "cxt_rank": 589,
+      "xt_rank": 369,
+      "rank_delta": -220,
+      "n_actions": 294
+    },
+    {
+      "player": "Aziz Eraltay Behich",
+      "cxt_sum": 3.358,
+      "cxt_rank": 510,
+      "xt_rank": 293,
+      "rank_delta": -217,
+      "n_actions": 349
+    },
+    {
+      "player": "C\u00e9sar Jasib Montes Castro",
+      "cxt_sum": 3.234,
+      "cxt_rank": 521,
+      "xt_rank": 305,
+      "rank_delta": -216,
+      "n_actions": 340
+    },
+    {
+      "player": "Felix Eduardo Torres Caicedo",
+      "cxt_sum": 3.207,
+      "cxt_rank": 525,
+      "xt_rank": 311,
+      "rank_delta": -214,
+      "n_actions": 334
+    },
+    {
+      "player": "Lisandro Mart\u00ednez",
+      "cxt_sum": 2.173,
+      "cxt_rank": 613,
+      "xt_rank": 404,
+      "rank_delta": -209,
+      "n_actions": 268
+    }
+  ],
+  "commentary": "Contextual CxT and the static xT surface rank players similarly overall (Spearman 0.88), but they disagree sharply on individuals. Jo\u00e3o Filipe Iria Santos Moutinho rises 327 places under contextual CxT (xT rank 520 -> 193): the model credits the build-up context of their actions, not just the pitch zone. Conversely Boualem Khoukhi falls 302 places (xT rank 304 -> 606): high touch volume in nominally valuable zones, but low contextual threat. The biggest fallers are typically goalkeepers and defenders the static surface overrates. Whom you shortlist as a threat-creator changes for the movers, which is the point of a contextual metric.",
+  "smoke": false
+}
