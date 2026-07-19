@@ -7,14 +7,14 @@
       "name": "lgbm_contextual",
       "family": "lightgbm",
       "feature_set": "contextual",
-      "cv_mae": 0.02921,
-      "cv_rmse": 0.06645,
-      "cv_spearman": 0.2963,
+      "cv_mae": 0.02918,
+      "cv_rmse": 0.06638,
+      "cv_spearman": 0.2952,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_mae": 0.03082,
-        "heldout_rmse": 0.07064,
-        "heldout_spearman": 0.3015
+        "heldout_mae": 0.03038,
+        "heldout_rmse": 0.06968,
+        "heldout_spearman": 0.303
       },
       "model_path": "models\\cxt\\lgbm_contextual.joblib"
     },
@@ -23,14 +23,14 @@
       "name": "xgb_contextual",
       "family": "xgboost",
       "feature_set": "contextual",
-      "cv_mae": 0.03027,
-      "cv_rmse": 0.06694,
-      "cv_spearman": 0.3013,
+      "cv_mae": 0.02992,
+      "cv_rmse": 0.06662,
+      "cv_spearman": 0.2987,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_mae": 0.03086,
-        "heldout_rmse": 0.07066,
-        "heldout_spearman": 0.2937
+        "heldout_mae": 0.03112,
+        "heldout_rmse": 0.071,
+        "heldout_spearman": 0.294
       },
       "model_path": "models\\cxt\\xgb_contextual.joblib"
     },
@@ -39,14 +39,14 @@
       "name": "tweedie_glm",
       "family": "glm",
       "feature_set": "contextual",
-      "cv_mae": 0.03099,
-      "cv_rmse": 0.06704,
-      "cv_spearman": 0.241,
+      "cv_mae": 0.03097,
+      "cv_rmse": 0.06707,
+      "cv_spearman": 0.2411,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_mae": 0.0321,
-        "heldout_rmse": 0.07172,
-        "heldout_spearman": 0.2431
+        "heldout_mae": 0.03204,
+        "heldout_rmse": 0.07155,
+        "heldout_spearman": 0.2433
       },
       "model_path": "models\\cxt\\tweedie_glm.joblib"
     },
@@ -55,14 +55,14 @@
       "name": "gamma_glm",
       "family": "glm",
       "feature_set": "contextual",
-      "cv_mae": 0.08993,
-      "cv_rmse": 0.12822,
-      "cv_spearman": 0.1451,
+      "cv_mae": 0.08961,
+      "cv_rmse": 0.12832,
+      "cv_spearman": 0.1463,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_mae": 0.10807,
-        "heldout_rmse": 0.11688,
-        "heldout_spearman": 0.0914
+        "heldout_mae": 0.10795,
+        "heldout_rmse": 0.11679,
+        "heldout_spearman": 0.0932
       },
       "model_path": "models\\cxt\\gamma_glm.joblib"
     },
@@ -71,14 +71,14 @@
       "name": "gam_contextual",
       "family": "gam",
       "feature_set": "contextual",
-      "cv_mae": 0.09112,
-      "cv_rmse": 0.12913,
-      "cv_spearman": 0.179,
+      "cv_mae": 0.09081,
+      "cv_rmse": 0.12922,
+      "cv_spearman": 0.1812,
       "n_cv_folds_used": 5,
       "heldout": {
-        "heldout_mae": 0.10188,
-        "heldout_rmse": 0.11215,
-        "heldout_spearman": 0.1173
+        "heldout_mae": 0.10177,
+        "heldout_rmse": 0.11207,
+        "heldout_spearman": 0.1188
       },
       "model_path": "models\\cxt\\gam_contextual.joblib"
     }

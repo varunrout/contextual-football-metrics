@@ -1,0 +1,40 @@
+{
+  "metric": "cxa_shot_creation",
+  "evaluation": "identical Euro 2024 held-out actions; one ECE; paired bootstrap",
+  "note": "No external xA benchmark exists; the meaningful test is contextual vs traditional, not vs an off-the-shelf model.",
+  "n_actions": 98029,
+  "n_created": 19220,
+  "n_bootstrap": 2000,
+  "per_model": {
+    "naive_prevalence": {
+      "log_loss": 0.49489792201418875,
+      "brier": 0.15762316923625322,
+      "roc_auc": 0.5,
+      "pr_auc": 0.196064429913597,
+      "ece": 0.0
+    },
+    "contextual": {
+      "log_loss": 0.4879949308590088,
+      "brier": 0.15097723186959522,
+      "roc_auc": 0.7294862403205663,
+      "pr_auc": 0.35759048686040207,
+      "ece": 0.08122436607929069
+    }
+  },
+  "candidate": "contextual",
+  "baseline": "naive_prevalence",
+  "delta_vs_baseline": {
+    "log_loss": {
+      "delta_mean": -0.006901808924059647,
+      "ci_low": -0.010297348502747907,
+      "ci_high": -0.003570516659775201
+    },
+    "roc_auc": {
+      "delta_mean": 0.22945677673946363,
+      "ci_low": 0.22562644042225669,
+      "ci_high": 0.23321921314105049
+    }
+  },
+  "verdict": "CONTEXTUAL ADDS VALUE over naive_prevalence: lower log-loss and higher AUC, both CIs exclude zero.",
+  "smoke": false
+}

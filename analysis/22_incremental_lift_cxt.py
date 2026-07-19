@@ -112,62 +112,105 @@ def _zone_index(x, y):
     return (by * ZONES_X) + bx
 
 
-def _zone_baseline_pred(ho: pd.DataFrame) -> np.ndarray | None:
-    """Static zone value per action. Prefers a fitted baseline; falls back to saved priors."""
-    # Path 1: fitted ZoneXTBaseline object exposing predict_state_value(x, y)
-    try:
-        import joblib
+def _zone_mean_lookup(train: pd.DataFrame, ho: pd.DataFrame) -> np.ndarray:
+    """Per-zone mean possession_cxg learned on TRAIN, looked up by zone for held-out.
 
-        for p in (_ROOT / "models" / "cxt").glob("*zone*baseline*.joblib"):
-            zb = joblib.load(p)
-            if hasattr(zb, "predict_state_value"):
-                logger.info("zone baseline via fitted object: %s", p.name)
-                return np.asarray(
-                    zb.predict_state_value(ho[X_COL].to_numpy(), ho[Y_COL].to_numpy()), dtype=float
-                )
-    except Exception as e:
-        logger.warning("fitted zone baseline unavailable (%s)", e)
-    # Path 2: saved zone_xt_priors.parquet -> value per zone index
-    if ZONE_PRIORS.exists():
-        priors = pd.read_parquet(ZONE_PRIORS)
-        vcol = next(
-            (c for c in priors.columns if c.lower() in ("value", "xt", "zone_value", "values")),
-            None,
-        )
-        zcol = next(
-            (c for c in priors.columns if "zone" in c.lower() and priors[c].dtype.kind in "iu"),
-            None,
-        )
-        if vcol is not None:
-            values = np.zeros(ZONES_X * ZONES_Y, dtype=float)
-            if zcol is not None:
-                for _, r in priors.iterrows():
-                    zi = int(r[zcol])
-                    if 0 <= zi < len(values):
-                        values[zi] = float(r[vcol])
-            elif len(priors) == len(values):
-                values = priors[vcol].to_numpy(dtype=float)
-            zi = _zone_index(ho[X_COL].to_numpy(), ho[Y_COL].to_numpy())
-            logger.info("zone baseline via saved priors: %s (col=%s)", ZONE_PRIORS.name, vcol)
-            return values[zi]
+    This is the honest static baseline: the best a predictor can do knowing only
+    the pitch zone of the action, calibrated to the same target the contextual
+    model predicts (so MAE is a fair comparison).
+    """
+    tx = np.nan_to_num(train[X_COL].to_numpy(dtype=float))
+    ty = np.nan_to_num(train[Y_COL].to_numpy(dtype=float))
+    zone_mean = pd.Series(train[TARGET].to_numpy(dtype=float)).groupby(_zone_index(tx, ty)).mean()
+    global_mean = float(np.nanmean(train[TARGET].to_numpy(dtype=float)))
+
+    hx = np.nan_to_num(ho[X_COL].to_numpy(dtype=float))
+    hy = np.nan_to_num(ho[Y_COL].to_numpy(dtype=float))
+    ho_zone = _zone_index(hx, hy)
+    return np.array([zone_mean.get(z, global_mean) for z in ho_zone], dtype=float)
+
+
+def _zone_baseline_pred(ho: pd.DataFrame) -> np.ndarray | None:
+    """Return the precomputed static zone-baseline prediction, or None."""
+    if "zone_baseline_pred" in ho.columns:
+        return ho["zone_baseline_pred"].to_numpy(dtype=float)
     logger.warning("No zone baseline available - reporting contextual metrics only.")
     return None
 
 
-def _load_heldout():
-    from analysis._utils import heldout_mask, load_actions
+# CxT-eligible action types — must match scripts/train_cxt.py so the held-out
+# evaluation set is identical to what the model was trained and validated on.
+_CXT_ACTION_TYPES = {"pass", "carry", "cross", "cutback"}
 
-    actions = load_actions()
-    # Resolve Euro 2024 held-out via matches.parquet (feature tables carry a
-    # hashed competition_id and no season_id).
-    ho = actions.loc[
-        heldout_mask(actions, int(HELDOUT_COMPETITION_ID), int(HELDOUT_SEASON_ID))
-    ].copy()
+
+def _attach_possession_cxg(features_df: pd.DataFrame) -> pd.DataFrame:
+    """Derive the possession_cxg target, mirroring scripts/train_cxt.py.
+
+    The feature tables do not persist this target, so we rebuild it from the same
+    production CxG model the trainer uses: score shot rows, then take the
+    discounted sum of shot CxG within each possession.
+    """
+    import joblib
+    import yaml
+
+    from src.models.cxt.state_value_model import compute_possession_cxg
+
+    cfg = yaml.safe_load((_ROOT / "configs" / "models.yaml").read_text(encoding="utf-8"))
+    cxg_rel = (cfg.get("production") or {}).get("cxg")
+    if not cxg_rel:
+        raise SystemExit(
+            "No production CxG model in configs/models.yaml; cannot derive CxT target."
+        )
+    cxg_model = joblib.load(_ROOT / cxg_rel)
+
+    df = features_df.copy()
+    df["cxg"] = 0.0
+    shot_mask = df["event_type"].astype(str) == "shot"
+    if shot_mask.any():
+        proba = np.asarray(cxg_model.predict_proba(df.loc[shot_mask]))
+        scores = proba[:, 1] if proba.ndim == 2 and proba.shape[1] >= 2 else proba.ravel()
+        df.loc[shot_mask, "cxg"] = scores.astype(float)
+
+    df[TARGET] = compute_possession_cxg(
+        df,
+        cxg_col="cxg",
+        possession_id_col="possession_internal_id",
+        match_id_col="match_internal_id",
+    )
+    return df
+
+
+def _load_heldout():
+    from analysis._utils import load_features, load_matches
+
+    features = _attach_possession_cxg(load_features())
+
+    # Held-out = Euro 2024 (split_role == "val_test"), resolved via matches.parquet.
+    matches = load_matches()[["internal_id", "split_role"]].rename(
+        columns={"internal_id": "_match_id"}
+    )
+    features = features.merge(
+        matches, left_on="match_internal_id", right_on="_match_id", how="left"
+    )
+
+    # CxT-eligible actions only, matching the trainer, then split into the same
+    # train / held-out (Euro 2024 = val_test) partitions train_cxt uses.
+    cxt = features[features["event_type"].isin(_CXT_ACTION_TYPES)].copy()
+    ho = cxt[cxt["split_role"] == "val_test"].copy()
+    train = cxt[~cxt["split_role"].isin({"val_test", "test"})].copy()
+
     if ho.empty or TARGET not in ho.columns:
         raise SystemExit(
             f"CxT held-out empty or missing target {TARGET!r}. Check CONFIG / dvc pull."
         )
-    logger.info("CxT held-out: %d actions, target mean=%.4f", len(ho), ho[TARGET].mean())
+
+    ho["zone_baseline_pred"] = _zone_mean_lookup(train, ho)
+    logger.info(
+        "CxT held-out: %d actions (train %d), target mean=%.5f",
+        len(ho),
+        len(train),
+        ho[TARGET].mean(),
+    )
     return ho
 
 

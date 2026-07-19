@@ -1,0 +1,35 @@
+{
+  "metric": "cxt_state_value",
+  "evaluation": "identical Euro 2024 held-out actions; regression; paired bootstrap",
+  "baseline_note": "Baseline is the project's own static ZoneXT surface, the honest thing a contextual state-value model must beat.",
+  "n_actions": 98029,
+  "n_bootstrap": 2000,
+  "per_model": {
+    "contextual": {
+      "mae": 0.03038332655071141,
+      "rmse": 0.06967946836033195,
+      "spearman": 0.30300025141938697
+    },
+    "zone_baseline": {
+      "mae": 0.032399518377215976,
+      "rmse": 0.07132718877589823,
+      "spearman": 0.18016365010220356
+    }
+  },
+  "candidate": "contextual",
+  "baseline": "zone_baseline",
+  "delta_vs_baseline": {
+    "mae": {
+      "delta_mean": -0.0020149406370939724,
+      "ci_low": -0.002173604758792535,
+      "ci_high": -0.0018607225596007572
+    },
+    "rmse": {
+      "delta_mean": -0.0016455740633879374,
+      "ci_low": -0.0020299419597404216,
+      "ci_high": -0.0012656375369465766
+    }
+  },
+  "verdict": "CONTEXTUAL ADDS VALUE over zone_baseline: lower MAE, CI excludes zero.",
+  "smoke": false
+}
