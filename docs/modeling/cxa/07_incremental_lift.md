@@ -74,3 +74,21 @@ sorts high- from low-value actions only moderately. The honest one-line summary
 is that CxA is a calibrated but blunt expected-creation-value: reliable in
 aggregate, coarse per single action, and bottlenecked by the near-noise quality
 stage.
+
+## 5. External validity (CONT-F07)
+
+`analysis/24_external_validity.py` aggregates each player's season CxA and
+compares it to their actual assists (`pass_goal_assist`), pooled over all
+ingested matches (1,113 players with >=50 actions):
+
+| Correlation of season CxA vs actual assists | Value |
+|---|---|
+| Spearman (rank) | 0.39 |
+| Pearson | 0.65 |
+
+This is **weak external validity**: CxA does not rank assist-makers reliably,
+which is consistent with the near-noise quality stage above. The scouting call is
+honest and negative: do not shortlist creators on CxA alone. It is a weak prior
+at best, useful only alongside other evidence. For contrast, the same script
+finds CxG ranks goalscorers well (Spearman 0.69), so the weakness is specific to
+CxA, not the evaluation method.

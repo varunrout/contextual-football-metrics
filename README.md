@@ -52,6 +52,13 @@ identical Euro 2024 held-out split (98,029 actions, 2,000-sample bootstrap):
   0.0304 vs 0.0324, Spearman 0.303 vs 0.180, CIs exclude zero). This is the
   clearest win for context of the three.
 
+**External validity** ([`analysis/24`](analysis/24_external_validity.py)): pooled
+per-player, season CxG ranks players by actual goals well (Spearman 0.69, Pearson
+0.93 over 300 players), so CxG is usable to scout finishers on expected output.
+Season CxA ranks assist-makers only weakly (Spearman 0.39), so CxA should not be
+used to scout creators on its own. The metric that fits also ranks; the metric
+that is noisy does not.
+
 The point of a contextual metric is the incremental lift over an already-strong
 baseline, measured on the same data with an error bar, not a fresh AUC. Each
 comparison is produced by its `analysis/2x` script and written up in the matching
