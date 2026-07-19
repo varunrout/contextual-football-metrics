@@ -45,8 +45,20 @@ jobs:
       - name: Ruff format check
         run: poetry run ruff format --check .
 
+      - name: Pre-commit hooks
+        run: poetry run pre-commit run --all-files
+
+      - name: Build package and import smoke
+        # Proves the package builds and the metric subpackages import without the
+        # optional torch dependency (the lazy-import contract).
+        run: |
+          poetry build
+          poetry run python -c "import src.models.cxg, src.models.cxa, src.models.cxt; print('import-smoke ok (no torch)')"
+
       - name: Run tests with coverage
-        run: poetry run pytest -q --cov=src --cov=analysis --cov-report=term-missing --cov-report=xml
+        # Conservative starting floor: analysis/ scripts are smoke-tested rather
+        # than unit-tested, so they dilute the combined figure. Raise as coverage grows.
+        run: poetry run pytest -q --cov=src --cov=analysis --cov-report=term-missing --cov-report=xml --cov-fail-under=25
 
       - name: Upload coverage artefact
         if: always()
